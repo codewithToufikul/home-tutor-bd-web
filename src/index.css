@@ -1,0 +1,91 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Geist+Mono:wght@100..900&display=swap');
+
+@theme {
+  --font-sans: var(--font-sans, 'Plus Jakarta Sans'), 'system-ui', 'sans-serif';
+  --font-mono: 'Geist Mono', 'Geist Mono Fallback';
+  --font-display: var(--font-sans, 'Plus Jakarta Sans'), 'system-ui', 'sans-serif';
+
+  /* Font Weights */
+  --font-weight-thin: 100;
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+
+  /* Font Sizes & Line Heights */
+  --text-xs: 0.75rem; /* 12px */
+  --text-xs--line-height: 1rem; /* 16px */
+  --text-sm: 0.875rem; /* 14px */
+  --text-sm--line-height: 1.25rem; /* 20px */
+  --text-base: 1rem; /* 16px */
+  --text-base--line-height: 1.5rem; /* 24px */
+  --text-lg: 1.125rem; /* 18px */
+  --text-lg--line-height: 1.75rem; /* 28px */
+  --text-xl: 1.25rem; /* 20px */
+  --text-xl--line-height: 1.75rem; /* 28px */
+  --text-2xl: 1.5rem; /* 24px */
+  --text-2xl--line-height: 2rem; /* 32px */
+  --text-3xl: 1.875rem; /* 30px */
+  --text-3xl--line-height: 2.25rem; /* 36px */
+  --text-4xl: 2.25rem; /* 36px */
+  --text-4xl--line-height: 2.5rem; /* 40px */
+  --text-5xl: 3rem; /* 48px */
+  --text-5xl--line-height: 3rem; /* 48px */
+
+  --color-primary: #0D9488; /* Calming Teal */
+  --color-primary-dark: #0F766E;
+  --color-secondary: #10B981; /* Soft Sage Green */
+  --color-accent: #F59E0B; /* Warm Amber */
+  --color-background: #F9FAFB; /* Off-White */
+  --color-surface: #FFFFFF;
+  --color-ink: #1F2937; /* Dark Slate */
+  --color-ink-muted: #6B7280;
+}
+
+@layer base {
+  body {
+    @apply bg-background text-ink font-sans antialiased;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display font-bold;
+  }
+}
+
+.markdown-body {
+  @apply prose prose-teal max-w-none;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-ink/10 rounded-full;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  @apply bg-primary/20;
+}
+
+/* ==========================================================
+   GLOBAL RESPONSIVE & PADDING FIX FOR ALL DEVICES
+   ================================================---------- */
+/* সব পেজের রুট কন্টেইনার বা মেইন সেকশন থেকে অতিরিক্ত টপ গ্যাপ ওভাররাইড করে ফিক্স করা হলো */
+div[class*="min-h-screen"] {
+  padding-top: 1rem !important; /* সব ডিভাইসে ওপরের প্যাডিং একদম স্মুথ ও প্রোপার রাখা হলো */
+}
+
+@media (max-width: 768px) {
+  /* মোবাইল ডিভাইসে অতিরিক্ত গ্যাপ বা প্যাডিং স্বয়ংক্রিয়ভাবে জিরো বা মিনিমাল হয়ে যাবে */
+  div[class*="min-h-screen"] {
+    padding-top: 0.5rem !important;
+  }
+}
