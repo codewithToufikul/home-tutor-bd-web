@@ -1,5 +1,6 @@
 import type { RouteObject } from 'react-router-dom';
 
+import AuthGuard from '@/src/components/AuthGuard.tsx';
 import About from '@/src/pages/About.tsx';
 import Categories from '@/src/pages/Categories.tsx';
 import Contact from '@/src/pages/Contact.tsx';
@@ -31,9 +32,9 @@ export const publicRoutes: RouteObject[] = [
   { path: 'tutor/:id', element: <TutorProfilePage /> },
   { path: 'jobs', element: <Jobs /> },
   { path: 'job/:id', element: <JobDetails /> },
-  { path: 'request-tutor', element: <RequestTutor /> },
+  { path: 'request-tutor', element: <AuthGuard allowedRoles={['student', 'guardian']}><RequestTutor /></AuthGuard> },
   { path: 'for-tutors', element: <ForTutors /> },
-  { path: 'login', element: <Login /> },
-  { path: 'register', element: <Register /> },
+  { path: 'login', element: <AuthGuard guestOnly><Login /></AuthGuard> },
+  { path: 'register', element: <AuthGuard guestOnly><Register /></AuthGuard> },
   { path: 'pending-approval', element: <PendingApproval /> },
 ];

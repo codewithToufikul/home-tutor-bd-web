@@ -17,6 +17,8 @@ import TutorLayout from '@/src/components/TutorLayout.tsx';
 import { useAuth } from '@/src/context/AuthContext.tsx';
 import { cn } from '@/src/lib/utils';
 import { TutorProfileService } from '@/src/services/tutorProfileService.ts';
+import { can } from '@/src/shared/authorization.ts';
+import { PERMISSIONS } from '@/src/shared/constants/permissions.ts';
 
 type TabType = 'educational' | 'tuition' | 'personal' | 'documents' | 'verification';
 
@@ -85,6 +87,19 @@ export default function TutorProfileDashboard() {
     const file = e.target.files?.[0];
     if (!file || !user?.uid) return;
 
+    const decision = can({
+      user,
+      permission: PERMISSIONS.EDIT_PROFILE,
+      allowedRoles: ['tutor'],
+      ownerId: user.uid,
+      resourceOwnerId: user.uid,
+    });
+
+    if (!decision.ok) {
+      alert(decision.message);
+      return;
+    }
+
     if (file.size > 5 * 1024 * 1024) {
       alert('File size is too large! Please upload an image under 5MB.');
       return;
@@ -119,7 +134,19 @@ export default function TutorProfileDashboard() {
 
   // ডাটা সেভ এবং Next ট্যাবে নেভিগেট করার ফাংশন
   const handleSaveAndNext = async () => {
-    if (!user?.uid) return;
+    const decision = can({
+      user,
+      permission: PERMISSIONS.EDIT_PROFILE,
+      allowedRoles: ['tutor'],
+      ownerId: user?.uid,
+      resourceOwnerId: user?.uid,
+    });
+
+    if (!decision.ok) {
+      alert(decision.message);
+      return;
+    }
+
     setSaving(true);
 
     try {

@@ -1,4 +1,4 @@
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Briefcase, MapPin, BookOpen, GraduationCap, 
   Calendar, Clock, ChevronLeft, Search, Filter, 
@@ -14,9 +14,15 @@ import { TuitionJob } from '@/src/types';
 import { TuitionService } from '@/src/services/tuitionService.ts';
 import { useEffect, useMemo, useState } from 'react';
 import JobApplyModal from './JobApplyModal';
+import { useAuth } from '@/src/context/AuthContext.tsx';
+import { can } from '@/src/shared/authorization.ts';
+import { PERMISSIONS } from '@/src/shared/constants/permissions.ts';
 
 export default function JobDetails() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useAuth();
   const [showApplyModal, setShowApplyModal] = useState(false); 
   const [hasApplied, setHasApplied] = useState(false);
   const [jobData, setJobData] = useState<TuitionJob | null>(null);
@@ -68,6 +74,25 @@ export default function JobDetails() {
   const openMap = () => {
     const query = encodeURIComponent(`${job.area}, ${job.location}`);
     window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
+  };
+
+  const handleApplyClick = () => {
+    const decision = can({
+      user,
+      permission: PERMISSIONS.APPLY_TUITION,
+      allowedRoles: ['tutor'],
+    });
+
+    if (!decision.ok) {
+      if (decision.code === 'UNAUTHORIZED') {
+        navigate('/login', { state: { from: location } });
+      } else {
+        alert(decision.message);
+      }
+      return;
+    }
+
+    setShowApplyModal(true);
   };
 
   return (
@@ -235,7 +260,7 @@ export default function JobDetails() {
           <div className="lg:col-span-1 space-y-6">
             <div className="bg-white rounded-2xl p-6 shadow-xl shadow-ink/5 border border-ink/5 space-y-4">
               <button 
-                onClick={() => setShowApplyModal(true)}
+                onClick={handleApplyClick}
                 disabled={hasApplied}
                 className={cn(
                   "w-full py-3.5 rounded-xl font-black text-sm uppercase shadow-lg transition-all flex items-center justify-center gap-3 cursor-pointer",

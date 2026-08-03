@@ -4,6 +4,8 @@ import { ShieldCheck, Upload, CheckCircle2, AlertCircle, Camera, Check } from 'l
 import TutorLayout from '@/src/components/TutorLayout.tsx';
 import { useAuth } from '@/src/context/AuthContext.tsx';
 import { VerificationService } from '@/src/services/verificationService.ts';
+import { can } from '@/src/shared/authorization.ts';
+import { PERMISSIONS } from '@/src/shared/constants/permissions.ts';
 
 export default function TutorVerification() {
   const { user } = useAuth();
@@ -25,8 +27,16 @@ export default function TutorVerification() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!user?.uid) {
-      alert('You must be signed in as a tutor to submit a verification request.');
+    const decision = can({
+      user,
+      permission: PERMISSIONS.UPLOAD_DOCUMENT,
+      allowedRoles: ['tutor'],
+      ownerId: user?.uid,
+      resourceOwnerId: user?.uid,
+    });
+
+    if (!decision.ok) {
+      alert(decision.message);
       return;
     }
 

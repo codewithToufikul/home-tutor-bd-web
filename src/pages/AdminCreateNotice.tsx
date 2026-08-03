@@ -8,13 +8,29 @@ import {
 import AdminLayout from '@/src/components/AdminLayout.tsx';
 import { NoticeService } from '@/src/services/noticeService';
 import { cn } from '@/src/lib/utils';
+import { useAuth } from '@/src/context/AuthContext.tsx';
+import { can } from '@/src/shared/authorization.ts';
+import { PERMISSIONS } from '@/src/shared/constants/permissions.ts';
 
 export default function AdminCreateNotice() {
+  const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    const decision = can({
+      user,
+      permission: PERMISSIONS.MANAGE_NOTICES,
+      allowedRoles: ['admin'],
+    });
+
+    if (!decision.ok) {
+      alert(decision.message);
+      return;
+    }
+
     setIsSubmitting(true);
     (async () => {
       try {

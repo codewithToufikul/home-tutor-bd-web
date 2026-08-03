@@ -9,10 +9,13 @@ import { SUBJECTS, DISTRICTS, DISTRICT_WISE_AREAS, CATEGORIES_DATA } from '@/src
 import TutorCard from '@/src/components/TutorCard.tsx';
 import { TutorProfile, TuitionJob } from '@/src/types';
 import { cn } from '@/src/lib/utils';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { TuitionService } from '@/src/services/tuitionService.ts';
 import { TutorProfileService } from '@/src/services/tutorProfileService.ts';
 import { NotificationService } from '@/src/services/notificationService.ts';
+import { useAuth } from '@/src/context/AuthContext.tsx';
+import { can } from '@/src/shared/authorization.ts';
+import { PERMISSIONS } from '@/src/shared/constants/permissions.ts';
 
 const CUSTOM_CLASSES = [
   'Play / Nursery',
@@ -211,6 +214,22 @@ export default function Home() {
   const handleRequestSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.phone) return;
+
+    const decision = can({
+      user,
+      permission: PERMISSIONS.CREATE_TUITION,
+      allowedRoles: ['student', 'guardian'],
+    });
+
+    if (!decision.ok) {
+      if (decision.code === 'UNAUTHORIZED') {
+        navigate('/login', { state: { from: { pathname: '/' } } });
+      } else {
+        alert(decision.message);
+      }
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {

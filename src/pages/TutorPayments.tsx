@@ -19,6 +19,8 @@ import { cn } from '@/src/lib/utils';
 import { useAuth } from '@/src/context/AuthContext.tsx';
 import { PaymentRequestService } from '@/src/services/paymentRequestService.ts';
 import { NotificationService } from '@/src/services/notificationService.ts';
+import { can } from '@/src/shared/authorization.ts';
+import { PERMISSIONS } from '@/src/shared/constants/permissions.ts';
 
 interface Transaction {
   id: string;
@@ -104,8 +106,16 @@ export default function TutorPayments() {
       return;
     }
 
-    if (!user?.uid) {
-      alert('Unable to submit payment request without a logged in user.');
+    const decision = can({
+      user,
+      permission: PERMISSIONS.PAYMENT_REQUEST,
+      allowedRoles: ['tutor'],
+      ownerId: user?.uid,
+      resourceOwnerId: user?.uid,
+    });
+
+    if (!decision.ok) {
+      alert(decision.message);
       return;
     }
 

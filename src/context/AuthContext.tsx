@@ -11,6 +11,7 @@ import {
   type AppUser,
   type AuthRole,
 } from '@/src/services/authService.ts';
+import { hasRole } from '@/src/shared/authorization.ts';
 
 interface AuthContextType {
   user: AppUser | null;
@@ -60,7 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const authenticatedUser = await signInWithFirebase(email, password);
 
-      if (role && authenticatedUser.role !== role && role !== 'student') {
+      if (role && role !== 'student' && !hasRole(authenticatedUser, role)) {
         await signOutUser();
         setUser(null);
         throw new Error('Unauthorized role for this login portal.');

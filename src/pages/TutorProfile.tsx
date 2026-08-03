@@ -1,4 +1,4 @@
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -11,10 +11,15 @@ import { cn } from '@/src/lib/utils';
 import { TutorProfileRepository } from '@/src/repositories/tutorProfileRepository.ts';
 import { TuitionService } from '@/src/services/tuitionService.ts';
 import { HireService } from '@/src/services/hireService.ts';
+import { useAuth } from '@/src/context/AuthContext.tsx';
+import { can } from '@/src/shared/authorization.ts';
+import { PERMISSIONS } from '@/src/shared/constants/permissions.ts';
 
 export default function TutorProfilePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useAuth();
 
   const [tutor, setTutor] = useState<TutorProfile | null>(null);
   const [suggestedTutors, setSuggestedTutors] = useState<TutorProfile[]>([]);
@@ -65,6 +70,21 @@ export default function TutorProfilePage() {
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!guardianName || !guardianPhone || !tutor) return;
+
+    const decision = can({
+      user,
+      permission: PERMISSIONS.HIRE_TUTOR,
+      allowedRoles: ['guardian', 'student'],
+    });
+
+    if (!decision.ok) {
+      if (decision.code === 'UNAUTHORIZED') {
+        navigate('/login', { state: { from: location } });
+      } else {
+        alert(decision.message);
+      }
+      return;
+    }
 
     setIsSubmitting(true);
     try {

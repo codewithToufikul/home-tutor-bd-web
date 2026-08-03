@@ -5,6 +5,7 @@ import { cn } from '@/src/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '@/src/context/AuthContext.tsx';
 import logoImage from '@/src/lib/Home.png';
+import { getDashboardPath } from '@/src/shared/authorization.ts';
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -18,7 +19,7 @@ export default function Navbar() {
     { name: 'Contact Us', href: '/contact', icon: Mail },
   ];
 
-  const dashboardHref = user?.role === 'admin' ? '/admin' : user?.role === 'tutor' ? '/tutor/dashboard' : '/student/dashboard';
+  const dashboardHref = getDashboardPath(user?.role);
 
   return (
     <nav className="sticky top-0 z-50 bg-surface/80 backdrop-blur-md border-b border-ink/5">

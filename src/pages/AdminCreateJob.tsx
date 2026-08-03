@@ -11,9 +11,13 @@ import { useNavigate } from 'react-router-dom';
 import { TuitionService } from '@/src/services/tuitionService.ts';
 import { TuitionJob } from '@/src/types';
 import { SUBJECTS, CLASSES, MEDIUMS, DISTRICTS, DISTRICT_WISE_AREAS } from '@/src/constants';
+import { useAuth } from '@/src/context/AuthContext.tsx';
+import { can } from '@/src/shared/authorization.ts';
+import { PERMISSIONS } from '@/src/shared/constants/permissions.ts';
 
 export default function AdminCreateJob() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -69,6 +73,18 @@ export default function AdminCreateJob() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    const decision = can({
+      user,
+      permission: PERMISSIONS.MANAGE_JOBS,
+      allowedRoles: ['admin'],
+    });
+
+    if (!decision.ok) {
+      alert(decision.message);
+      return;
+    }
+
     setIsSubmitting(true);
 
     const persistJob = async () => {
