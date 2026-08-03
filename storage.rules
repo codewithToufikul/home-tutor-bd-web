@@ -1,0 +1,95 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Admin authorization is not currently backed by Firebase Custom Claims.
+    // Until custom claims or a trusted backend policy is implemented, admin-only
+    // storage paths must remain write-protected from the client rules.
+    function isAdmin() {
+      return false;
+    }
+
+    function allowedProfileImageType() {
+      return request.resource.contentType in ['image/jpeg', 'image/png', 'image/webp'];
+    }
+
+    function allowedCertificateType() {
+      return request.resource.contentType in ['application/pdf', 'image/jpeg', 'image/png'];
+    }
+
+    function allowedCvType() {
+      return request.resource.contentType == 'application/pdf';
+    }
+
+    function allowedNidType() {
+      return request.resource.contentType in ['application/pdf', 'image/jpeg', 'image/png'];
+    }
+
+    function allowedBlogImageType() {
+      return request.resource.contentType in ['image/jpeg', 'image/png', 'image/webp'];
+    }
+
+    function allowedDownloadType() {
+      return request.resource.contentType in ['application/pdf', 'application/zip'];
+    }
+
+    match /profile-images/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if isOwner(userId)
+        && allowedProfileImageType()
+        && request.resource.size < 5 * 1024 * 1024;
+    }
+
+    match /certificates/{userId}/{fileName} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow write: if isOwner(userId)
+        && allowedCertificateType()
+        && request.resource.size < 10 * 1024 * 1024;
+    }
+
+    match /cv/{userId}/{fileName} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow write: if isOwner(userId)
+        && allowedCvType()
+        && request.resource.size < 10 * 1024 * 1024;
+    }
+
+    match /nid/{userId}/{fileName} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow write: if isOwner(userId)
+        && allowedNidType()
+        && request.resource.size < 10 * 1024 * 1024;
+    }
+
+    match /blogs/{blogId}/{fileName} {
+      allow read: if true;
+      // Admin uploads require Firebase Custom Claims or a trusted backend policy.
+      allow write: if false;
+    }
+
+    match /downloads/{downloadId}/{fileName} {
+      allow read: if true;
+      // Admin uploads require Firebase Custom Claims or a trusted backend policy.
+      allow write: if false;
+    }
+
+    match /logos/{fileName} {
+      allow read: if true;
+      // Admin uploads require Firebase Custom Claims or a trusted backend policy.
+      allow write: if false;
+    }
+
+    match /banners/{fileName} {
+      allow read: if true;
+      // Admin uploads require Firebase Custom Claims or a trusted backend policy.
+      allow write: if false;
+    }
+  }
+}

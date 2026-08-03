@@ -1,0 +1,182 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function getUserProfile() {
+      return isSignedIn() ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data : null;
+    }
+
+    function currentRole() {
+      return isSignedIn() ? getUserProfile().role : null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && currentRole() == 'admin';
+    }
+
+    function isRole(roleName) {
+      return isSignedIn() && currentRole() == roleName;
+    }
+
+    function ownerMatches(fieldName) {
+      return isSignedIn() && request.auth.uid == request.resource.data[fieldName];
+    }
+
+    function resourceOwnerMatches(fieldName) {
+      return isSignedIn() && request.auth.uid == resource.data[fieldName];
+    }
+
+    match /users/{uid} {
+      allow create: if isSignedIn() && request.auth.uid == uid;
+      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow update: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow delete: if false;
+    }
+
+    match /tutor_profiles/{profileId} {
+      allow read: if true;
+      allow create: if ownerMatches('uid') && isRole('tutor');
+      allow update: if isAdmin() || (resourceOwnerMatches('uid') && isRole('tutor'));
+      allow delete: if isAdmin();
+    }
+
+    match /guardian_profiles/{profileId} {
+      allow read: if true;
+      allow create: if ownerMatches('uid') && isRole('guardian');
+      allow update: if isAdmin() || (resourceOwnerMatches('uid') && isRole('guardian'));
+      allow delete: if isAdmin();
+    }
+
+    match /coaching_centers/{centerId} {
+      allow read: if true;
+      allow create: if ownerMatches('uid') && isRole('coaching');
+      allow update: if isAdmin() || (resourceOwnerMatches('uid') && isRole('coaching'));
+      allow delete: if isAdmin();
+    }
+
+    match /tutors/{tutorId} {
+      allow read: if true;
+      allow create: if isRole('tutor') && request.auth.uid == request.resource.data.uid;
+      allow update: if isAdmin() || (resourceOwnerMatches('uid') && isRole('tutor'));
+      allow delete: if isAdmin();
+    }
+
+    match /tuition_jobs/{jobId} {
+      allow read: if true;
+      allow create: if isSignedIn() && (isRole('guardian') || isRole('student')) && request.resource.data.parentId == request.auth.uid;
+      allow update: if isAdmin() || (resourceOwnerMatches('parentId') && (isRole('guardian') || isRole('student')));
+      allow delete: if isAdmin();
+    }
+
+    match /applications/{applicationId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.tutorId == request.auth.uid);
+      allow create: if isRole('tutor') && request.resource.data.tutorId == request.auth.uid;
+      allow update: if isAdmin() || (resourceOwnerMatches('tutorId') && isRole('tutor'));
+      allow delete: if isAdmin();
+    }
+
+    match /payment_requests/{paymentId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.tutorId == request.auth.uid);
+      allow create: if isRole('tutor') && request.resource.data.tutorId == request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /payments/{paymentId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.tutorId == request.auth.uid);
+      allow create: if isRole('tutor') && request.resource.data.tutorId == request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /transactions/{transactionId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.tutorId == request.auth.uid);
+      allow create: if isRole('tutor') && request.resource.data.tutorId == request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn() && resource.data.tutorId == request.auth.uid;
+      allow create: if isAdmin();
+      allow update: if isAdmin() || (resourceOwnerMatches('tutorId') && request.resource.data.tutorId == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+
+    match /verification_requests/{requestId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow create: if isRole('tutor') && request.resource.data.uid == request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /admin_verification_requests/{requestId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /hire_requests/{requestId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.guardianId == request.auth.uid) || (isSignedIn() && resource.data.tutorId == request.auth.uid);
+      allow create: if isSignedIn() && (isRole('guardian') || isRole('student')) && request.resource.data.guardianId == request.auth.uid;
+      allow update: if isAdmin() || (resourceOwnerMatches('guardianId')) || (resourceOwnerMatches('tutorId'));
+      allow delete: if isAdmin();
+    }
+
+    match /saved_tutors/{savedId} {
+      allow read: if isAdmin() || (isSignedIn() && (resource.data.studentId == request.auth.uid || resource.data.guardianId == request.auth.uid));
+      allow create: if isSignedIn() && (request.resource.data.studentId == request.auth.uid || request.resource.data.guardianId == request.auth.uid);
+      allow update: if isAdmin() || (resourceOwnerMatches('studentId')) || (resourceOwnerMatches('guardianId'));
+      allow delete: if isAdmin() || (resourceOwnerMatches('studentId')) || (resourceOwnerMatches('guardianId'));
+    }
+
+    match /system_notices/{noticeId} {
+      allow read: if true;
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /blogs/{blogId} {
+      allow read: if true;
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /calendar_events/{eventId} {
+      allow read: if true;
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /downloads/{downloadId} {
+      allow read: if true;
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Contact messages are intentionally public-write from the frontend form.
+    // Production hardening should add Firebase App Check, reCAPTCHA, rate limiting,
+    // and Cloud Functions validation before exposing this path beyond the current MVP posture.
+    match /contact_messages/{messageId} {
+      allow read: if isAdmin();
+      allow create: if true;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /job_approvals/{approvalId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+  }
+}
