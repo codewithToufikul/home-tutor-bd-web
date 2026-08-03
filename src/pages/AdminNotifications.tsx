@@ -8,29 +8,12 @@ import {
 import AdminLayout from '@/src/components/AdminLayout.tsx';
 import { cn } from '@/src/lib/utils';
 
-const MOCK_NOTIFICATIONS = [
-  { id: 1, title: 'New Tutor Registration', desc: 'Saiful Arafat has registered as a Physics tutor.', time: '2 mins ago', type: 'user', unread: true },
-  { id: 2, title: 'Payment Received', desc: 'Tuition fee of 5000 BDT received from Rahim Ahmed.', time: '1 hour ago', type: 'payment', unread: true },
-  { id: 3, title: 'New Job Request', desc: 'A new tuition job for Class 10 Math has been posted.', time: '3 hours ago', type: 'job', unread: false },
-  { id: 4, title: 'New Message', desc: 'You have a new inquiry from Karim Ullah regarding tuition.', time: '5 hours ago', type: 'message', unread: false },
-  { id: 5, title: 'System Update', desc: 'Platform maintenance scheduled for tomorrow at 2:00 AM.', time: '1 day ago', type: 'system', unread: false },
-];
-
 export default function AdminNotifications() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [filter, setFilter] = useState('all');
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('admin_notifications') || '[]');
-    const formattedSaved = saved.map((n: any) => ({
-      id: n.id,
-      title: n.title,
-      desc: n.message,
-      time: n.time,
-      type: 'job',
-      unread: !n.isRead
-    }));
-    setNotifications([...formattedSaved, ...MOCK_NOTIFICATIONS]);
+    setNotifications([]);
   }, []);
 
   const getIcon = (type: string) => {

@@ -16,11 +16,7 @@ import {
 import TutorLayout from '@/src/components/TutorLayout.tsx';
 import { useAuth } from '@/src/context/AuthContext.tsx';
 import { cn } from '@/src/lib/utils';
-
-// Firebase Imports
-import { db, storage } from '@/src/firebase';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { TutorProfileService } from '@/src/services/tutorProfileService.ts';
 
 type TabType = 'educational' | 'tuition' | 'personal' | 'documents' | 'verification';
 
@@ -66,10 +62,9 @@ export default function TutorProfileDashboard() {
       if (!user?.uid) return;
       setLoading(true);
       try {
-        const docRef = doc(db, 'tutor_profiles', user.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setProfileData((prev: any) => ({ ...prev, ...docSnap.data() }));
+        const existing = await TutorProfileService.getByUid(user.uid);
+        if (existing) {
+          setProfileData((prev: any) => ({ ...prev, ...existing }));
         }
       } catch (err) {
         console.error("Error fetching tutor profile:", err);
@@ -85,7 +80,7 @@ export default function TutorProfileDashboard() {
     setProfileData((prev: any) => ({ ...prev, [key]: value }));
   };
 
-  // Firebase Storage-এ ছবি আপলোড করার কার্যকরী ফাংশন
+  // Profile photo preview and persistence through the service layer
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user?.uid) return;
@@ -97,21 +92,26 @@ export default function TutorProfileDashboard() {
 
     setUploadingPhoto(true);
     try {
-      const storageRef = ref(storage, `tutor_profiles/${user.uid}/profile_${Date.now()}.jpg`);
-      await uploadBytes(storageRef, file);
-      const downloadURL = await getDownloadURL(storageRef);
+      const photoUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsDataURL(file);
+      });
 
-      // লোকাল স্টেট আপডেট
-      setProfileData((prev: any) => ({ ...prev, photoUrl: downloadURL }));
-      
-      // ফায়ারস্টোরে তাৎক্ষণিকভাবে আপডেট সেভ করা
-      const docRef = doc(db, 'tutor_profiles', user.uid);
-      await setDoc(docRef, { photoUrl: downloadURL }, { merge: true });
+      setProfileData((prev: any) => ({ ...prev, photoUrl }));
+
+      const existing = await TutorProfileService.getByUid(user.uid);
+      if (existing?.id) {
+        await TutorProfileService.update(existing.id, { photoUrl });
+      } else {
+        await TutorProfileService.create({ uid: user.uid, photoUrl });
+      }
 
       alert('Profile photo uploaded successfully!');
     } catch (error) {
       console.error("Error uploading photo:", error);
-      alert('Failed to upload photo. Please check your Firebase Storage Rules.');
+      alert('Failed to upload photo. Please try again.');
     } finally {
       setUploadingPhoto(false);
     }
@@ -123,12 +123,21 @@ export default function TutorProfileDashboard() {
     setSaving(true);
 
     try {
-      const docRef = doc(db, 'tutor_profiles', user.uid);
-      await setDoc(docRef, {
-        ...profileData,
-        email: user?.email || '',
-        updatedAt: serverTimestamp()
-      }, { merge: true });
+      const existing = await TutorProfileService.getByUid(user.uid);
+      if (existing?.id) {
+        await TutorProfileService.update(existing.id, {
+          ...profileData,
+          email: user?.email || '',
+          updatedAt: new Date().toISOString(),
+        });
+      } else {
+        await TutorProfileService.create({
+          uid: user.uid,
+          ...profileData,
+          email: user?.email || '',
+          updatedAt: new Date().toISOString(),
+        });
+      }
 
       setSuccessMsg(true);
       setTimeout(() => setSuccessMsg(false), 2000);

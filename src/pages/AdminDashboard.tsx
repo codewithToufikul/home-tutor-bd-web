@@ -1,64 +1,98 @@
-import { Users, CreditCard, CheckSquare, Clock, Briefcase, UserCheck, School, Newspaper, ChevronRight, Bell, AlertCircle } from 'lucide-react';
+import { Users, CreditCard, CheckSquare, Clock, Briefcase, UserCheck, School, Newspaper, ChevronRight } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '@/src/lib/utils';
 import AdminLayout from '@/src/components/AdminLayout.tsx';
 import { useEffect, useState } from 'react';
+import { AdminService } from '@/src/services/adminService';
 
 const STAT_CARDS = [
   {
     title: 'User Information',
     items: [
-      { label: 'All Users', value: 8, icon: Users, color: 'border-[#3B82F6]' },
-      { label: 'All Tutors', value: 5, icon: UserCheck, color: 'border-[#F59E0B]' },
-      { label: 'Coaching Center', value: 1, icon: School, color: 'border-[#06B6D4]' },
-      { label: 'All Parent', value: 1, icon: Users, color: 'border-[#10B981]' },
+      { label: 'All Users', key: 'totalUsers', value: 0, icon: Users, color: 'border-[#3B82F6]' },
+      { label: 'All Tutors', key: 'totalTutors', value: 0, icon: UserCheck, color: 'border-[#F59E0B]' },
+      { label: 'Coaching Center', key: 'totalCoachingCenters', value: 0, icon: School, color: 'border-[#06B6D4]' },
+      { label: 'All Parent', key: 'totalGuardians', value: 0, icon: Users, color: 'border-[#10B981]' },
     ]
   },
   {
     title: 'Tuition Jobs Information',
     items: [
-      { label: 'Total Tuition Jobs', value: 6, icon: Briefcase, color: 'border-[#3B82F6]' },
-      { label: 'Pending Jobs', value: 1, icon: Clock, color: 'border-[#EF4444]' },
-      { label: 'Approve Jobs', value: 4, icon: CheckSquare, color: 'border-[#10B981]' },
+      { label: 'Total Tuition Jobs', key: 'totalTuitionJobs', value: 0, icon: Briefcase, color: 'border-[#3B82F6]' },
+      { label: 'Pending Jobs', key: 'pendingApprovals', value: 0, icon: Clock, color: 'border-[#EF4444]' },
+      { label: 'Approve Jobs', key: 'verificationRequests', value: 0, icon: CheckSquare, color: 'border-[#10B981]' },
     ]
   },
   {
-    title: 'Tutor Request Information',
+    title: 'Content & Blog Information',
     items: [
-      { label: 'Total Tutor', value: 5, icon: UserCheck, color: 'border-[#3B82F6]' },
-      { label: 'Pending Tutor', value: 2, icon: Clock, color: 'border-[#EF4444]' },
-      { label: 'Approve Tutor', value: 3, icon: CheckSquare, color: 'border-[#10B981]' },
-    ]
-  },
-  {
-    title: 'All Blog Information',
-    items: [
-      { label: 'Total Blogs', value: 2, icon: Newspaper, color: 'border-[#3B82F6]' },
-      { label: 'Pending Blog', value: 1, icon: Clock, color: 'border-[#EF4444]' },
-      { label: 'Approve Blog', value: 1, icon: CheckSquare, color: 'border-[#10B981]' },
-    ]
-  },
-  {
-    title: 'Payment Information',
-    items: [
-      { label: 'Total Payment', value: '00', icon: CreditCard, color: 'border-[#EF4444]' },
+      { label: 'Total Blogs', key: 'totalBlogs', value: 0, icon: Newspaper, color: 'border-[#3B82F6]' },
+      { label: 'Pending Blog', key: 'pendingBlogs', value: 0, icon: Clock, color: 'border-[#EF4444]' },
+      { label: 'Total Payments', key: 'totalPayments', value: 0, icon: CreditCard, color: 'border-[#10B981]' },
     ]
   }
 ];
 
 export default function AdminDashboard() {
-  const [notifications, setNotifications] = useState<any[]>([]);
   const [stats, setStats] = useState(STAT_CARDS);
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('admin_notifications') || '[]');
-    setNotifications(saved);
+    let active = true;
 
-    // Update stats dynamically
-    const updatedStats = [...STAT_CARDS];
-    updatedStats[2].items[0].value = 5 + saved.length; // Total Tutor (Mock + New)
-    updatedStats[2].items[1].value = 2 + saved.length; // Pending Tutor (Mock + New)
-    setStats(updatedStats);
+    (async () => {
+      try {
+        const [
+          totalUsers,
+          totalTutors,
+          totalCoachingCenters,
+          totalGuardians,
+          totalTuitionJobs,
+          pendingApprovals,
+          verificationRequests,
+          totalBlogs,
+          pendingBlogs,
+          totalPayments
+        ] = await Promise.all([
+          AdminService.totalUsers(),
+          AdminService.totalTutors(),
+          AdminService.totalCoachingCenters(),
+          AdminService.totalGuardians(),
+          AdminService.totalTuitionJobs(),
+          AdminService.pendingApprovals(),
+          AdminService.verificationRequests(),
+          AdminService.totalBlogs(),
+          AdminService.pendingBlogs(),
+          AdminService.totalPayments(),
+        ]);
+
+        if (!active) return;
+
+        const values: Record<string, number> = {
+          totalUsers,
+          totalTutors,
+          totalCoachingCenters,
+          totalGuardians,
+          totalTuitionJobs,
+          pendingApprovals,
+          verificationRequests,
+          totalBlogs,
+          pendingBlogs,
+          totalPayments,
+        };
+
+        setStats(STAT_CARDS.map((section) => ({
+          ...section,
+          items: section.items.map((item) => ({
+            ...item,
+            value: values[item.key] ?? item.value,
+          })),
+        })));
+      } catch (err) {
+        console.error('Failed to load dashboard stats:', err);
+      }
+    })();
+
+    return () => { active = false; };
   }, []);
 
   return (

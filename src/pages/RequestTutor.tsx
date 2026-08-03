@@ -8,7 +8,7 @@ import {
 import { SUBJECTS, CLASSES, MEDIUMS, DISTRICTS, DISTRICT_WISE_AREAS } from '@/src/constants';
 import { cn } from '@/src/lib/utils';
 import { useNavigate, Link } from 'react-router-dom';
-import { addJob } from '@/src/lib/jobs';
+import { TuitionService } from '@/src/services/tuitionService.ts';
 import { TuitionJob } from '@/src/types';
 
 function TakaIcon({ size = 16, className = "" }: { size?: number, className?: string }) {
@@ -22,42 +22,11 @@ function TakaIcon({ size = 16, className = "" }: { size?: number, className?: st
   );
 }
 
-// Mock Database of Verified Tutors for Auto Matching Test
-const MOCK_MATCH_TUTORS = [
-  {
-    id: 'HTP-101',
-    name: 'Tanvir Hossain',
-    university: 'BUET (CSE)',
-    areas: ['Mirpur', 'Dhaka'],
-    subjects: ['MATH', 'PHYSICS', 'ICT'],
-    rating: 4.9,
-    photo: 'https://picsum.photos/seed/tanvir/200/200'
-  },
-  {
-    id: 'HTP-102',
-    name: 'Nabila Islam',
-    university: 'Dhaka University (English)',
-    areas: ['Mirpur', 'Dhaka'],
-    subjects: ['ENGLISH', 'BANGLA'],
-    rating: 4.8,
-    photo: 'https://picsum.photos/seed/nabila/200/200'
-  },
-  {
-    id: 'HTP-103',
-    name: 'Saiful Arafat',
-    university: 'DMC (MBBS)',
-    areas: ['Uttara', 'Dhaka'],
-    subjects: ['BIOLOGY', 'CHEMISTRY', 'SCIENCE'],
-    rating: 5.0,
-    photo: 'https://picsum.photos/seed/saiful/200/200'
-  }
-];
-
 export default function RequestTutor() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [matchedTutors, setMatchedTutors] = useState<typeof MOCK_MATCH_TUTORS>([]);
+  const [matchedTutors, setMatchedTutors] = useState<any[]>([]);
   const [customSubInput, setCustomSubInput] = useState('');
   const [customAreaInput, setCustomAreaInput] = useState('');
 
@@ -145,7 +114,7 @@ export default function RequestTutor() {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const newJob: TuitionJob = {
       id: Math.floor(10000 + Math.random() * 90000).toString(),
       parentId: 'p_new',
@@ -163,28 +132,9 @@ export default function RequestTutor() {
       category: formData.medium === 'Madrasah' ? 'Madrasah Medium' : formData.medium
     };
 
-    addJob(newJob);
+    await TuitionService.create(newJob);
 
-    const matches = MOCK_MATCH_TUTORS.filter(tutor => 
-      formData.areas.some(a => tutor.areas.some(ta => ta.toUpperCase().includes(a))) || 
-      tutor.subjects.some(s => formData.subjects.includes(s))
-    );
-
-    setMatchedTutors(matches.length > 0 ? matches : MOCK_MATCH_TUTORS.slice(0, 2));
-
-    const newRequest = {
-      id: `REQ-${Date.now()}`,
-      type: 'tutor_request',
-      title: 'New Tutor Request',
-      message: `${formData.studentName} requested a tutor for ${formData.studentClass} (${formData.medium}) in ${formData.areas.join(', ')}, ${formData.district}. Salary: ${formData.salaryOffer}, Days: ${formData.daysPerWeek}, Subjects: ${formData.subjects.join(', ')}.`,
-      time: 'Just now',
-      data: formData,
-      isRead: false
-    };
-
-    const existingNotifications = JSON.parse(localStorage.getItem('admin_notifications') || '[]');
-    localStorage.setItem('admin_notifications', JSON.stringify([newRequest, ...existingNotifications]));
-
+    setMatchedTutors([]);
     setIsSubmitted(true);
   };
 

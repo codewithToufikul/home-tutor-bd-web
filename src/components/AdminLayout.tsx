@@ -40,14 +40,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { logout } = useAuth();
 
   useEffect(() => {
-    const loadNotifs = () => {
-      const saved = JSON.parse(localStorage.getItem('admin_notifications') || '[]');
-      setNotifications(saved);
-    };
-
-    loadNotifs();
-    const interval = setInterval(loadNotifs, 5000);
-    return () => clearInterval(interval);
+    setNotifications([]);
   }, []);
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
@@ -55,7 +48,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const markAsReadAndNavigate = (notif: any) => {
     const updated = notifications.map(n => n.id === notif.id ? { ...n, isRead: true } : n);
     setNotifications(updated);
-    localStorage.setItem('admin_notifications', JSON.stringify(updated));
     setIsNotifOpen(false);
 
     // নোটিফিকেশনের ধরন অনুযায়ী সঠিক সেকশনে রিডাইরেক্ট করা
@@ -71,7 +63,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const deleteNotif = (id: string) => {
     const updated = notifications.filter(n => n.id !== id);
     setNotifications(updated);
-    localStorage.setItem('admin_notifications', JSON.stringify(updated));
   };
 
   const handleLogout = () => {

@@ -1,101 +1,105 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Bell, 
-  Trash2, 
+import {
+  Bell,
+  Trash2,
   Search,
   Megaphone,
   AlertCircle,
   Info,
   Clock,
-  CheckCircle2,
   ChevronRight
 } from 'lucide-react';
 import TutorLayout from '@/src/components/TutorLayout.tsx';
 import { cn } from '@/src/lib/utils';
+import { NoticeService } from '@/src/services/noticeService.ts';
+
+interface Notice {
+  id: string;
+  title: string;
+  audience?: string;
+  priority?: string;
+  category?: string;
+  content: string;
+  date: string;
+  isRead?: boolean;
+  link?: string;
+}
 
 export default function TutorNotifications() {
-  const [notices, setNotices] = useState<any[]>([]);
+  const [notices, setNotices] = useState<Notice[]>([]);
   const [filter, setFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    const allNotices = JSON.parse(localStorage.getItem('system_notices') || '[]');
-    
-    // Add seed notices if empty
-    if (allNotices.length === 0) {
-      const seeds = [
-        {
-          id: 1,
-          title: 'Welcome to Tutor Dashboard!',
-          audience: 'Tutors',
-          priority: 'Medium',
-          category: 'General',
-          content: 'We are glad to have you on board. Start browsing for tuition jobs and build your profile.',
-          date: new Date(Date.now() - 3600000).toISOString(),
-          isRead: false
-        },
-        {
-          id: 2,
-          title: 'Update Your Profile Photo',
-          audience: 'Tutors',
-          priority: 'High',
-          category: 'Policy',
-          content: 'Professional profile photos get 70% more responses. Make sure to upload a clear face photo.',
-          date: new Date(Date.now() - 86400000).toISOString(),
-          isRead: false
-        }
-      ];
-      localStorage.setItem('system_notices', JSON.stringify(seeds));
-      setNotices(seeds);
-    } else {
-      // Filter for Tutors or All
-      const tutorNotices = allNotices.filter((n: any) => n.audience === 'Tutors' || n.audience === 'All');
-      setNotices(tutorNotices);
-    }
+    const fetchNotices = async () => {
+      try {
+        let items = await NoticeService.list();
+        const tutorNotices = items.filter((notice) =>
+          !notice.audience || notice.audience === 'Tutors' || notice.audience === 'All'
+        );
+
+        // Use Firestore notices only; do not auto-insert records.
+        setNotices(tutorNotices as Notice[]);
+      } catch (error) {
+        console.error('Failed to load notifications:', error);
+        setNotices([]);
+      }
+    };
+
+    fetchNotices();
   }, []);
 
-  const deleteNotice = (id: number) => {
-    const updated = notices.filter(n => n.id !== id);
-    setNotices(updated);
-    // Also update localStorage
-    const allNotices = JSON.parse(localStorage.getItem('system_notices') || '[]');
-    const newAllNotices = allNotices.filter((n: any) => n.id !== id);
-    localStorage.setItem('system_notices', JSON.stringify(newAllNotices));
+  const deleteNotice = async (id: string) => {
+    try {
+      await NoticeService.remove(id);
+      setNotices((current) => current.filter((notice) => notice.id !== id));
+    } catch (error) {
+      console.error('Failed to delete notice:', error);
+    }
   };
 
-  const getPriorityStyles = (priority: string) => {
+  const getPriorityStyles = (priority?: string) => {
     switch (priority?.toLowerCase()) {
-      case 'high': return 'bg-rose-50 text-rose-500 border-rose-100';
-      case 'medium': return 'bg-amber-50 text-amber-500 border-amber-100';
-      case 'low': return 'bg-blue-50 text-blue-500 border-blue-100';
-      default: return 'bg-gray-50 text-gray-500 border-gray-100';
+      case 'high':
+        return 'bg-rose-50 text-rose-500 border-rose-100';
+      case 'medium':
+        return 'bg-amber-50 text-amber-500 border-amber-100';
+      case 'low':
+        return 'bg-blue-50 text-blue-500 border-blue-100';
+      default:
+        return 'bg-gray-50 text-gray-500 border-gray-100';
     }
   };
 
-  const getCategoryIcon = (category: string) => {
+  const getCategoryIcon = (category?: string) => {
     switch (category?.toLowerCase()) {
-      case 'policy': return <Info size={18} />;
-      case 'event': return <Clock size={18} />;
-      case 'system': return <AlertCircle size={18} />;
-      default: return <Megaphone size={18} />;
+      case 'policy':
+        return <Info size={18} />;
+      case 'event':
+        return <Clock size={18} />;
+      case 'system':
+        return <AlertCircle size={18} />;
+      default:
+        return <Megaphone size={18} />;
     }
   };
 
-  const filteredNotices = notices.filter(notice => {
-    const matchesSearch = notice.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                         notice.content.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredNotices = notices.filter((notice) => {
+    const matchesSearch =
+      notice.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      notice.content.toLowerCase().includes(searchQuery.toLowerCase());
     if (filter === 'all') return matchesSearch;
     return matchesSearch && notice.priority?.toLowerCase() === filter.toLowerCase();
   });
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric', 
-      hour: '2-digit', 
-      minute: '2-digit' 
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     });
   };
 
@@ -125,10 +129,10 @@ export default function TutorNotifications() {
                 key={f}
                 onClick={() => setFilter(f)}
                 className={cn(
-                  "px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
-                  filter === f 
-                    ? "bg-primary text-white shadow-lg shadow-primary/20" 
-                    : "text-ink-muted hover:bg-white/60 hover:text-ink"
+                  'px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap',
+                  filter === f
+                    ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                    : 'text-ink-muted hover:bg-white/60 hover:text-ink'
                 )}
               >
                 {f}
@@ -166,10 +170,12 @@ export default function TutorNotifications() {
 
                 <div className="flex flex-col md:flex-row gap-6">
                   <div className={cn(
-                    "w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:rotate-12",
-                    notice.priority?.toLowerCase() === 'high' ? "bg-rose-50 text-rose-500" :
-                    notice.priority?.toLowerCase() === 'medium' ? "bg-amber-50 text-amber-500" :
-                    "bg-primary/5 text-primary"
+                    'w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:rotate-12',
+                    notice.priority?.toLowerCase() === 'high'
+                      ? 'bg-rose-50 text-rose-500'
+                      : notice.priority?.toLowerCase() === 'medium'
+                      ? 'bg-amber-50 text-amber-500'
+                      : 'bg-primary/5 text-primary'
                   )}>
                     {getCategoryIcon(notice.category)}
                   </div>
@@ -180,7 +186,7 @@ export default function TutorNotifications() {
                         <div className="flex items-center gap-3">
                           <h3 className="text-lg font-black text-ink">{notice.title}</h3>
                           <span className={cn(
-                            "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter border",
+                            'px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter border',
                             getPriorityStyles(notice.priority)
                           )}>
                             {notice.priority}

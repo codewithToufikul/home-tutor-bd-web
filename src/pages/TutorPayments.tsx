@@ -1,16 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Wallet, 
-  ArrowUpRight, 
-  ArrowDownLeft, 
-  Clock, 
-  CheckCircle, 
-  AlertCircle, 
-  Download, 
-  Filter,
+import {
+  Wallet,
+  ArrowUpRight,
+  ArrowDownLeft,
+  Clock,
+  CheckCircle,
+  AlertCircle,
   Search,
-  CreditCard,
   Banknote,
   History,
   Copy,
@@ -19,7 +16,9 @@ import {
 } from 'lucide-react';
 import TutorLayout from '@/src/components/TutorLayout.tsx';
 import { cn } from '@/src/lib/utils';
-import { SITE_CONFIG } from '@/src/constants.ts';
+import { useAuth } from '@/src/context/AuthContext.tsx';
+import { PaymentRequestService } from '@/src/services/paymentRequestService.ts';
+import { NotificationService } from '@/src/services/notificationService.ts';
 
 interface Transaction {
   id: string;
@@ -33,6 +32,7 @@ interface Transaction {
 }
 
 export default function TutorPayments() {
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'completed' | 'pending'>('all');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -41,38 +41,42 @@ export default function TutorPayments() {
   const [trxId, setTrxId] = useState('');
   const [amount, setAmount] = useState('');
   const [copied, setCopied] = useState(false);
-
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Load transactions from localStorage or default
   useEffect(() => {
-    const savedPayments = JSON.parse(localStorage.getItem('tutor_payments') || '[]');
-    if (savedPayments.length > 0) {
-      const formatted: Transaction[] = savedPayments.map((p: any) => ({
-        id: p.id,
-        type: 'payment',
-        amount: Number(p.amount),
-        status: p.status === 'Approved' ? 'completed' : p.status === 'Rejected' ? 'failed' : 'pending',
-        date: p.date || new Date().toISOString().split('T')[0],
-        description: `Fee Payment via ${p.method?.toUpperCase()}`,
-        method: p.method,
-        trxId: p.trxId
-      }));
-      setTransactions(formatted);
-    } else {
-      setTransactions([
-        {
-          id: 'TXN-001',
+    const fetchPayments = async () => {
+      if (!user?.uid) {
+        setTransactions([]);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const records = await PaymentRequestService.listForTutor(user.uid);
+        const formatted: Transaction[] = records.map((p) => ({
+          id: p.id || '',
           type: 'payment',
-          amount: 1000,
-          status: 'completed',
-          date: '2026-07-20',
-          description: 'Tuition Platform Fee - bKash',
-          method: 'bKash'
-        }
-      ]);
-    }
-  }, []);
+          amount: Number(p.amount ?? 0),
+          status: p.status === 'approved' ? 'completed' : p.status === 'rejected' ? 'failed' : 'pending',
+          date: p.createdAt?.split('T')[0] ?? new Date().toISOString().split('T')[0],
+          description: `Fee Payment via ${String(p.method ?? '').toUpperCase()}`,
+          method: p.method,
+          trxId: p.trxId,
+        }));
+
+        setTransactions(formatted);
+      } catch (error) {
+        console.error('Failed to load payment requests:', error);
+        setTransactions([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPayments();
+  }, [user]);
 
   const paymentAccounts = {
     bkash: { name: 'bKash Personal (Send Money)', number: '01936456602' },
@@ -87,7 +91,7 @@ export default function TutorPayments() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handlePaymentSubmit = (e: React.FormEvent) => {
+  const handlePaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (paymentMethod === 'bank') {
@@ -100,54 +104,53 @@ export default function TutorPayments() {
       return;
     }
 
-    const newPaymentRequest = {
-      id: `PAY-${Date.now()}`,
-      tutorName: 'Home Tutor',
-      tutorEmail: 'tutor@example.com',
-      method: paymentMethod,
-      senderNumber,
-      trxId,
-      amount,
-      status: 'Pending',
-      date: new Date().toLocaleDateString()
-    };
+    if (!user?.uid) {
+      alert('Unable to submit payment request without a logged in user.');
+      return;
+    }
 
-    const existingPayments = JSON.parse(localStorage.getItem('tutor_payments') || '[]');
-    localStorage.setItem('tutor_payments', JSON.stringify([newPaymentRequest, ...existingPayments]));
-
-    // Send notification to Admin
-    const newNotification = {
-      id: `NOTIF-${Date.now()}`,
-      type: 'payment',
-      title: 'New Payment Submitted',
-      message: `Tutor submitted ৳${amount} via ${paymentMethod.toUpperCase()} (TrxID: ${trxId})`,
-      time: 'Just now',
-      isRead: false
-    };
-
-    const existingNotifs = JSON.parse(localStorage.getItem('admin_notifications') || '[]');
-    localStorage.setItem('admin_notifications', JSON.stringify([newNotification, ...existingNotifs]));
-
-    // Update local state
-    setTransactions(prev => [
-      {
-        id: newPaymentRequest.id,
-        type: 'payment',
+    try {
+      const requestId = await PaymentRequestService.create({
+        tutorId: user.uid,
+        method: paymentMethod,
+        senderNumber,
+        trxId,
         amount: Number(amount),
         status: 'pending',
-        date: new Date().toISOString().split('T')[0],
-        description: `Platform Fee Payment (${paymentMethod.toUpperCase()})`,
-        method: paymentMethod,
-        trxId
-      },
-      ...prev
-    ]);
+        createdAt: new Date().toISOString(),
+      });
 
-    alert('আপনার পেমেন্ট রিকোয়েস্ট জমা হয়েছে! অ্যাডমিন যাচাই করে অ্যাপ্রুভ করে দেবে।');
-    setShowPaymentModal(false);
-    setSenderNumber('');
-    setTrxId('');
-    setAmount('');
+      await NotificationService.create({
+        title: 'New Payment Submitted',
+        message: `Tutor submitted ৳${amount} via ${paymentMethod.toUpperCase()} (TrxID: ${trxId})`,
+        type: 'payment',
+        tutorId: user.uid,
+        isRead: false,
+      });
+
+      setTransactions((prev) => [
+        {
+          id: requestId || `PAY-${Date.now()}`,
+          type: 'payment',
+          amount: Number(amount),
+          status: 'pending',
+          date: new Date().toISOString().split('T')[0],
+          description: `Platform Fee Payment (${paymentMethod.toUpperCase()})`,
+          method: paymentMethod,
+          trxId,
+        },
+        ...prev,
+      ]);
+
+      alert('আপনার পেমেন্ট রিকোয়েস্ট জমা হয়েছে! অ্যাডমিন যাচাই করে অ্যাপ্রুভ করে দেবে।');
+      setShowPaymentModal(false);
+      setSenderNumber('');
+      setTrxId('');
+      setAmount('');
+    } catch (error) {
+      console.error('Failed to submit payment request:', error);
+      alert('Payment request could not be submitted. Please try again later.');
+    }
   };
 
   const stats = [
@@ -174,8 +177,8 @@ export default function TutorPayments() {
     }
   ];
 
-  const filteredTransactions = transactions.filter(txn => {
-    const matchesSearch = txn.description.toLowerCase().includes(searchTerm.toLowerCase()) || 
+  const filteredTransactions = transactions.filter((txn) => {
+    const matchesSearch = txn.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           txn.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           (txn.trxId && txn.trxId.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesFilter = filterStatus === 'all' || txn.status === filterStatus;
@@ -206,7 +209,7 @@ export default function TutorPayments() {
             <h1 className="text-2xl font-display font-bold text-ink">Payments & Platform Fee</h1>
             <p className="text-sm text-ink-muted mt-1">Pay service fees or view payment history</p>
           </div>
-          <button 
+          <button
             onClick={() => setShowPaymentModal(true)}
             className="inline-flex items-center justify-center gap-2 bg-primary text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all active:scale-95 cursor-pointer"
           >
@@ -226,7 +229,7 @@ export default function TutorPayments() {
               className="bg-surface p-6 rounded-2xl border border-ink/5 shadow-sm"
             >
               <div className="flex items-center gap-4">
-                <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center", stat.bgColor, stat.color)}>
+                <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center', stat.bgColor, stat.color)}>
                   <stat.icon size={24} />
                 </div>
                 <div>
@@ -248,11 +251,10 @@ export default function TutorPayments() {
                   <History className="text-primary" size={20} />
                   <h2 className="text-lg font-display font-bold text-ink">Recent Payment Submissions</h2>
                 </div>
-                
                 <div className="flex items-center gap-2">
                   <div className="relative flex-grow sm:flex-grow-0">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted" size={16} />
-                    <input 
+                    <input
                       type="text"
                       placeholder="Search TrxID, ID..."
                       value={searchTerm}
@@ -265,7 +267,9 @@ export default function TutorPayments() {
 
               {/* Transactions List */}
               <div className="divide-y divide-ink/5">
-                {filteredTransactions.length > 0 ? (
+                {loading ? (
+                  <div className="p-8 text-center text-sm text-ink-muted">Loading payment history…</div>
+                ) : filteredTransactions.length > 0 ? (
                   filteredTransactions.map((txn) => (
                     <div key={txn.id} className="p-6 hover:bg-ink/[0.02] transition-colors">
                       <div className="flex items-start justify-between gap-4">
@@ -294,7 +298,7 @@ export default function TutorPayments() {
                             ৳{txn.amount.toLocaleString()}
                           </p>
                           <span className={cn(
-                            "inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border mt-1 uppercase",
+                            'inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border mt-1 uppercase',
                             getStatusStyles(txn.status)
                           )}>
                             {txn.status}
@@ -386,7 +390,6 @@ export default function TutorPayments() {
                   <p className="text-xs text-ink-muted mt-1">Select payment method and send TrxID</p>
                 </div>
 
-                {/* Select Method */}
                 <div className="grid grid-cols-3 gap-3">
                   {(['bkash', 'nagad', 'bank'] as const).map((m) => (
                     <button
@@ -394,7 +397,7 @@ export default function TutorPayments() {
                       type="button"
                       onClick={() => setPaymentMethod(m)}
                       className={cn(
-                        "p-3 rounded-xl border text-center font-bold text-xs uppercase transition-all cursor-pointer",
+                        'p-3 rounded-xl border text-center font-bold text-xs uppercase transition-all cursor-pointer',
                         paymentMethod === m
                           ? 'border-primary bg-primary/10 text-primary shadow-sm'
                           : 'border-ink/10 hover:border-ink/20 text-ink-muted'
@@ -405,13 +408,12 @@ export default function TutorPayments() {
                   ))}
                 </div>
 
-                {/* Account details box */}
                 <div className="p-4 bg-ink/5 rounded-2xl space-y-2 border border-ink/5">
                   <p className="text-xs font-bold text-ink">{paymentAccounts[paymentMethod].name}</p>
                   <div className="flex items-center justify-between bg-background p-3 rounded-xl border border-ink/5">
                     <span className={cn(
-                      "font-mono font-bold tracking-wider",
-                      paymentMethod === 'bank' ? "text-amber-600" : "text-primary"
+                      'font-mono font-bold tracking-wider',
+                      paymentMethod === 'bank' ? 'text-amber-600' : 'text-primary'
                     )}>
                       {paymentAccounts[paymentMethod].number}
                     </span>
@@ -436,7 +438,6 @@ export default function TutorPayments() {
                     <p className="text-xs">দয়া করে পেমেন্ট করার জন্য বিকাশ অথবা নগদ ব্যবহার করুন।</p>
                   </div>
                 ) : (
-                  /* Form Inputs */
                   <form onSubmit={handlePaymentSubmit} className="space-y-4">
                     <div className="space-y-1">
                       <label className="text-xs font-bold text-ink uppercase">Sender Phone Number</label>

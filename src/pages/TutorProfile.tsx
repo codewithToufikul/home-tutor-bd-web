@@ -8,18 +8,15 @@ import {
 } from 'lucide-react';
 import { TutorProfile } from '@/src/types';
 import { cn } from '@/src/lib/utils';
-import { EXTENDED_MOCK_TUTORS } from '@/src/data/tutors';
-
-import { db } from '@/src/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { TutorProfileRepository } from '@/src/repositories/tutorProfileRepository.ts';
+import { TuitionService } from '@/src/services/tuitionService.ts';
+import { HireService } from '@/src/services/hireService.ts';
 
 export default function TutorProfilePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const initialTutor = EXTENDED_MOCK_TUTORS.find(t => t.id === id) || EXTENDED_MOCK_TUTORS[0];
-  
-  const [tutor, setTutor] = useState<TutorProfile | null>(initialTutor);
+  const [tutor, setTutor] = useState<TutorProfile | null>(null);
   const [suggestedTutors, setSuggestedTutors] = useState<TutorProfile[]>([]);
   const [activeTab, setActiveTab] = useState<'tuition' | 'education' | 'reviews'>('tuition');
 
@@ -30,14 +27,38 @@ export default function TutorProfilePage() {
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
   useEffect(() => {
-    const found = EXTENDED_MOCK_TUTORS.find(t => t.id === id) || EXTENDED_MOCK_TUTORS[0];
-    setTutor(found);
+    const fetchTutor = async () => {
+      try {
+        if (!id) {
+          setTutor(null);
+          setSuggestedTutors([]);
+          return;
+        }
 
-    const suggested = EXTENDED_MOCK_TUTORS
-      .filter(t => t.id !== found.id)
-      .slice(0, 3);
-    setSuggestedTutors(suggested);
-    
+        const profile = await TutorProfileRepository.getById(id);
+        if (!profile) {
+          setTutor(null);
+          setSuggestedTutors([]);
+          return;
+        }
+
+        setTutor(profile as TutorProfile);
+
+        // Suggested tutors: fetch other tutor profiles from Firestore
+        const all = await TutorProfileRepository.getAll();
+        const suggested = (all || [])
+          .filter((entry) => entry.id !== profile.id)
+          .slice(0, 3) as TutorProfile[];
+
+        setSuggestedTutors(suggested);
+      } catch (error) {
+        console.error('Failed to load tutor profile:', error);
+        setTutor(null);
+        setSuggestedTutors([]);
+      }
+    };
+
+    fetchTutor();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [id]);
 
@@ -47,14 +68,13 @@ export default function TutorProfilePage() {
 
     setIsSubmitting(true);
     try {
-      await addDoc(collection(db, 'hire_requests'), {
+      await HireService.create({
         tutorId: tutor.id,
         tutorName: tutor.name,
         guardianName,
         guardianPhone,
         requirements,
         status: 'pending',
-        createdAt: serverTimestamp()
       });
 
       setSubmitSuccess(true);
@@ -110,13 +130,14 @@ export default function TutorProfilePage() {
               <div className="p-6 flex flex-col items-center text-center">
                 <div className="relative mb-4">
                   <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-full p-1.5 bg-[linear-gradient(45deg,#ff0000,#ff7300,#fffb00,#48ff00,#00ffd5,#002bff,#7a00ff,#ff00c8,#ff0000)] bg-[length:400%_400%] animate-rainbow-ring shadow-xl">
-                    <div className="w-full h-full rounded-full overflow-hidden bg-white border-2 border-white">
-                      <img
-                        src={tutor.photoUrl || `https://picsum.photos/seed/${tutor.id}/400/400`}
-                        alt={tutor.name}
-                        className="w-full h-full object-cover"
-                        referrerPolicy="no-referrer"
-                      />
+                    <div className="w-full h-full rounded-full overflow-hidden bg-white border-2 border-white flex items-center justify-center">
+                      {tutor.photoUrl ? (
+                        <img src={tutor.photoUrl} alt={tutor.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      ) : (
+                        <div className="w-full h-full bg-ink/5 flex items-center justify-center">
+                          <div className="text-3xl font-black text-ink-muted">{(tutor.name || '').split(' ').map(n => n[0]).slice(0,2).join('')}</div>
+                        </div>
+                      )}
                     </div>
                   </div>
                   {tutor.isPremium && (
@@ -426,12 +447,18 @@ export default function TutorProfilePage() {
                   <div className="p-6 flex-grow space-y-4">
                     <div className="flex items-center gap-4">
                       <div className="relative">
-                        <img 
-                          src={suggestedTutor.photoUrl || `https://picsum.photos/seed/${suggestedTutor.id}/100/100`}
-                          alt={suggestedTutor.name}
-                          className="w-14 h-14 rounded-2xl object-cover border-2 border-white shadow-md"
-                          referrerPolicy="no-referrer"
-                        />
+                        {suggestedTutor.photoUrl ? (
+                          <img
+                            src={suggestedTutor.photoUrl}
+                            alt={suggestedTutor.name}
+                            className="w-14 h-14 rounded-2xl object-cover border-2 border-white shadow-md"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <div className="w-14 h-14 rounded-2xl bg-ink/5 flex items-center justify-center border-2 border-white shadow-md">
+                            <div className="text-sm font-black text-ink-muted">{(suggestedTutor.name || '').split(' ').map(n => n[0]).slice(0,2).join('')}</div>
+                          </div>
+                        )}
                         {suggestedTutor.isPremium && (
                           <div className="absolute -top-1 -right-1 bg-primary text-white p-0.5 rounded-md shadow-sm">
                             <ShieldCheck size={10} />

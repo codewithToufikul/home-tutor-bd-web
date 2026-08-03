@@ -8,7 +8,7 @@ import {
 import AdminLayout from '@/src/components/AdminLayout.tsx';
 import { cn } from '@/src/lib/utils';
 import { useNavigate } from 'react-router-dom';
-import { addJob } from '@/src/lib/jobs';
+import { TuitionService } from '@/src/services/tuitionService.ts';
 import { TuitionJob } from '@/src/types';
 import { SUBJECTS, CLASSES, MEDIUMS, DISTRICTS, DISTRICT_WISE_AREAS } from '@/src/constants';
 
@@ -71,7 +71,7 @@ export default function AdminCreateJob() {
     e.preventDefault();
     setIsSubmitting(true);
 
-    setTimeout(() => {
+    const persistJob = async () => {
       // 1. Create Tuition Job Object
       const newJob: TuitionJob = {
         id: Math.floor(10000 + Math.random() * 90000).toString(),
@@ -96,19 +96,7 @@ export default function AdminCreateJob() {
       };
 
       // 2. Add to central job store
-      addJob(newJob);
-
-      // 3. Trigger Admin Notification
-      const newNotification = {
-        id: `JOB-${Date.now()}`,
-        type: 'job_creation',
-        title: 'New Job Created by Admin',
-        message: `A new tuition job for ${formData.studentClass} (${formData.medium}) in ${newJob.location} has been posted.`,
-        time: 'Just now',
-        isRead: false
-      };
-      const existing = JSON.parse(localStorage.getItem('admin_notifications') || '[]');
-      localStorage.setItem('admin_notifications', JSON.stringify([newNotification, ...existing]));
+      await TuitionService.create(newJob);
 
       setIsSubmitting(false);
       setIsSuccess(true);
@@ -117,6 +105,10 @@ export default function AdminCreateJob() {
         setIsSuccess(false);
         navigate('/jobs');
       }, 1500);
+    };
+
+    setTimeout(() => {
+      persistJob();
     }, 1500);
   };
 

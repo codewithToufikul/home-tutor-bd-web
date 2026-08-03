@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, CheckSquare, X, Filter, ChevronLeft, ChevronRight, 
@@ -6,56 +6,17 @@ import {
   CheckCircle2, AlertCircle
 } from 'lucide-react';
 import AdminLayout from '@/src/components/AdminLayout.tsx';
+import { JobApprovalService } from '@/src/services/jobApprovalService';
 import { cn } from '@/src/lib/utils';
 
-const MOCK_JOB_REQUESTS = [
-  { 
-    id: 'REQ-001', 
-    tutorName: 'Salma Akter', 
-    tutorId: 'HTP-456', 
-    tutorArea: 'GEC Circle, Chittagong, Bangladesh', 
-    subject: 'Physics', 
-    className: 'Class-10', 
-    medium: 'Bangla', 
-    salary: '18000', 
-    perWeek: '4d', 
-    jobArea: 'Pahartali, Chittagong, Bangladesh',
-    status: 'pending'
-  },
-  { 
-    id: 'REQ-002', 
-    tutorName: 'Arafat Hossain', 
-    tutorId: 'HTP-789', 
-    tutorArea: 'Mirpur, Dhaka, Bangladesh', 
-    subject: 'Mathematics', 
-    className: 'Class-12', 
-    medium: 'English', 
-    salary: '25000', 
-    perWeek: '5d', 
-    jobArea: 'Uttara, Dhaka, Bangladesh',
-    status: 'pending'
-  },
-  { 
-    id: 'REQ-003', 
-    tutorName: 'Mina Akter', 
-    tutorId: 'HTP-123', 
-    tutorArea: 'Agrabad, Chittagong, Bangladesh', 
-    subject: 'Chemistry', 
-    className: 'Class-11', 
-    medium: 'Bangla', 
-    salary: '20000', 
-    perWeek: '3d', 
-    jobArea: 'Halishahar, Chittagong, Bangladesh',
-    status: 'approved'
-  },
-];
+// Job approval requests are stored in Firestore
 
 const ITEMS_PER_PAGE = 5;
 
 export default function AdminJobsApprove() {
   const [activeTab, setActiveTab] = useState<'pending' | 'approved'>('pending');
   const [searchQuery, setSearchQuery] = useState('');
-  const [requests, setRequests] = useState(MOCK_JOB_REQUESTS);
+  const [requests, setRequests] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
 
   // Filtering Logic
@@ -76,13 +37,31 @@ export default function AdminJobsApprove() {
     return filteredRequests.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredRequests, currentPage]);
 
-  const handleApprove = (id: string) => {
-    setRequests(requests.map(req => req.id === id ? { ...req, status: 'approved' } : req));
+  const handleApprove = async (id: string) => {
+    try {
+      await JobApprovalService.updateStatus(id, 'approved');
+      setRequests(requests.map(req => req.id === id ? { ...req, status: 'approved' } : req));
+    } catch (err) { console.error('Approve failed', err); }
   };
 
-  const handleCancel = (id: string) => {
-    setRequests(requests.filter(req => req.id !== id));
+  const handleCancel = async (id: string) => {
+    try {
+      await JobApprovalService.remove(id);
+      setRequests(requests.filter(req => req.id !== id));
+    } catch (err) { console.error('Cancel failed', err); }
   };
+
+  // Load requests
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const items = await JobApprovalService.list();
+        if (active) setRequests(items as any[]);
+      } catch (err) { console.error('Failed to load job approvals', err); }
+    })();
+    return () => { active = false };
+  }, []);
 
   return (
     <AdminLayout>

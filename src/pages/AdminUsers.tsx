@@ -7,42 +7,14 @@ import {
 import AdminLayout from '@/src/components/AdminLayout.tsx';
 import { cn } from '@/src/lib/utils';
 
-const MOCK_USERS = [
-  { id: 'HTPBD-00101', name: 'SI Arafat Guardian', email: 'parent@gmail.com', role: 'Guardian', status: 'active' },
-  { id: 'HTPBD-00105', name: 'TC Coaching Center', email: 'coaching@gmail.com', role: 'Coaching', status: 'banned' },
-  { id: 'HTPBD-00111', name: 'tipu', email: 'htpbd@gmail.com', role: 'Banned', status: 'banned' },
-  { id: 'HTPBD-00110', name: 'Saiful Arafat', email: 'saifularafat01.info@gmail.com', role: 'Tutor', status: 'active' },
-  { id: 'HTPBD-00001', name: 'Home Tutor', email: 'hometutorprovider@gmail.com', role: 'Tutor', status: 'active' },
-  { id: 'HTPBD-00102', name: 'Rahim Ahmed', email: 'rahim@gmail.com', role: 'Tutor', status: 'active' },
-  { id: 'HTPBD-00103', name: 'Karim Ullah', email: 'karim@gmail.com', role: 'Guardian', status: 'active' },
-  { id: 'HTPBD-00104', name: 'Sultana Begum', email: 'sultana@gmail.com', role: 'Tutor', status: 'active' },
-  { id: 'HTPBD-00106', name: 'Zakir Hossain', email: 'zakir@gmail.com', role: 'Tutor', status: 'active' },
-  { id: 'HTPBD-00107', name: 'Mina Akter', email: 'mina@gmail.com', role: 'Guardian', status: 'active' },
-  { id: 'HTPBD-00108', name: 'Abul Kashem', email: 'kashem@gmail.com', role: 'Tutor', status: 'banned' },
-  { id: 'HTPBD-00109', name: 'Nasrin Sultana', email: 'nasrin@gmail.com', role: 'Coaching', status: 'active' },
-];
-
 const ITEMS_PER_PAGE = 5;
 
 export default function AdminUsers() {
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
-  
-  // Load from localStorage + Mock
-  const getInitialUsers = () => {
-    const registered = JSON.parse(localStorage.getItem('registered_users') || '[]');
-    const formattedRegistered = registered.map((u: any) => ({
-      id: u.id,
-      name: u.name,
-      email: u.email,
-      role: u.role === 'student' ? 'Student' : u.role.charAt(0).toUpperCase() + u.role.slice(1),
-      status: u.isApproved ? 'active' : 'pending'
-    }));
-    return [...formattedRegistered, ...MOCK_USERS];
-  };
 
-  const [users, setUsers] = useState(getInitialUsers());
+  const [users, setUsers] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
 
@@ -85,18 +57,6 @@ export default function AdminUsers() {
     });
     setUsers(updatedUsers);
     syncWithStorage(updatedUsers);
-  };
-
-  const syncWithStorage = (allUsers: any[]) => {
-    const registered = JSON.parse(localStorage.getItem('registered_users') || '[]');
-    const updatedRegistered = registered.map((u: any) => {
-      const match = allUsers.find(au => au.id === u.id);
-      if (match) {
-        return { ...u, isApproved: match.status === 'active' };
-      }
-      return u;
-    });
-    localStorage.setItem('registered_users', JSON.stringify(updatedRegistered));
   };
 
   const confirmDelete = () => {

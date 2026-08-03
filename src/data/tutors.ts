@@ -1,134 +1,34 @@
+import { collection, getDocs, query, where } from 'firebase/firestore';
+
+import { db } from '@/src/firebase.js';
 import { TutorProfile } from '@/src/types';
+import { TutorRepository } from '@/src/repositories/tutorRepository';
 
-export const MOCK_TUTORS: TutorProfile[] = [
-  {
-    id: '1',
-    userId: 'u1',
-    name: 'Kamruzzaman Rifat',
-    university: 'University of Dhaka',
-    department: 'Physics',
-    qualification: 'Bachelor of Science',
-    experience: '3 years',
-    subjects: ['Physics', 'Mathematics', 'ICT'],
-    preferredAreas: ['Ibrahimpur', 'Kafrul', 'ECB Chottor', 'Dhaka Cantonment', 'Shewrapara', 'Cantonment (Matikata)', 'Mirpur 14', 'Mirpur 13', 'Mirpur -10', 'Kajipara', 'Vasentek', 'Kochukhet'],
-    mediums: ['Bangla', 'English Version'],
-    salary: 12000,
-    rating: 4.9,
-    reviewCount: 12,
-    verified: true,
-    isPremium: true,
-    bio: 'I am a dedicated educator with over 3 years of experience in teaching science subjects.',
-    gender: 'Male',
-    idNumber: 'TS-148329',
-    memberSince: 'April 1, 2026',
-    totalViews: 26,
-    location: 'Dhaka(Ibrahimpur)'
-  },
-  {
-    id: '2',
-    userId: 'u2',
-    name: 'Samiul Islam',
-    university: 'BUET',
-    department: 'CSE',
-    qualification: 'B.Sc in CSE',
-    experience: '4 years',
-    subjects: ['Mathematics', 'ICT', 'Chemistry'],
-    preferredAreas: ['Uttara', 'Gulshan'],
-    mediums: ['English Medium', 'English Version'],
-    salary: 8000,
-    rating: 5.0,
-    reviewCount: 25,
-    verified: true,
-    isPremium: true,
-    bio: 'Passionate about teaching programming and advanced mathematics.',
-    gender: 'Male',
-    idNumber: 'TS-148330',
-    memberSince: 'April 2, 2026',
-    totalViews: 45,
-    location: 'Dhaka(Uttara)'
-  },
-  {
-    id: '3',
-    userId: 'u3',
-    name: 'Farhana Ahmed',
-    university: 'NSU',
-    department: 'English',
-    qualification: 'B.A in English',
-    experience: '2 years',
-    subjects: ['English', 'Literature'],
-    preferredAreas: ['Banani', 'Gulshan'],
-    mediums: ['English Medium'],
-    salary: 6000,
-    rating: 4.8,
-    reviewCount: 8,
-    verified: false,
-    isPremium: false,
-    bio: 'Helping students master English communication and academic writing.',
-    gender: 'Female',
-    idNumber: 'TS-148331',
-    memberSince: 'April 3, 2026',
-    totalViews: 18,
-    location: 'Dhaka(Banani)'
-  },
-  {
-    id: '4',
-    userId: 'u4',
-    name: 'Tanvir Hossain',
-    university: 'IUT',
-    department: 'EEE',
-    qualification: 'B.Sc in EEE',
-    experience: '1 year',
-    subjects: ['Physics', 'Mathematics'],
-    preferredAreas: ['Mirpur', 'Pallabi'],
-    mediums: ['Bangla', 'English Version'],
-    salary: 4500,
-    rating: 4.5,
-    reviewCount: 5,
-    verified: true,
-    isPremium: false,
-    bio: 'Dedicated to making complex engineering concepts easy for school students.',
-    gender: 'Male',
-    idNumber: 'TS-148332',
-    memberSince: 'April 4, 2026',
-    totalViews: 12,
-    location: 'Dhaka(Mirpur)'
-  },
-  {
-    id: '5',
-    userId: 'u5',
-    name: 'Nusrat Jahan',
-    university: 'BRAC University',
-    department: 'Economics',
-    qualification: 'B.S.S in Economics',
-    experience: '3 years',
-    subjects: ['Economics', 'Accounting', 'Mathematics'],
-    preferredAreas: ['Bashundhara R/A', 'Badda'],
-    mediums: ['English Medium', 'English Version'],
-    salary: 7000,
-    rating: 4.7,
-    reviewCount: 15,
-    verified: true,
-    isPremium: true,
-    bio: 'Expert in business studies and economics for O/A levels.',
-    gender: 'Female',
-    idNumber: 'TS-148333',
-    memberSince: 'April 5, 2026',
-    totalViews: 32,
-    location: 'Dhaka(Bashundhara)'
-  }
-];
+export const loadTutors = async (): Promise<TutorProfile[]> => {
+  const docs = await getDocs(query(collection(db, 'tutors'), where('isDeleted', '!=', true)));
 
-export const EXTENDED_MOCK_TUTORS: TutorProfile[] = [
-  ...MOCK_TUTORS,
-  ...Array.from({ length: 45 }).map((_, i) => {
-    const baseTutor = MOCK_TUTORS[i % MOCK_TUTORS.length];
-    return {
-      ...baseTutor,
-      id: (100 + i).toString(),
-      name: `${baseTutor.name} ${i + 1}`,
-      isPremium: i % 3 === 0,
-      idNumber: `TS-${148334 + i}`,
-      totalViews: Math.floor(Math.random() * 100)
-    };
-  })
-];
+  return docs.docs.map((docSnapshot) => ({
+    ...(docSnapshot.data() as TutorProfile),
+    id: String(docSnapshot.id),
+    userId: (docSnapshot.data() as any).uid ?? (docSnapshot.data() as any).userId ?? '',
+    university: (docSnapshot.data() as any).university ?? 'N/A',
+    department: (docSnapshot.data() as any).department ?? 'N/A',
+    qualification: (docSnapshot.data() as any).qualification ?? 'N/A',
+    location: (docSnapshot.data() as any).location ?? 'N/A',
+    preferredAreas: (docSnapshot.data() as any).preferredAreas ?? [],
+    mediums: (docSnapshot.data() as any).mediums ?? [],
+    subjects: (docSnapshot.data() as any).subjects ?? [],
+    rating: Number((docSnapshot.data() as any).rating ?? 0),
+    reviewCount: Number((docSnapshot.data() as any).reviewCount ?? 0),
+    verified: Boolean((docSnapshot.data() as any).verified),
+  }));
+};
+
+export const getTutors = (): TutorProfile[] => {
+  return [];
+};
+
+export const getTutorById = async (id: string): Promise<TutorProfile | undefined> => {
+  const tutors = await loadTutors();
+  return tutors.find((tutor) => tutor.id === id);
+};

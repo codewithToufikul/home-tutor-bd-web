@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, 
@@ -6,18 +6,38 @@ import {
   CheckCircle2, AlertCircle
 } from 'lucide-react';
 import AdminLayout from '@/src/components/AdminLayout.tsx';
+import { CalendarService } from '@/src/services/calendarService';
 import { cn } from '@/src/lib/utils';
-
-const MOCK_EVENTS = [
-  { id: 1, title: 'Demo Class - Physics', time: '10:00 AM', date: '2026-04-10', type: 'demo', tutor: 'Rahim Ahmed', location: 'Mirpur 10' },
-  { id: 2, title: 'Guardian Meeting', time: '02:30 PM', date: '2026-04-10', type: 'meeting', tutor: 'Admin', location: 'Office' },
-  { id: 3, title: 'Demo Class - Math', time: '11:00 AM', date: '2026-04-11', type: 'demo', tutor: 'Sultana Begum', location: 'Uttara' },
-  { id: 4, title: 'Payment Collection', time: '04:00 PM', date: '2026-04-12', type: 'payment', tutor: 'Karim Ullah', location: 'Gulshan' },
-];
 
 export default function AdminCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [events, setEvents] = useState<any[]>([]);
+
+  useEffect(() => {
+    let active = true;
+
+    (async () => {
+      try {
+        const items = await CalendarService.list();
+        if (!active) return;
+
+        setEvents((items as any[]).map((item) => ({
+          id: item.id,
+          title: item.title || 'Scheduled Event',
+          time: item.time || 'TBD',
+          date: String(item.date || item.createdAt || new Date().toISOString()).slice(0, 10),
+          type: item.type || 'event',
+          tutor: item.tutor || 'Admin',
+          location: item.location || 'Online',
+        })));
+      } catch (err) {
+        console.error('Failed to load calendar events:', err);
+      }
+    })();
+
+    return () => { active = false; };
+  }, []);
 
   const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
   const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
@@ -45,7 +65,7 @@ export default function AdminCalendar() {
 
   const getEventsForDate = (day: number) => {
     const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return MOCK_EVENTS.filter(event => event.date === dateStr);
+    return events.filter((event) => String(event.date).slice(0, 10) === dateStr);
   };
 
   return (

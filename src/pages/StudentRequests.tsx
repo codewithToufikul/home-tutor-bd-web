@@ -1,14 +1,46 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { History, Clock, CheckCircle2, MapPin, BookOpen, AlertCircle } from 'lucide-react';
 import StudentLayout from '@/src/components/StudentLayout.tsx';
-
-const MOCK_REQUESTS = [
-  { id: 'REQ-8012', subject: 'Physics & Higher Math', className: 'HSC 2nd Year', location: 'Dhanmondi, Dhaka', salary: '8,000 ৳', status: 'Pending', date: '2026-04-20' },
-  { id: 'REQ-7901', subject: 'All Subjects', className: 'Class 7', location: 'Uttara Sector 4', salary: '5,000 ৳', status: 'Approved', date: '2026-04-10' },
-];
+import { useAuth } from '@/src/context/AuthContext.tsx';
+import { TuitionService } from '@/src/services/tuitionService.ts';
 
 export default function StudentRequests() {
+  const { user } = useAuth();
+  const [requests, setRequests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      if (!user?.uid) {
+        setRequests([]);
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      try {
+        const all = await TuitionService.list();
+        const mine = (all || []).filter((j: any) => j.parentId === user.uid || j.parentId === user.uid);
+        const mapped = mine.map((m: any) => ({
+          id: m.id || '',
+          subject: m.category || m.subjects?.join(', ') || 'Tuition',
+          className: m.studentClass || m.tuitionType || 'N/A',
+          location: `${m.area || ''}${m.location ? ', ' + m.location : ''}`,
+          salary: m.salary ? `${m.salary} ৳` : 'N/A',
+          status: m.status || 'Open',
+          date: m.createdAt || ''
+        }));
+        setRequests(mapped);
+      } catch (err) {
+        console.error('Failed to load student requests:', err);
+        setRequests([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [user]);
+
   return (
     <StudentLayout>
       <div className="space-y-8 pb-12">
@@ -18,7 +50,7 @@ export default function StudentRequests() {
         </div>
 
         <div className="space-y-4">
-          {MOCK_REQUESTS.map((req) => (
+          {requests.map((req) => (
             <motion.div 
               key={req.id}
               whileHover={{ y: -2 }}
@@ -50,6 +82,18 @@ export default function StudentRequests() {
               </div>
             </motion.div>
           ))}
+
+          {!loading && requests.length === 0 && (
+            <div className="bg-white p-12 rounded-3xl border border-ink/10 shadow-sm text-center space-y-4">
+              <div className="w-20 h-20 bg-ink/5 rounded-full flex items-center justify-center text-ink-muted mx-auto">
+                <History size={40} />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-xl font-display font-black text-ink">No requests found</h3>
+                <p className="text-ink-muted font-medium">You haven't posted any tutor requests yet.</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </StudentLayout>

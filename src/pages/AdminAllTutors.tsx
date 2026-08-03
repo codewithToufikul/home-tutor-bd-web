@@ -8,22 +8,12 @@ import {
 import AdminLayout from '@/src/components/AdminLayout.tsx';
 import { cn } from '@/src/lib/utils';
 
-const MOCK_TUTORS = [
-  { id: 'HTP-00101', name: 'Saiful Arafat', email: 'saiful@gmail.com', phone: '8801987654321', area: 'Mirpur, Dhaka', subject: 'Mathematics', status: 'active' },
-  { id: 'HTP-00102', name: 'Rahim Ahmed', email: 'rahim@gmail.com', phone: '8801712345678', area: 'Uttara, Dhaka', subject: 'Physics', status: 'active' },
-  { id: 'HTP-00103', name: 'Karim Ullah', email: 'karim@gmail.com', phone: '8801812345678', area: 'GEC, Chittagong', subject: 'Chemistry', status: 'banned' },
-  { id: 'HTP-00104', name: 'Sultana Begum', email: 'sultana@gmail.com', phone: '8801512345678', area: 'Agrabad, Chittagong', subject: 'English', status: 'active' },
-  { id: 'HTP-00105', name: 'Zakir Hossain', email: 'zakir@gmail.com', phone: '8801612345678', area: 'Sylhet City', subject: 'Biology', status: 'active' },
-  { id: 'HTP-00106', name: 'Mina Akter', email: 'mina@gmail.com', phone: '8801312345678', area: 'Rajshahi City', subject: 'ICT', status: 'active' },
-  { id: 'HTP-00107', name: 'Abul Kashem', email: 'kashem@gmail.com', phone: '8801412345678', area: 'Khulna City', subject: 'Accounting', status: 'banned' },
-];
-
 const ITEMS_PER_PAGE = 5;
 
 export default function AdminAllTutors() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [tutors, setTutors] = useState(MOCK_TUTORS);
+  const [tutors, setTutors] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [tutorToDelete, setTutorToDelete] = useState<string | null>(null);
 

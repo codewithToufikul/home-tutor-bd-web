@@ -10,7 +10,7 @@ import { TuitionJob } from '@/src/types';
 import { cn } from '@/src/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { AREAS, CLASSES, CATEGORIES_DATA } from '@/src/constants';
-import { getJobs } from '@/src/lib/jobs';
+import { TuitionService } from '@/src/services/tuitionService.ts';
 
 const DISTRICTS = ['Dhaka', 'Sylhet', 'Chattogram', 'Rajshahi', 'Khulna', 'Barishal', 'Rangpur', 'Mymensingh'];
 
@@ -33,7 +33,17 @@ export default function Jobs() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
   useEffect(() => {
-    setJobs(getJobs());
+    const fetchJobs = async () => {
+      try {
+        const items = await TuitionService.list();
+        setJobs((items || []) as TuitionJob[]);
+      } catch (error) {
+        console.error('Failed to load jobs:', error);
+        setJobs([]);
+      }
+    };
+
+    fetchJobs();
   }, []);
 
   // Sync category state with URL param if it changes

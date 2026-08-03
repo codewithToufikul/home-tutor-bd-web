@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, Download, FileText, Trash2, PlusCircle, 
@@ -6,23 +6,15 @@ import {
   HardDrive, Eye, AlertCircle, Filter, X, Upload
 } from 'lucide-react';
 import AdminLayout from '@/src/components/AdminLayout.tsx';
+import { DownloadService } from '@/src/services/downloadService';
 import { cn } from '@/src/lib/utils';
-
-const MOCK_DOWNLOADS = [
-  { id: 'DL-001', title: 'HSC Physics Note 2024', category: 'Lecture Notes', type: 'PDF', size: '4.2 MB', date: '12/03/2026', downloads: 1240, status: 'Public' },
-  { id: 'DL-002', title: 'Class 10 Math Syllabus', category: 'Syllabus', type: 'PDF', size: '1.5 MB', date: '15/03/2026', downloads: 850, status: 'Public' },
-  { id: 'DL-003', title: 'English Grammar Guide', category: 'E-Book', type: 'PDF', size: '12.8 MB', date: '18/03/2026', downloads: 2100, status: 'Public' },
-  { id: 'DL-004', title: 'Admission Question Bank', category: 'Question Bank', type: 'PDF', size: '8.4 MB', date: '20/03/2026', downloads: 3400, status: 'Private' },
-  { id: 'DL-005', title: 'Chemistry Lab Manual', category: 'Lab Manual', type: 'DOCX', size: '2.1 MB', date: '22/03/2026', downloads: 420, status: 'Public' },
-  { id: 'DL-006', title: 'Biology Diagram Sheet', category: 'Diagrams', type: 'JPG', size: '5.6 MB', date: '25/03/2026', downloads: 980, status: 'Public' },
-];
 
 const ITEMS_PER_PAGE = 5;
 
 export default function AdminDownloads() {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
-  const [downloads, setDownloads] = useState(MOCK_DOWNLOADS);
+  const [downloads, setDownloads] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   
@@ -34,6 +26,31 @@ export default function AdminDownloads() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   // Filtering Logic
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const items = await DownloadService.list();
+        if (!active) return;
+
+        setDownloads((items as any[]).map((item) => ({
+          id: item.id,
+          title: item.title || 'Unnamed File',
+          category: item.category || 'General',
+          type: item.type || 'PDF',
+          size: item.size || '0 MB',
+          date: item.date || String(item.createdAt || new Date().toISOString()).slice(0, 10),
+          downloads: Number(item.downloads || 0),
+          status: item.status || 'Public',
+        })));
+      } catch (err) {
+        console.error('Failed to load downloads:', err);
+      }
+    })();
+
+    return () => { active = false; };
+  }, []);
+
   const filteredDownloads = useMemo(() => {
     return downloads.filter(item => {
       const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -50,15 +67,20 @@ export default function AdminDownloads() {
     return filteredDownloads.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredDownloads, currentPage]);
 
-  const confirmDelete = () => {
-    if (itemToDelete) {
+  const confirmDelete = async () => {
+    if (!itemToDelete) return;
+
+    try {
+      await DownloadService.remove(itemToDelete);
       setDownloads(downloads.filter(item => item.id !== itemToDelete));
       setItemToDelete(null);
+    } catch (err) {
+      console.error('Failed to delete download item:', err);
     }
   };
 
   // 🌟 ফাইল হ্যান্ডেল করার এবং লিস্টে যোগ করার ফাংশন
-  const handleUploadSubmit = (e: React.FormEvent) => {
+  const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newFileTitle.trim()) return;
 
@@ -73,13 +95,26 @@ export default function AdminDownloads() {
       status: newFileStatus
     };
 
-    setDownloads([newEntry, ...downloads]);
-    setNewFileTitle('');
-    setSelectedFile(null);
-    setIsUploadModalOpen(false);
+    try {
+      await DownloadService.create({
+        title: newEntry.title,
+        category: newEntry.category,
+        type: newEntry.type,
+        size: newEntry.size,
+        date: newEntry.date,
+        downloads: newEntry.downloads,
+        status: newEntry.status,
+      } as any);
+      setDownloads([newEntry, ...downloads]);
+      setNewFileTitle('');
+      setSelectedFile(null);
+      setIsUploadModalOpen(false);
+    } catch (err) {
+      console.error('Failed to upload file metadata:', err);
+    }
   };
 
-  const categories = ['All', ...new Set(MOCK_DOWNLOADS.map(d => d.category))];
+  const categories = ['All', ...new Set(downloads.map(d => d.category))];
 
   return (
     <AdminLayout>

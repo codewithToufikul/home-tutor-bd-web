@@ -11,68 +11,56 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/src/lib/utils';
 import { TuitionJob } from '@/src/types';
-import { getJobById, getJobs } from '@/src/lib/jobs';
-import { useMemo, useState } from 'react';
+import { TuitionService } from '@/src/services/tuitionService.ts';
+import { useEffect, useMemo, useState } from 'react';
 import JobApplyModal from './JobApplyModal';
-
-const JOB_DETAILS_FALLBACK: TuitionJob = {
-  id: '48893',
-  parentId: 'p1',
-  studentClass: 'Class 7',
-  subjects: ['ENGLISH', 'GENERAL MATHS'],
-  location: 'Sylhet',
-  area: 'Daria Para',
-  salary: 4000,
-  medium: 'Bangla Medium',
-  genderPreference: 'Male',
-  status: 'Open',
-  createdAt: '2026-04-08T10:00:00Z',
-  tutoringDays: '3 Days/Week',
-  tuitionType: 'Home + Group Tutoring',
-  studentGender: 'Male',
-  numStudents: 1,
-  duration: '1.5 Hours',
-  startTime: 'Afternoon',
-  schoolName: 'Sylhet Government High School',
-  requirements: [
-    'Tutor must be from a reputable university',
-    'Experience in teaching Class 7 students is preferred',
-    'Must be punctual and regular',
-    'Good communication skills in English'
-  ],
-  description: 'Looking for a dedicated tutor for my son who is in Class 7. He needs help primarily with English and Mathematics. The tutor should be able to explain complex concepts in a simple way and help with homework and exam preparation.'
-};
 
 export default function JobDetails() {
   const { id } = useParams();
   const [showApplyModal, setShowApplyModal] = useState(false); 
   const [hasApplied, setHasApplied] = useState(false);
+  const [jobData, setJobData] = useState<TuitionJob | null>(null);
+  const [suggestedJobs, setSuggestedJobs] = useState<TuitionJob[]>([]);
 
-  const jobData = useMemo(() => {
-    const found = getJobById(id || '');
-    if (found) return found;
-    return {
-      ...JOB_DETAILS_FALLBACK,
-      id: id || '48893'
+  useEffect(() => {
+    const loadJob = async () => {
+      try {
+        const currentJob = await TuitionService.get(id || '');
+        const allJobs = await TuitionService.list();
+
+        setJobData(currentJob || null);
+        setSuggestedJobs((allJobs || []).filter((job) => job.id !== id).slice(0, 3));
+      } catch (error) {
+        console.error('Failed to load job details:', error);
+        setJobData(null);
+        setSuggestedJobs([]);
+      }
     };
+
+    loadJob();
   }, [id]);
 
-  const job = useMemo(() => ({
-    ...jobData,
-    views: 1,
-    applications: 0,
-    postedDate: new Date(jobData.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-  }), [jobData]);
+  const job = useMemo(() => {
+    if (!jobData) return null;
 
-  // Suggested jobs fix: যদি স্পেসিফিক ম্যাচ না করে তবে অন্তত কিছু হলেও দেখাবে যাতে সেকশনটি ফাঁকা না থাকে
-  const suggestedJobs = useMemo(() => {
-    const allJobs = getJobs();
-    const filtered = allJobs.filter(j => j.id !== id);
-    if (filtered.length > 0) {
-      return filtered.slice(0, 3);
-    }
-    return [JOB_DETAILS_FALLBACK];
-  }, [id]);
+    return {
+      ...jobData,
+      views: 1,
+      applications: 0,
+      postedDate: new Date(jobData.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    };
+  }, [jobData]);
+
+  if (!job) {
+    return (
+      <div className="min-h-screen bg-[#F1F5F9] pb-24 pt-4 flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <h2 className="text-2xl font-black text-ink">Job Not Found</h2>
+          <Link to="/jobs" className="inline-flex items-center gap-2 text-primary font-bold">Back to jobs</Link>
+        </div>
+      </div>
+    );
+  }
 
   const detailItemClasses = "flex items-center gap-4 p-4 bg-[#F8FAFC] rounded-xl transition-all group border border-ink/5";
   const iconBoxClasses = "w-10 h-10 rounded-lg bg-white flex items-center justify-center text-primary shrink-0 shadow-sm group-hover:bg-primary group-hover:text-white transition-all";

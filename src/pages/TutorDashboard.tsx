@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { 
-  Briefcase, 
-  CheckCircle2, 
-  Clock, 
-  CreditCard, 
-  TrendingUp, 
-  MapPin, 
+import {
+  Briefcase,
+  CheckCircle2,
+  Clock,
+  CreditCard,
+  TrendingUp,
+  MapPin,
   ChevronRight,
   Star,
   BookOpen,
@@ -19,35 +19,99 @@ import TutorLayout from '@/src/components/TutorLayout.tsx';
 import { cn } from '@/src/lib/utils';
 import { Link } from 'react-router-dom';
 import { getMatchedJobsForTutor } from '@/src/lib/matching';
-import { getJobs } from '@/src/lib/jobs';
-import { EXTENDED_MOCK_TUTORS } from '@/src/data/tutors';
-import { TuitionJob } from '@/src/types';
+import { TuitionJob, TutorProfile } from '@/src/types';
+import { useAuth } from '@/src/context/AuthContext.tsx';
+import { ApplicationService } from '@/src/services/applicationService.ts';
+import { TuitionService } from '@/src/services/tuitionService.ts';
+import { TransactionService } from '@/src/services/transactionService.ts';
+import { TutorProfileService } from '@/src/services/tutorProfileService.ts';
 
-const STATS = [
-  { label: 'Applied Jobs', value: '12', icon: Briefcase, color: 'bg-blue-500', trend: '+2 this week' },
-  { label: 'Active Tuitions', value: '3', icon: BookOpen, color: 'bg-emerald-500', trend: 'Stable' },
-  { label: 'Total Earnings', value: '৳15,400', icon: CreditCard, color: 'bg-purple-500', trend: '+৳4,200' },
-  { label: 'Profile Views', value: '142', icon: Users, color: 'bg-amber-500', trend: '+15%' },
-];
+// Stats will be computed from Firestore data inside the component
 
-const RECENT_JOBS = [
-  { id: 'JOB-2024', title: 'Class 9 Math & Physics', location: 'Dhanmondi, Dhaka', salary: '৳8,000', status: 'Pending', date: '2 hours ago' },
-  { id: 'JOB-2021', title: 'English Medium Grade 5', location: 'Gulshan 2, Dhaka', salary: '৳12,000', status: 'Shortlisted', date: '1 day ago' },
-  { id: 'JOB-2018', title: 'BBA Accounting', location: 'Uttara, Dhaka', salary: '৳10,000', status: 'Rejected', date: '3 days ago' },
-];
+// recentApps will be populated from ApplicationService + TuitionService
 
 export default function TutorDashboard() {
+  const { user } = useAuth();
   const [matchedJobs, setMatchedJobs] = useState<TuitionJob[]>([]);
+  const [applicationsCount, setApplicationsCount] = useState(0);
+  const [activeTuitionsCount, setActiveTuitionsCount] = useState(0);
+  const [totalEarnings, setTotalEarnings] = useState(0);
+  const [recentApps, setRecentApps] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // বর্তমান লগইন করা টিউটর ধরে নিয়ে অটো-ম্যাচিং জবগুলো ফেচ করা হচ্ছে
-    const currentTutor = EXTENDED_MOCK_TUTORS[0]; 
-    if (currentTutor) {
-      const allJobs = getJobs();
-      const matched = getMatchedJobsForTutor(currentTutor, allJobs);
-      setMatchedJobs(matched);
-    }
-  }, []);
+    const fetchData = async () => {
+      if (!user?.uid) {
+        setMatchedJobs([]);
+        setApplicationsCount(0);
+        setActiveTuitionsCount(0);
+        setTotalEarnings(0);
+        setRecentApps([]);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const profile = await TutorProfileService.getByUid(user.uid);
+        const allJobs = await TuitionService.list();
+
+        if (profile) {
+          const matched = getMatchedJobsForTutor(profile as TutorProfile, (allJobs as TuitionJob[]) || []);
+          setMatchedJobs(matched || []);
+        } else {
+          setMatchedJobs([]);
+        }
+
+        const applications = await ApplicationService.listForTutor(user.uid);
+        const appList = Array.isArray(applications) ? applications : [];
+        setApplicationsCount(appList.length);
+        setActiveTuitionsCount(appList.filter((a: any) => a.status === 'accepted').length);
+
+        // Build recent applications with job info when available
+        const jobsById: Record<string, TuitionJob> = {};
+        ((allJobs as TuitionJob[]) || []).forEach((j) => { if (j && j.id) jobsById[j.id] = j; });
+
+        const recent = appList.slice().reverse().slice(0, 6).map((a: any) => {
+          const job = jobsById[a.jobId];
+          return {
+            id: a.jobId || a.id || `APP-${a.createdAt}`,
+            title: job ? `${job.medium} Tuition` : 'Tuition Opportunity',
+            location: job ? `${job.area}, ${job.location}` : 'Unknown',
+            salary: job ? `${job.salary} ৳/mo` : 'N/A',
+            status: a.status ?? 'pending',
+            date: a.createdAt || (job && job.createdAt) || '',
+          };
+        });
+        setRecentApps(recent);
+
+        const transactions = await TransactionService.listForTutor(user.uid);
+        const txList = Array.isArray(transactions) ? transactions : [];
+        const earnings = txList
+          .filter((t: any) => t.type === 'Credit' && (t.status === 'completed' || t.status === 'Approved'))
+          .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+        setTotalEarnings(earnings);
+      } catch (error) {
+        console.error('Failed to load tutor dashboard data:', error);
+        setMatchedJobs([]);
+        setApplicationsCount(0);
+        setActiveTuitionsCount(0);
+        setTotalEarnings(0);
+        setRecentApps([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [user]);
+
+  const stats = [
+    { label: 'Applied Jobs', value: String(applicationsCount), icon: Briefcase, color: 'bg-blue-500', trend: '+2 this week' },
+    { label: 'Active Tuitions', value: String(activeTuitionsCount), icon: BookOpen, color: 'bg-emerald-500', trend: 'Stable' },
+    { label: 'Total Earnings', value: `৳${totalEarnings.toLocaleString()}`, icon: CreditCard, color: 'bg-purple-500', trend: '+৳0' },
+    { label: 'Profile Views', value: '—', icon: Users, color: 'bg-amber-500', trend: '+0%' },
+  ];
 
   return (
     <TutorLayout>
@@ -161,7 +225,7 @@ export default function TutorDashboard() {
             
             <div className="bg-white/60 backdrop-blur-xl rounded-[32px] border border-white/40 shadow-xl shadow-ink/5 overflow-hidden">
               <div className="divide-y divide-ink/5">
-                {RECENT_JOBS.map((job) => (
+                {recentApps.length > 0 ? recentApps.map((job) => (
                   <div key={job.id} className="p-6 hover:bg-white/40 transition-colors group">
                     <div className="flex flex-wrap items-center justify-between gap-4">
                       <div className="flex items-center gap-4">
@@ -183,8 +247,8 @@ export default function TutorDashboard() {
                         </div>
                         <span className={cn(
                           "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase",
-                          job.status === 'Pending' ? "bg-amber-50 text-amber-500" :
-                          job.status === 'Shortlisted' ? "bg-emerald-50 text-emerald-500" :
+                          job.status === 'pending' ? "bg-amber-50 text-amber-500" :
+                          job.status === 'accepted' ? "bg-emerald-50 text-emerald-500" :
                           "bg-rose-50 text-rose-500"
                         )}>
                           {job.status}
@@ -195,7 +259,9 @@ export default function TutorDashboard() {
                       </div>
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <div className="p-12 text-center text-sm text-ink-muted">No recent applications yet.</div>
+                )}
               </div>
             </div>
           </div>

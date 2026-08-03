@@ -1,6 +1,7 @@
 import { motion } from 'motion/react';
 import { Mail, Phone, MapPin, Send, MessageSquare, Clock, Globe } from 'lucide-react';
 import { useState } from 'react';
+import { ContactService } from '@/src/services/contactService.ts';
 
 export default function Contact() {
   const [formState, setFormState] = useState({
@@ -9,26 +10,29 @@ export default function Contact() {
     subject: '',
     message: ''
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
-    // Admin Inbox & Notifications - Push data to localStorage
-    const newInboxMessage = {
-      id: `MSG-${Date.now()}`,
-      type: 'inbox_message',
-      title: formState.subject || 'New Contact Message',
-      message: `Message from ${formState.name} (${formState.email}): "${formState.message}"`,
-      time: 'Just now',
-      data: formState,
-      isRead: false
-    };
+    try {
+      await ContactService.create({
+        name: formState.name,
+        email: formState.email,
+        subject: formState.subject,
+        message: formState.message,
+        isRead: false,
+      });
 
-    const existingNotifications = JSON.parse(localStorage.getItem('admin_notifications') || '[]');
-    localStorage.setItem('admin_notifications', JSON.stringify([newInboxMessage, ...existingNotifications]));
-
-    alert('ধন্যবাদ! আপনার মেসেজটি সফলভাবে পাঠানো হয়েছে। আমরা শীঘ্রই যোগাযোগ করব।');
-    setFormState({ name: '', email: '', subject: '', message: '' });
+      alert('ধন্যবাদ! আপনার মেসেজটি সফলভাবে পাঠানো হয়েছে। আমরা শীঘ্রই যোগাযোগ করব।');
+      setFormState({ name: '', email: '', subject: '', message: '' });
+    } catch (error) {
+      console.error('Failed to send contact message:', error);
+      alert('মেসেজ পাঠাতে সমস্যার সম্মুখীন হচ্ছি। দয়া করে পরে পুনরায় চেষ্টা করুন।');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const contactInfo = [

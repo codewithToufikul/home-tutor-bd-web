@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, Mail, Trash2, ChevronLeft, ChevronRight, 
@@ -6,60 +6,35 @@ import {
   Eye, AlertCircle, X, CheckCircle2, Reply
 } from 'lucide-react';
 import AdminLayout from '@/src/components/AdminLayout.tsx';
+import { ContactService } from '@/src/services/contactService';
 import { cn } from '@/src/lib/utils';
 
-const MOCK_MESSAGES = [
-  { 
-    id: 'MSG-001', 
-    name: 'Saiful Arafat', 
-    email: 'saiful@gmail.com', 
-    subject: 'Tuition Inquiry', 
-    message: 'I am looking for a Physics tutor for my son in Class 10. We live in Mirpur 6. Please let me know if any tutors are available in this area.', 
-    date: '10/04/2026', 
-    time: '10:30 AM',
-    status: 'unread' 
-  },
-  { 
-    id: 'MSG-002', 
-    name: 'Rahim Ahmed', 
-    email: 'rahim@gmail.com', 
-    subject: 'Payment Issue', 
-    message: 'I tried to pay the tuition fee via bKash but the transaction failed even though the money was deducted. My TRX ID is BK882910X.', 
-    date: '09/04/2026', 
-    time: '02:15 PM',
-    status: 'read' 
-  },
-  { 
-    id: 'MSG-003', 
-    name: 'Karim Ullah', 
-    email: 'karim@gmail.com', 
-    subject: 'Tutor Registration', 
-    message: 'I have applied as a tutor but my profile is still pending for approval. It has been 3 days. Can you please check?', 
-    date: '08/04/2026', 
-    time: '11:45 AM',
-    status: 'read' 
-  },
-  { 
-    id: 'MSG-004', 
-    name: 'Sultana Begum', 
-    email: 'sultana@gmail.com', 
-    subject: 'General Question', 
-    message: 'Do you have any coaching centers in Chittagong? I am interested in admission coaching for my daughter.', 
-    date: '07/04/2026', 
-    time: '09:00 AM',
-    status: 'unread' 
-  },
-];
+// Inbox messages are stored in Firestore via ContactService
 
 const ITEMS_PER_PAGE = 5;
 
 export default function AdminInbox() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [messages, setMessages] = useState(MOCK_MESSAGES);
+  const [messages, setMessages] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedMessage, setSelectedMessage] = useState<typeof MOCK_MESSAGES[0] | null>(null);
+  const [selectedMessage, setSelectedMessage] = useState<any | null>(null);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+
+  // Load messages from Firestore
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const items = await ContactService.list();
+        if (active) setMessages(items as any[]);
+      } catch (err) {
+        console.error('Failed to load inbox messages:', err);
+      }
+    })();
+
+    return () => { active = false };
+  }, []);
 
   // Filtering Logic
   const filteredMessages = useMemo(() => {
@@ -67,7 +42,9 @@ export default function AdminInbox() {
       const matchesSearch = msg.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                            msg.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            msg.subject.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesStatus = statusFilter === 'All' || msg.status === statusFilter;
+      const matchesStatus = statusFilter === 'All'
+        || (statusFilter === 'unread' && !msg.isRead)
+        || (statusFilter === 'read' && msg.isRead);
       return matchesSearch && matchesStatus;
     });
   }, [messages, searchQuery, statusFilter]);
@@ -79,17 +56,26 @@ export default function AdminInbox() {
     return filteredMessages.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredMessages, currentPage]);
 
-  const handleViewMessage = (msg: typeof MOCK_MESSAGES[0]) => {
+  const handleViewMessage = async (msg: any) => {
     setSelectedMessage(msg);
-    if (msg.status === 'unread') {
-      setMessages(messages.map(m => m.id === msg.id ? { ...m, status: 'read' } : m));
+    if (!msg.isRead) {
+      try {
+        await ContactService.markRead(msg.id);
+        setMessages(messages.map(m => m.id === msg.id ? { ...m, isRead: true } : m));
+      } catch (err) {
+        console.error('Failed to mark message read:', err);
+      }
     }
   };
 
-  const confirmDelete = () => {
-    if (itemToDelete) {
+  const confirmDelete = async () => {
+    if (!itemToDelete) return;
+    try {
+      await ContactService.remove(itemToDelete);
       setMessages(messages.filter(msg => msg.id !== itemToDelete));
       setItemToDelete(null);
+    } catch (err) {
+      console.error('Failed to delete message:', err);
     }
   };
 

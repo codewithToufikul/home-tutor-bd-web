@@ -78,8 +78,8 @@ export default function GuardianDashboard() {
       date: '1 day ago', 
       applicants: 12,
       applicantsList: [
-        { id: 'T-101', name: 'Saiful Arafat', university: 'BUET', department: 'EEE', rating: 4.9, experience: '3 Years', phone: '🔒 Secured (Admin Approval Needed)', image: 'https://picsum.photos/seed/t1/200', isApprovedByAdmin: false },
-        { id: 'T-102', name: 'Tanvir Ahmed', university: 'Dhaka University', department: 'Applied Physics', rating: 4.8, experience: '2 Years', phone: '🔒 Secured (Admin Approval Needed)', image: 'https://picsum.photos/seed/t2/200', isApprovedByAdmin: false }
+        { id: 'T-101', name: 'Saiful Arafat', university: 'BUET', department: 'EEE', rating: 4.9, experience: '3 Years', phone: '🔒 Secured (Admin Approval Needed)', image: '', isApprovedByAdmin: false },
+        { id: 'T-102', name: 'Tanvir Ahmed', university: 'Dhaka University', department: 'Applied Physics', rating: 4.8, experience: '2 Years', phone: '🔒 Secured (Admin Approval Needed)', image: '', isApprovedByAdmin: false }
       ]
     },
     { 
@@ -91,7 +91,7 @@ export default function GuardianDashboard() {
       date: '5 days ago', 
       applicants: 8,
       applicantsList: [
-        { id: 'T-103', name: 'Sultana Begum', university: 'North South University', department: 'English Literature', rating: 5.0, experience: '4 Years', phone: '+8801911223344 (Admin Verified)', image: 'https://picsum.photos/seed/t3/200', isApprovedByAdmin: true }
+        { id: 'T-103', name: 'Sultana Begum', university: 'North South University', department: 'English Literature', rating: 5.0, experience: '4 Years', phone: '+8801911223344 (Admin Verified)', image: '', isApprovedByAdmin: true }
       ]
     },
   ];

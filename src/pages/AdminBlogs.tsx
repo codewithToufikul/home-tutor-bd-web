@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, Newspaper, Trash2, PlusCircle, 
@@ -6,53 +6,57 @@ import {
   Eye, CheckCircle2, Clock, AlertCircle, X, Image as ImageIcon
 } from 'lucide-react';
 import AdminLayout from '@/src/components/AdminLayout.tsx';
+import { BlogService } from '@/src/services/blogService';
 import { cn } from '@/src/lib/utils';
 
-const MOCK_BLOGS = [
-  { 
-    id: 'BLOG-001', 
-    title: 'How to Choose the Right Home Tutor for Your Child', 
-    author: 'Admin', 
-    category: 'Education Tips', 
-    date: '2026-04-10', 
-    views: 1250, 
-    status: 'Approved',
-    image: 'https://picsum.photos/seed/blog1/400/250',
-    content: 'Finding the right home tutor is crucial for your child\'s academic development. Look for qualifications, teaching style, and compatibility with your student.'
-  },
-  { 
-    id: 'BLOG-002', 
-    title: 'Top 5 Study Techniques for HSC Science Students', 
-    author: 'Saiful Arafat', 
-    category: 'Study Guide', 
-    date: '2026-04-15', 
-    views: 890, 
-    status: 'Pending',
-    image: 'https://picsum.photos/seed/blog2/400/250',
-    content: 'HSC Science requires consistency and conceptual understanding. Here are 5 study methods including active recall and spaced repetition.'
-  },
-  { 
-    id: 'BLOG-003', 
-    title: 'The Benefits of One-on-One Personalized Tutoring', 
-    author: 'Nabila Islam', 
-    category: 'Tutoring', 
-    date: '2026-04-18', 
-    views: 2100, 
-    status: 'Approved',
-    image: 'https://picsum.photos/seed/blog3/400/250',
-    content: 'Personalized attention allows students to learn at their own pace and address specific learning gaps effectively.'
-  }
-];
-
 const ITEMS_PER_PAGE = 5;
+
+interface BlogItem {
+  id: string;
+  title: string;
+  author: string;
+  category: string;
+  date: string;
+  views: number;
+  status: string;
+  image?: string;
+  content?: string;
+}
 
 export default function AdminBlogs() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [blogs, setBlogs] = useState(MOCK_BLOGS);
+  const [blogs, setBlogs] = useState<BlogItem[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [blogToDelete, setBlogToDelete] = useState<string | null>(null);
-  const [selectedBlog, setSelectedBlog] = useState<any | null>(null);
+  const [selectedBlog, setSelectedBlog] = useState<BlogItem | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    (async () => {
+      try {
+        const items = await BlogService.list();
+        if (!active) return;
+
+        setBlogs((items as any[]).map((item) => ({
+          id: item.id,
+          title: item.title || 'Untitled Blog',
+          author: item.author || item.authorId || 'Admin',
+          category: item.category || 'General',
+          date: item.date || String(item.createdAt || new Date().toISOString()).slice(0, 10),
+          views: Number(item.views || 0),
+          status: String(item.status ?? (item.isPublished ? 'Approved' : 'Pending')),
+          image: item.image || `https://picsum.photos/seed/${item.id || 'blog'}/400/250`,
+          content: item.content || '',
+        })));
+      } catch (err) {
+        console.error('Failed to load blogs:', err);
+      }
+    })();
+
+    return () => { active = false; };
+  }, []);
 
   // Filtering Logic
   const filteredBlogs = useMemo(() => {
@@ -72,19 +76,31 @@ export default function AdminBlogs() {
     return filteredBlogs.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredBlogs, currentPage]);
 
-  const toggleStatus = (id: string) => {
-    setBlogs(blogs.map(blog => {
-      if (blog.id === id) {
-        return { ...blog, status: blog.status === 'Approved' ? 'Pending' : 'Approved' };
-      }
-      return blog;
-    }));
+  const toggleStatus = async (id: string) => {
+    const currentBlog = blogs.find((blog) => blog.id === id);
+    if (!currentBlog) return;
+
+    const newStatus = currentBlog.status === 'Approved' ? 'Pending' : 'Approved';
+
+    try {
+      await BlogService.update(id, { status: newStatus });
+      setBlogs(blogs.map((blog) => (
+        blog.id === id ? { ...blog, status: newStatus } : blog
+      )));
+    } catch (err) {
+      console.error('Failed to update blog status:', err);
+    }
   };
 
-  const confirmDelete = () => {
-    if (blogToDelete) {
-      setBlogs(blogs.filter(blog => blog.id !== blogToDelete));
+  const confirmDelete = async () => {
+    if (!blogToDelete) return;
+
+    try {
+      await BlogService.remove(blogToDelete);
+      setBlogs(blogs.filter((blog) => blog.id !== blogToDelete));
       setBlogToDelete(null);
+    } catch (err) {
+      console.error('Failed to delete blog:', err);
     }
   };
 

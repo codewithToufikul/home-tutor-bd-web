@@ -1,11 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { 
   Search, Filter, MapPin, BookOpen, GraduationCap, 
   X, SlidersHorizontal, ChevronDown, Layout, CheckSquare, Square,
   ChevronLeft, ChevronRight, PlayCircle, Star, ShieldCheck
 } from 'lucide-react';
 import { AREAS, SUBJECTS, CLASSES, MEDIUMS, CATEGORIES_DATA } from '@/src/constants';
-import { EXTENDED_MOCK_TUTORS } from '@/src/data/tutors';
+import { TutorProfileRepository } from '@/src/repositories/tutorProfileRepository.ts';
 import TutorCard from '@/src/components/TutorCard.tsx';
 import { TutorProfile } from '@/src/types';
 import { cn } from '@/src/lib/utils';
@@ -27,9 +27,25 @@ export default function Tutors() {
   
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [tutors, setTutors] = useState<TutorProfile[]>([]);
+
+  useEffect(() => {
+    const fetchTutors = async () => {
+      try {
+        // Fetch tutors from Firestore
+        const loadedTutors = await TutorProfileRepository.getAll();
+        setTutors(loadedTutors || []);
+      } catch (error) {
+        console.error('Failed to load tutors:', error);
+        setTutors([]);
+      }
+    };
+
+    fetchTutors();
+  }, []);
 
   const filteredTutors = useMemo(() => {
-    return EXTENDED_MOCK_TUTORS.filter(tutor => {
+    return tutors.filter(tutor => {
       const matchesSearch = !searchQuery || 
                            tutor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            tutor.university.toLowerCase().includes(searchQuery.toLowerCase()) ||

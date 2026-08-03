@@ -5,6 +5,7 @@ import {
   Hash, Wallet, Check, X, CheckCircle2, XCircle, Clock, Building2
 } from 'lucide-react';
 import AdminLayout from '@/src/components/AdminLayout.tsx';
+import { PaymentService } from '@/src/services/paymentService';
 import { cn } from '@/src/lib/utils';
 
 interface PaymentRecord {
@@ -24,14 +25,6 @@ const TakaIcon = ({ size = 16, className = "" }: { size?: number; className?: st
   </span>
 );
 
-const MOCK_PAYMENTS: PaymentRecord[] = [
-  { id: 'TXN-99201', userName: 'SI Arafat', email: 'saifularafat01.info@gmail.com', payType: 'bKash', amount: '2500', trxId: 'BK882910X', date: '2026-04-08', status: 'Pending' },
-  { id: 'TXN-99202', userName: 'Rahim Ahmed', email: 'rahim@gmail.com', payType: 'Nagad', amount: '3000', trxId: 'NG112039Y', date: '2026-04-07', status: 'Approved' },
-  { id: 'TXN-99203', userName: 'Karim Ullah', email: 'karim@gmail.com', payType: 'Rocket', amount: '1500', trxId: 'RK554021Z', date: '2026-04-06', status: 'Pending' },
-  { id: 'TXN-99204', userName: 'Sultana Begum', email: 'sultana@gmail.com', payType: 'bKash', amount: '4000', trxId: 'BK112233A', date: '2026-04-05', status: 'Approved' },
-  { id: 'TXN-99205', userName: 'Zakir Hossain', email: 'zakir@gmail.com', payType: 'Nagad', amount: '2200', trxId: 'NG998877B', date: '2026-04-04', status: 'Rejected' },
-];
-
 const ITEMS_PER_PAGE = 5;
 
 export default function AdminPayments() {
@@ -42,19 +35,35 @@ export default function AdminPayments() {
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('tutor_payments') || '[]');
-    if (saved.length === 0) {
-      localStorage.setItem('tutor_payments', JSON.stringify(MOCK_PAYMENTS));
-      setPayments(MOCK_PAYMENTS);
-    } else {
-      setPayments(saved);
-    }
+    let active = true;
+    (async () => {
+      try {
+        const items = await PaymentService.list();
+        if (active) setPayments((items as any[]).map(i => ({
+          id: i.id,
+          userName: (i as any).userName || (i as any).name || '',
+          email: (i as any).email || '',
+          payType: (i as any).method || (i as any).payType || 'bKash',
+          amount: String((i as any).amount || 0),
+          trxId: (i as any).trxId || (i as any).id || '',
+          date: (i as any).createdAt || '',
+          status: (i as any).status === 'completed' ? 'Approved' : ((i as any).status || 'Pending') as any
+        })));
+      } catch (err) {
+        console.error('Failed to load payments:', err);
+        setPayments([]);
+      }
+    })();
+    return () => { active = false };
   }, []);
 
-  const handleStatusChange = (id: string, newStatus: 'Approved' | 'Rejected') => {
-    const updated = payments.map(p => p.id === id ? { ...p, status: newStatus } : p);
-    setPayments(updated);
-    localStorage.setItem('tutor_payments', JSON.stringify(updated));
+  const handleStatusChange = async (id: string, newStatus: 'Approved' | 'Rejected') => {
+    try {
+      await PaymentService.update(id, { status: newStatus === 'Approved' ? 'completed' : 'rejected' } as any);
+      setPayments(payments.map(p => p.id === id ? { ...p, status: newStatus } : p));
+    } catch (err) {
+      console.error('Failed to update payment status:', err);
+    }
   };
 
   // Filtering Logic

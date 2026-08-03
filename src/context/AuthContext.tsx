@@ -1,125 +1,152 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 
-interface User {
-  email: string;
-  role: 'admin' | 'tutor' | 'student' | 'guardian' | 'coaching';
-  isVerified: boolean;
-  isApproved: boolean;
-  name?: string;
-  id?: string;
-}
+import {
+  getUserProfile,
+  registerWithFirebase,
+  resetPassword,
+  sendUserVerificationEmail,
+  signInWithFirebase,
+  signOutUser,
+  subscribeToAuthState,
+  type AppUser,
+  type AuthRole,
+} from '@/src/services/authService.ts';
 
 interface AuthContextType {
-  user: User | null;
-  login: (email: string, password: string, role?: 'admin' | 'tutor' | 'student' | 'guardian' | 'coaching') => Promise<void>;
-  register: (name: string, email: string, password: string, role: 'tutor' | 'student' | 'guardian' | 'coaching') => Promise<void>;
-  logout: () => void;
+  user: AppUser | null;
+  login: (email: string, password: string, role?: AuthRole) => Promise<void>;
+  register: (name: string, email: string, password: string, role: Exclude<AuthRole, 'admin'>) => Promise<void>;
+  logout: () => Promise<void>;
   verifyEmail: (code: string) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
   isLoading: boolean;
+  authError: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('user_session');
-    if (savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch (e) {
-        localStorage.removeItem('user_session');
+    const unsubscribe = subscribeToAuthState(async (authUser) => {
+      setIsLoading(true);
+
+      if (!authUser) {
+        setUser(null);
+        setIsLoading(false);
+        return;
       }
-    }
-    setIsLoading(false);
+
+      try {
+        const profile = await getUserProfile(authUser.uid);
+        setUser(profile ?? authUser);
+      } catch {
+        setUser(authUser);
+      } finally {
+        setIsLoading(false);
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  const login = async (email: string, password: string, role: 'admin' | 'tutor' | 'student' | 'guardian' | 'coaching' = 'tutor') => {
+  const login = async (email: string, password: string, role: AuthRole = 'student') => {
     setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 300));
+    setAuthError(null);
 
-    const cleanEmail = email.trim().toLowerCase();
+    try {
+      const authenticatedUser = await signInWithFirebase(email, password);
 
-    // Default Demo Credentials
-    if (role === 'admin' && cleanEmail === 'shakil.infox@gmail.com') {
-      const newUser: User = { email: cleanEmail, role: 'admin', isVerified: true, isApproved: true, name: 'Super Admin' };
-      setUser(newUser);
-      localStorage.setItem('user_session', JSON.stringify(newUser));
-    } else if (role === 'tutor' && cleanEmail === 'tutor@example.com') {
-      const newUser: User = { email: cleanEmail, role: 'tutor', isVerified: true, isApproved: true, name: 'Demo Tutor' };
-      setUser(newUser);
-      localStorage.setItem('user_session', JSON.stringify(newUser));
-    } else if (role === 'student' && cleanEmail === 'student@example.com') {
-      const newUser: User = { email: cleanEmail, role: 'student', isVerified: true, isApproved: true, name: 'Demo Student' };
-      setUser(newUser);
-      localStorage.setItem('user_session', JSON.stringify(newUser));
-    } else if (role === 'guardian' && cleanEmail === 'guardian@example.com') {
-      const newUser: User = { email: cleanEmail, role: 'guardian', isVerified: true, isApproved: true, name: 'Demo Guardian' };
-      setUser(newUser);
-      localStorage.setItem('user_session', JSON.stringify(newUser));
-    } else if (role === 'coaching' && cleanEmail === 'coaching@example.com') {
-      const newUser: User = { email: cleanEmail, role: 'coaching', isVerified: true, isApproved: true, name: 'Demo Coaching Center' };
-      setUser(newUser);
-      localStorage.setItem('user_session', JSON.stringify(newUser));
-    } else {
-      const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '[]');
-      let foundUser = registeredUsers.find((u: any) => u.email.trim().toLowerCase() === cleanEmail);
-      
-      if (foundUser) {
-        const newUser: User = { 
-          ...foundUser, 
-          role: role, 
-          isVerified: true, 
-          isApproved: true 
-        };
-        setUser(newUser);
-        localStorage.setItem('user_session', JSON.stringify(newUser));
-      } else {
-        const fallbackUser: User = { email: cleanEmail, role: role, isVerified: true, isApproved: true, name: 'User' };
-        setUser(fallbackUser);
-        localStorage.setItem('user_session', JSON.stringify(fallbackUser));
+      if (role && authenticatedUser.role !== role && role !== 'student') {
+        await signOutUser();
+        setUser(null);
+        throw new Error('Unauthorized role for this login portal.');
       }
+
+      setUser(authenticatedUser);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Login failed';
+      setAuthError(message);
+      setUser(null);
+      throw new Error(message);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
-  const register = async (name: string, email: string, password: string, role: 'tutor' | 'student' | 'guardian' | 'coaching') => {
+  const register = async (name: string, email: string, password: string, role: Exclude<AuthRole, 'admin'>) => {
     setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 300));
+    setAuthError(null);
 
-    const cleanEmail = email.trim().toLowerCase();
-    const newUser = { 
-      name, 
-      email: cleanEmail, 
-      password, 
-      role, 
-      isVerified: true, 
-      isApproved: true, 
-      id: `HTPBD-${Math.floor(10000 + Math.random() * 90000)}`
-    };
+    try {
+      const profile = await registerWithFirebase(name, email, password, role);
+      setUser({
+        uid: profile.uid,
+        email: profile.email,
+        role: profile.role,
+        isVerified: profile.isVerified,
+        isApproved: profile.isApproved,
+        name: profile.name,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Registration failed';
+      setAuthError(message);
+      throw new Error(message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '[]');
-    const filtered = registeredUsers.filter((u: any) => u.email.trim().toLowerCase() !== cleanEmail);
-    localStorage.setItem('registered_users', JSON.stringify([...filtered, newUser]));
-
-    setUser(newUser);
-    localStorage.setItem('user_session', JSON.stringify(newUser));
-    setIsLoading(false);
+  const logout = async () => {
+    setIsLoading(true);
+    try {
+      await signOutUser();
+      setUser(null);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const verifyEmail = async (_code: string) => {
-    setIsLoading(false);
+    setIsLoading(true);
+    try {
+      await sendUserVerificationEmail();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Verification failed';
+      setAuthError(message);
+      throw new Error(message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('user_session');
+  const resetPasswordHandler = async (email: string) => {
+    setIsLoading(true);
+    try {
+      await resetPassword(email);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Password reset failed';
+      setAuthError(message);
+      throw new Error(message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, verifyEmail, isLoading }}>
+    <AuthContext.Provider value={{
+      user,
+      login,
+      register,
+      logout,
+      verifyEmail,
+      resetPassword: resetPasswordHandler,
+      isLoading,
+      authError,
+    }}>
       {children}
     </AuthContext.Provider>
   );

@@ -23,13 +23,12 @@ import {
 import StudentLayout from '@/src/components/StudentLayout.tsx';
 import { cn } from '@/src/lib/utils';
 import { Link } from 'react-router-dom';
-
-const STATS = [
-  { label: 'Total Requests', value: '4', icon: History, color: 'bg-purple-500', trend: 'Active', path: '/student/requests' },
-  { label: 'Hired Tutors', value: '2', icon: Users, color: 'bg-emerald-500', trend: 'Ongoing', path: '/student/requests' },
-  { label: 'Saved Tutors', value: '15', icon: Heart, color: 'bg-rose-500', trend: '+3 new', path: '/student/saved' },
-  { label: 'Messages', value: '8', icon: MessageSquare, color: 'bg-blue-500', trend: '2 unread', path: '/student/messages' },
-];
+import { useAuth } from '@/src/context/AuthContext.tsx';
+import { TuitionService } from '@/src/services/tuitionService.ts';
+import { SavedTutorsService } from '@/src/services/savedTutorsService.ts';
+import { NoticeService } from '@/src/services/noticeService.ts';
+import { ApplicationRepository } from '@/src/repositories/applicationRepository.ts';
+import { TutorProfileRepository } from '@/src/repositories/tutorProfileRepository.ts';
 
 export default function StudentDashboard() {
   const [selectedApplicants, setSelectedApplicants] = useState<any[] | null>(null);
@@ -68,33 +67,55 @@ export default function StudentDashboard() {
     setTimeout(() => setShowAlert(false), 3000);
   };
 
-  const MY_REQUESTS = [
-    { 
-      id: 'REQ-402', 
-      title: 'Need Class 10 Math Tutor', 
-      location: 'Mirpur 2, Dhaka', 
-      budget: '৳6,000', 
-      status: 'Active', 
-      date: '1 day ago', 
-      applicants: 12,
-      applicantsList: [
-        { id: 'T-101', name: 'Saiful Arafat', university: 'BUET', department: 'EEE', rating: 4.9, experience: '3 Years', phone: '🔒 Secured (Admin Approval Needed)', image: 'https://picsum.photos/seed/t1/200', isApprovedByAdmin: false },
-        { id: 'T-102', name: 'Tanvir Ahmed', university: 'Dhaka University', department: 'Applied Physics', rating: 4.8, experience: '2 Years', phone: '🔒 Secured (Admin Approval Needed)', image: 'https://picsum.photos/seed/t2/200', isApprovedByAdmin: false }
-      ]
-    },
-    { 
-      id: 'REQ-398', 
-      title: 'English Medium Grade 3', 
-      location: 'Banani, Dhaka', 
-      budget: '৳10,000', 
-      status: 'Hired', 
-      date: '5 days ago', 
-      applicants: 8,
-      applicantsList: [
-        { id: 'T-103', name: 'Sultana Begum', university: 'North South University', department: 'English Literature', rating: 5.0, experience: '4 Years', phone: '+8801911223344 (Admin Verified)', image: 'https://picsum.photos/seed/t3/200', isApprovedByAdmin: true }
-      ]
-    },
-  ];
+  const { user } = useAuth();
+  const [stats, setStats] = useState<any[]>([]);
+  const [myRequests, setMyRequests] = useState<any[]>([]);
+
+  useEffect(() => {
+    const load = async () => {
+      if (!user?.uid) return;
+      try {
+        const allJobs = await TuitionService.list();
+        const myJobs = (allJobs || []).filter((j: any) => j.parentId === user.uid);
+        const totalRequests = myJobs.length;
+        const hired = myJobs.filter((j: any) => j.status === 'Matched' || j.status === 'Hired' || j.status === 'Closed').length;
+        const saved = await SavedTutorsService.listForStudent(user.uid);
+        const notices = await NoticeService.list();
+        const studentNotices = (notices || []).filter((n: any) => !n.audience || n.audience === 'Students' || n.audience === 'All');
+
+        setStats([
+          { label: 'Total Requests', value: String(totalRequests), icon: History, color: 'bg-purple-500', trend: 'Active', path: '/student/requests' },
+          { label: 'Hired Tutors', value: String(hired), icon: Users, color: 'bg-emerald-500', trend: 'Ongoing', path: '/student/requests' },
+          { label: 'Saved Tutors', value: String((saved || []).length), icon: Heart, color: 'bg-rose-500', trend: '+0', path: '/student/saved' },
+          { label: 'Messages', value: String((studentNotices || []).length), icon: MessageSquare, color: 'bg-blue-500', trend: '0 unread', path: '/student/messages' },
+        ]);
+
+        const requestsMapped = await Promise.all(myJobs.map(async (m: any) => {
+          const apps = await ApplicationRepository.getByJob(m.id);
+          const applicants = await Promise.all((apps || []).map(async (a: any) => {
+            const tutor = await TutorProfileRepository.getById(a.tutorId);
+            return { id: tutor?.id || a.tutorId, name: tutor?.fullName || tutor?.name, university: tutor?.gradInstitute || '', department: tutor?.gradDept || '', rating: tutor?.rating || 0, experience: tutor?.experienceYears || '', phone: '🔒 Secured (Admin Approval Needed)', image: tutor?.photoUrl || tutor?.avatar || '' };
+          }));
+
+          return {
+            id: m.id || '',
+            title: m.title || m.category || m.studentClass || 'Tuition',
+            location: `${m.area || ''}${m.location ? ', ' + m.location : ''}`,
+            budget: m.salary ? `${m.salary} ৳` : 'N/A',
+            status: m.status || 'Active',
+            date: m.createdAt || '',
+            applicants: (apps || []).length,
+            applicantsList: applicants,
+          };
+        }));
+
+        setMyRequests(requestsMapped);
+      } catch (err) {
+        console.error('Failed to load student dashboard data:', err);
+      }
+    };
+    load();
+  }, [user]);
 
   const handleProfileSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -230,7 +251,7 @@ export default function StudentDashboard() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {STATS.map((stat) => (
+          {stats.map((stat) => (
             <Link
               key={stat.label}
               to={stat.path}
@@ -262,7 +283,7 @@ export default function StudentDashboard() {
             
             <div className="bg-white/60 backdrop-blur-xl rounded-[32px] border border-white/40 shadow-xl shadow-ink/5 overflow-hidden">
               <div className="divide-y divide-ink/5">
-                {MY_REQUESTS.map((req) => (
+                {myRequests.map((req) => (
                   <div key={req.id} className="p-6 hover:bg-white/40 transition-colors group">
                     <div className="flex flex-wrap items-center justify-between gap-4">
                       <div className="flex items-center gap-4">

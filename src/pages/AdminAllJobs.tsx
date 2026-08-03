@@ -8,21 +8,11 @@ import {
 import AdminLayout from '@/src/components/AdminLayout.tsx';
 import { cn } from '@/src/lib/utils';
 
-const MOCK_JOBS = [
-  { id: 'BAZ-0011', address: 'Mirpur 6 Bazar', salary: '4500৳', perWeek: '5 days', className: 'Class 3', subject: 'All', gender: 'Male', medium: 'English Medium Cambridge', category: 'Home' },
-  { id: 'ROA-0010', address: 'gulshan 2 road2', salary: '500৳', perWeek: '1 days', className: 'BBA', subject: 'Bangla,Math,English', gender: 'Male', medium: 'English Medium Cambridge', category: 'Home' },
-  { id: 'HTP-0009', address: 'Mirpur 10 block 10 1212', salary: '500৳', perWeek: '1 days', className: 'Class-1', subject: 'Bangla,Math,English,Science', gender: 'Male', medium: 'Bangla', category: 'Home' },
-  { id: 'BAR-0008', address: 'barisal gat bazar, barisal', salary: '3500৳', perWeek: '2 days', className: 'Nine-Ten', subject: 'Science', gender: 'Female', medium: 'Bangla', category: 'Home' },
-  { id: 'COM-0010', address: 'Banasua Bazar, 44/2, Comilla', salary: '2000৳', perWeek: '3 days', className: 'Class-10', subject: 'Science', gender: 'Male', medium: 'Bangla', category: 'Home' },
-  { id: 'DHK-0012', address: 'Uttara Sector 4', salary: '5000৳', perWeek: '4 days', className: 'Class 5', subject: 'All', gender: 'Female', medium: 'English Version', category: 'Home' },
-  { id: 'CTG-0015', address: 'GEC Circle, Chittagong', salary: '3000৳', perWeek: '3 days', className: 'Class 8', subject: 'Math,Physics', gender: 'Male', medium: 'Bangla', category: 'Home' },
-];
-
 const ITEMS_PER_PAGE = 5;
 
 export default function AdminAllJobs() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [jobs, setJobs] = useState(MOCK_JOBS);
+  const [jobs, setJobs] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [jobToDelete, setJobToDelete] = useState<string | null>(null);
 

@@ -7,13 +7,12 @@ import useEmblaCarousel from 'embla-carousel-react';
 import Autoplay from 'embla-carousel-autoplay';
 import { SUBJECTS, DISTRICTS, DISTRICT_WISE_AREAS, CATEGORIES_DATA } from '@/src/constants';
 import TutorCard from '@/src/components/TutorCard.tsx';
-import GuardianCard from '@/src/components/GuardianCard.tsx';
-import CoachingCard from '@/src/components/CoachingCard.tsx';
-import StudentCard from '@/src/components/StudentCard.tsx';
 import { TutorProfile, TuitionJob } from '@/src/types';
 import { cn } from '@/src/lib/utils';
 import { Link } from 'react-router-dom';
-import { addJob } from '@/src/lib/jobs';
+import { TuitionService } from '@/src/services/tuitionService.ts';
+import { TutorProfileService } from '@/src/services/tutorProfileService.ts';
+import { NotificationService } from '@/src/services/notificationService.ts';
 
 const CUSTOM_CLASSES = [
   'Play / Nursery',
@@ -41,196 +40,6 @@ const CUSTOM_MEDIUMS = [
   'English Medium (Edexcel)',
   'Madrasah',
   'Admission Candidate'
-];
-
-// ======================== MOCK DATA ========================
-
-const MOCK_TUTORS: TutorProfile[] = [
-  {
-    id: '1',
-    userId: 'u1',
-    name: 'Rayat Hasan',
-    university: 'Islamic University of Technology ( IUT )',
-    department: 'Mechanical Engineering (ME)',
-    qualification: 'B.Sc in ME',
-    experience: '3 years',
-    subjects: ['Physics', 'Mathematics', 'ICT'],
-    preferredAreas: ['Dhaka'],
-    mediums: ['Bangla', 'English Version'],
-    salary: 5000,
-    rating: 4.9,
-    reviewCount: 12,
-    verified: true,
-    bio: 'Experienced tutor specializing in science subjects for SSC and HSC students.',
-    gender: 'Male',
-    photoUrl: 'https://picsum.photos/seed/rayat/400/400'
-  },
-  {
-    id: '2',
-    userId: 'u2',
-    name: 'Tanbir Mahmud',
-    university: 'University of Rajshahi',
-    department: 'Department of management studies',
-    qualification: 'BBA',
-    experience: '4 years',
-    subjects: ['Management', 'Accounting'],
-    preferredAreas: ['Dhaka'],
-    mediums: ['Bangla'],
-    salary: 8000,
-    rating: 5.0,
-    reviewCount: 25,
-    verified: true,
-    bio: 'Passionate about teaching management and accounting.',
-    gender: 'Male',
-    photoUrl: 'https://picsum.photos/seed/tanbir/400/400'
-  },
-  {
-    id: '3',
-    userId: 'u3',
-    name: 'Afra Jabeen Rayya',
-    university: 'BRAC University',
-    department: 'BBA (Professional)',
-    qualification: 'BBA',
-    experience: '2 years',
-    subjects: ['English', 'Business Studies'],
-    preferredAreas: ['Dhaka'],
-    mediums: ['English Medium'],
-    salary: 6000,
-    rating: 4.8,
-    reviewCount: 8,
-    verified: true,
-    bio: 'Helping students master English and business concepts.',
-    gender: 'Female',
-    photoUrl: 'https://picsum.photos/seed/afra/400/400'
-  },
-  {
-    id: '4',
-    userId: 'u4',
-    name: 'Kowsar Ahmed',
-    university: 'Dhaka College',
-    department: 'Physics',
-    qualification: 'M.Sc in Physics',
-    experience: '5 years',
-    subjects: ['Physics', 'Mathematics'],
-    preferredAreas: ['Dhaka'],
-    mediums: ['Bangla'],
-    salary: 7000,
-    rating: 4.9,
-    reviewCount: 30,
-    verified: true,
-    bio: 'Specialist in Physics for college students.',
-    gender: 'Male',
-    photoUrl: 'https://picsum.photos/seed/kowsar/400/400'
-  },
-  {
-    id: '5',
-    userId: 'u5',
-    name: 'Nusrat Jahan',
-    university: 'Dhaka University',
-    department: 'Economics',
-    qualification: 'MSS in Economics',
-    experience: '3 years',
-    subjects: ['Economics', 'Accounting'],
-    preferredAreas: ['Chattogram'],
-    mediums: ['English Medium'],
-    salary: 6500,
-    rating: 4.7,
-    reviewCount: 15,
-    verified: true,
-    bio: 'Expert in Economics and Accounting.',
-    gender: 'Female',
-    photoUrl: 'https://picsum.photos/seed/nusrat/400/400'
-  },
-  {
-    id: '6',
-    userId: 'u6',
-    name: 'Shahriar Khan',
-    university: 'BUET',
-    department: 'CSE',
-    qualification: 'B.Sc in CSE',
-    experience: '4 years',
-    subjects: ['Programming', 'ICT'],
-    preferredAreas: ['Sylhet'],
-    mediums: ['English Medium'],
-    salary: 9000,
-    rating: 4.8,
-    reviewCount: 20,
-    verified: true,
-    bio: 'Programming and ICT specialist.',
-    gender: 'Male',
-    photoUrl: 'https://picsum.photos/seed/shahriar/400/400'
-  },
-  {
-    id: '7',
-    userId: 'u7',
-    name: 'Taslima Akter',
-    university: 'NSU',
-    department: 'English',
-    qualification: 'BA in English',
-    experience: '2 years',
-    subjects: ['English', 'Literature'],
-    preferredAreas: ['Rajshahi'],
-    mediums: ['English Medium'],
-    salary: 5500,
-    rating: 4.6,
-    reviewCount: 10,
-    verified: true,
-    bio: 'Passionate about English Literature.',
-    gender: 'Female',
-    photoUrl: 'https://picsum.photos/seed/taslima/400/400'
-  },
-  {
-    id: '8',
-    userId: 'u8',
-    name: 'Rashedul Islam',
-    university: 'KU',
-    department: 'Chemistry',
-    qualification: 'B.Sc in Chemistry',
-    experience: '3 years',
-    subjects: ['Chemistry', 'Science'],
-    preferredAreas: ['Khulna'],
-    mediums: ['Bangla'],
-    salary: 6000,
-    rating: 4.5,
-    reviewCount: 12,
-    verified: true,
-    bio: 'Chemistry expert for HSC students.',
-    gender: 'Male',
-    photoUrl: 'https://picsum.photos/seed/rashedul/400/400'
-  }
-];
-
-const MOCK_GUARDIANS = [
-  { id: 'g1', name: 'Rahima Khatun', location: 'Dhaka', photoUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=rahima', isVerified: true },
-  { id: 'g2', name: 'Kamrul Hassan', location: 'Dhaka', photoUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=kamrul', isVerified: true },
-  { id: 'g3', name: 'Sultana Begum', location: 'Chattogram', photoUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=sultana', isVerified: false },
-  { id: 'g4', name: 'Abul Kashem', location: 'Sylhet', photoUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=kashem', isVerified: true },
-  { id: 'g5', name: 'Mina Akter', location: 'Rajshahi', photoUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=mina', isVerified: true },
-  { id: 'g6', name: 'Zakir Hossain', location: 'Khulna', photoUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=zakir', isVerified: false },
-  { id: 'g7', name: 'Nasrin Sultana', location: 'Barishal', photoUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=nasrin', isVerified: true },
-  { id: 'g8', name: 'Rafiqul Islam', location: 'Rangpur', photoUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=rafiqul', isVerified: true }
-];
-
-const MOCK_COACHING = [
-  { id: 'c1', name: 'Excellence Academy', location: 'Dhaka', logo: 'https://picsum.photos/seed/coach1/200/200', rating: 4.7, isVerified: true, totalStudents: 120 },
-  { id: 'c2', name: 'Bright Future Coaching', location: 'Dhaka', logo: 'https://picsum.photos/seed/coach2/200/200', rating: 4.3, isVerified: true, totalStudents: 85 },
-  { id: 'c3', name: 'Success Point', location: 'Chattogram', logo: 'https://picsum.photos/seed/coach3/200/200', rating: 4.6, isVerified: false, totalStudents: 200 },
-  { id: 'c4', name: 'Ideal Coaching Center', location: 'Sylhet', logo: 'https://picsum.photos/seed/coach4/200/200', rating: 4.8, isVerified: true, totalStudents: 150 },
-  { id: 'c5', name: 'Elite Academy', location: 'Rajshahi', logo: 'https://picsum.photos/seed/coach5/200/200', rating: 4.2, isVerified: true, totalStudents: 95 },
-  { id: 'c6', name: 'Genius Coaching', location: 'Khulna', logo: 'https://picsum.photos/seed/coach6/200/200', rating: 4.4, isVerified: false, totalStudents: 110 },
-  { id: 'c7', name: 'Star Academy', location: 'Barishal', logo: 'https://picsum.photos/seed/coach7/200/200', rating: 4.9, isVerified: true, totalStudents: 180 },
-  { id: 'c8', name: 'Future Coaching Center', location: 'Rangpur', logo: 'https://picsum.photos/seed/coach8/200/200', rating: 4.1, isVerified: true, totalStudents: 70 }
-];
-
-const MOCK_STUDENTS = [
-  { id: 's1', name: 'Rifat Ahmed', class: 'Class 10', location: 'Dhaka', photoUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=rifat' },
-  { id: 's2', name: 'Nabila Akter', class: 'HSC 1st Year', location: 'Chattogram', photoUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=nabila' },
-  { id: 's3', name: 'Tanvir Hossain', class: 'Class 8', location: 'Sylhet', photoUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=tanvir' },
-  { id: 's4', name: 'Sumaiya Akter', class: 'Class 5', location: 'Rajshahi', photoUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=sumaiya' },
-  { id: 's5', name: 'Kamal Hossain', class: 'Class 9', location: 'Khulna', photoUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=kamal' },
-  { id: 's6', name: 'Shahin Akter', class: 'HSC 2nd Year', location: 'Barishal', photoUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=shahin' },
-  { id: 's7', name: 'Rana Mia', class: 'Class 7', location: 'Rangpur', photoUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=rana' },
-  { id: 's8', name: 'Lipi Begum', class: 'Class 6', location: 'Mymensingh', photoUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=lipi' }
 ];
 
 // ======================== SLIDER SECTION (আপডেটেড) ========================
@@ -330,6 +139,30 @@ export default function Home() {
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [popularTutors, setPopularTutors] = useState<TutorProfile[]>([]);
+
+  useEffect(() => {
+    let active = true;
+
+    const fetchTutors = async () => {
+      try {
+        const tutors = await TutorProfileService.getAll();
+        if (active) {
+          setPopularTutors((tutors || []).slice(0, 8) as TutorProfile[]);
+        }
+      } catch (error) {
+        console.error('Failed to load tutors for homepage:', error);
+        if (active) {
+          setPopularTutors([]);
+        }
+      }
+    };
+
+    fetchTutors();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const [formData, setFormData] = useState({
     classes: [] as string[],
@@ -375,12 +208,12 @@ export default function Home() {
     ? DISTRICT_WISE_AREAS[formData.district] 
     : [];
 
-  const handleRequestSubmit = (e: React.FormEvent) => {
+  const handleRequestSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.phone) return;
     setIsSubmitting(true);
 
-    setTimeout(() => {
+    try {
       const classesStr = formData.classes.length > 0 ? formData.classes.join(', ') : 'Class 10';
       const subjectsStr = formData.subjects.length > 0 ? formData.subjects.join(', ') : 'GENERAL SUBJECTS';
 
@@ -406,28 +239,25 @@ export default function Home() {
         category: 'Home Tuition'
       };
 
-      addJob(newJob);
-
-      const newNotification = {
-        id: `REQ-${Date.now()}`,
+      await TuitionService.create(newJob);
+      await NotificationService.create({
         type: 'tutor_request',
         title: 'New Tutor Request',
         message: `Classes: ${classesStr} (${formData.medium}) in ${formData.area}, ${formData.district}. Phone: ${formData.phone}`,
-        time: 'Just now',
-        isRead: false
-      };
-      const existing = JSON.parse(localStorage.getItem('admin_notifications') || '[]');
-      localStorage.setItem('admin_notifications', JSON.stringify([newNotification, ...existing]));
+        isRead: false,
+      });
 
-      setIsSubmitting(false);
       setIsSuccess(true);
-
+      setFormData({ classes: [], district: '', area: '', detailedAddress: '', medium: '', subjects: [], customSubject: '', phone: '' });
+      setStep(1);
+    } catch (error) {
+      console.error('Failed to submit tutor request:', error);
+    } finally {
+      setIsSubmitting(false);
       setTimeout(() => {
         setIsSuccess(false);
-        setStep(1);
-        setFormData({ classes: [], district: '', area: '', detailedAddress: '', medium: '', subjects: [], customSubject: '', phone: '' });
       }, 2500);
-    }, 1000);
+    }
   };
 
   const [currentSubjectIndex, setCurrentSubjectIndex] = useState(0);
@@ -758,44 +588,11 @@ export default function Home() {
       <SliderSection
         title="Our Popular Tutors"
         subtitle="Here are few of the Verified Teachers"
-        items={MOCK_TUTORS}
+        items={popularTutors}
         viewAllLink="/tutors"
         itemWidth="w-[230px] sm:w-[300px] lg:w-[280px]"
         renderItem={(tutor: TutorProfile) => <TutorCard tutor={tutor} className="h-full" />}
       />
-
- {/* Guardians */}
-<SliderSection
-  title="Top Guardians"
-  subtitle="Verified guardians looking for tutors"
-  items={MOCK_GUARDIANS}
-  viewAllLink="/guardians"
-  itemWidth="w-[260px] sm:w-[280px] lg:w-[260px]"
-  cardHeight="h-[360px]"
-  renderItem={(guardian: any) => <GuardianCard guardian={guardian} />}
-/>
-
-{/* Coaching */}
-<SliderSection
-  title="Coaching Centers"
-  subtitle="Top rated coaching centers near you"
-  items={MOCK_COACHING}
-  viewAllLink="/coaching"
-  itemWidth="w-[260px] sm:w-[280px] lg:w-[260px]"
-  cardHeight="h-[360px]"
-  renderItem={(item: any) => <CoachingCard coaching={item} />}
-/>
-
-{/* Students */}
-<SliderSection
-  title="Active Students"
-  subtitle="Students looking for tutors"
-  items={MOCK_STUDENTS}
-  viewAllLink="/students"
-  itemWidth="w-[260px] sm:w-[280px] lg:w-[260px]"
-  cardHeight="h-[360px]"
-  renderItem={(student: any) => <StudentCard student={student} />}
-/>
 
       {/* ===== YOUTUBE VIDEOS SECTION ===== */}
       <section className="max-w-8x3 mx-auto px-4 sm:px-6 lg:px-8 py-8">

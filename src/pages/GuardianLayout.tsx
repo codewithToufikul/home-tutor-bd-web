@@ -1,14 +1,31 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { LayoutDashboard, PlusCircle, History, Heart, MessageSquare, Settings, LogOut } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '@/src/context/AuthContext.tsx';
+import { GuardianProfileService } from '@/src/services/guardianProfileService.ts';
 
 export default function GuardianLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
 
-  // লোকালস্টোরেজ বা প্রফাইল থেকে গার্ডিয়ানের ছবি ও নাম নেওয়ার ব্যবস্থা
-  const guardianProfile = JSON.parse(localStorage.getItem('guardian_profile') || '{}');
-  const guardianAvatar = guardianProfile.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=guardian';
-  const guardianName = guardianProfile.name || 'Guardian Panel';
+  const { user } = useAuth();
+  const [guardianAvatar, setGuardianAvatar] = useState('https://api.dicebear.com/7.x/avataaars/svg?seed=guardian');
+  const [guardianName, setGuardianName] = useState('Guardian Panel');
+
+  useEffect(() => {
+    const load = async () => {
+      if (!user?.uid) return;
+      try {
+        const profile = await GuardianProfileService.getByUid(user.uid);
+        if (profile) {
+          setGuardianAvatar(profile.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=guardian');
+          setGuardianName(profile.name || 'Guardian Panel');
+        }
+      } catch (err) {
+        console.error('Failed to load guardian profile:', err);
+      }
+    };
+    load();
+  }, [user]);
 
   const menuItems = [
     { label: 'Dashboard', path: '/guardian/dashboard', icon: LayoutDashboard },

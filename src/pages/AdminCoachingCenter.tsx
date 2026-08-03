@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, School, Trash2, ChevronLeft, ChevronRight, 
@@ -6,6 +6,7 @@ import {
   GraduationCap, Image as ImageIcon, AlertCircle, ExternalLink
 } from 'lucide-react';
 import AdminLayout from '@/src/components/AdminLayout.tsx';
+import { CoachingService } from '@/src/services/coachingService';
 import { cn } from '@/src/lib/utils';
 
 const TakaIcon = ({ size = 16, className = "" }: { size?: number; className?: string }) => (
@@ -14,55 +15,56 @@ const TakaIcon = ({ size = 16, className = "" }: { size?: number; className?: st
   </span>
 );
 
-const MOCK_COACHING = [
-  { 
-    id: 'CC-001', 
-    logo: 'https://picsum.photos/seed/edu1/100/100',
-    name: 'Excellence Academy', 
-    className: 'Class 8-12', 
-    subject: 'Science, Math', 
-    admissionCost: '5000 ৳', 
-    currentStudents: '150+', 
-    startDate: '01/05/2024', 
-    address: 'Farmgate, Dhaka',
-    licensePhoto: 'https://picsum.photos/seed/lic1/400/600'
-  },
-  { 
-    id: 'CC-002', 
-    logo: 'https://picsum.photos/seed/edu2/100/100',
-    name: 'Bright Future Coaching', 
-    className: 'Class 5-10', 
-    subject: 'All Subjects', 
-    admissionCost: '3000 ৳', 
-    currentStudents: '80+', 
-    startDate: '15/06/2024', 
-    address: 'Chawkbazar, Chittagong',
-    licensePhoto: 'https://picsum.photos/seed/lic2/400/600'
-  },
-  { 
-    id: 'CC-003', 
-    logo: 'https://picsum.photos/seed/edu3/100/100',
-    name: 'Success Point', 
-    className: 'HSC, Admission', 
-    subject: 'English, ICT', 
-    admissionCost: '4500 ৳', 
-    currentStudents: '200+', 
-    startDate: '10/01/2025', 
-    address: 'Zindabazar, Sylhet',
-    licensePhoto: 'https://picsum.photos/seed/lic3/400/600'
-  },
-];
-
 const ITEMS_PER_PAGE = 5;
+
+interface CoachingCenterItem {
+  id: string;
+  logo: string;
+  name: string;
+  className: string;
+  subject: string;
+  admissionCost: string;
+  currentStudents: string;
+  startDate: string;
+  address: string;
+  licensePhoto: string;
+}
 
 export default function AdminCoachingCenter() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [coachingList, setCoachingList] = useState(MOCK_COACHING);
+  const [coachingList, setCoachingList] = useState<CoachingCenterItem[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedLicense, setSelectedLicense] = useState<string | null>(null);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
   // Filtering Logic
+  useEffect(() => {
+    let active = true;
+
+    (async () => {
+      try {
+        const items = await CoachingService.list();
+        if (!active) return;
+        setCoachingList((items as any[]).map((item) => ({
+          id: item.id,
+          logo: item.logo || `https://picsum.photos/seed/${item.id || 'coaching'}/100/100`,
+          name: item.name || 'Coaching Center',
+          className: item.className || 'All Classes',
+          subject: item.subject || 'All Subjects',
+          admissionCost: item.admissionCost || 'N/A',
+          currentStudents: item.currentStudents || '0',
+          startDate: item.startDate || String(item.createdAt || new Date().toISOString()).slice(0, 10),
+          address: item.address || 'Unknown',
+          licensePhoto: item.licensePhoto || `https://picsum.photos/seed/${item.id || 'license'}/400/600`,
+        })));
+      } catch (err) {
+        console.error('Failed to load coaching centers:', err);
+      }
+    })();
+
+    return () => { active = false; };
+  }, []);
+
   const filteredCoaching = useMemo(() => {
     return coachingList.filter(item => {
       return item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -78,10 +80,15 @@ export default function AdminCoachingCenter() {
     return filteredCoaching.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredCoaching, currentPage]);
 
-  const confirmDelete = () => {
-    if (itemToDelete) {
+  const confirmDelete = async () => {
+    if (!itemToDelete) return;
+
+    try {
+      await CoachingService.remove(itemToDelete);
       setCoachingList(coachingList.filter(item => item.id !== itemToDelete));
       setItemToDelete(null);
+    } catch (err) {
+      console.error('Failed to delete coaching center:', err);
     }
   };
 

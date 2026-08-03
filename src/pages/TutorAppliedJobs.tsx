@@ -14,73 +14,68 @@ import {
 } from 'lucide-react';
 import TutorLayout from '@/src/components/TutorLayout.tsx';
 import { cn } from '@/src/lib/utils';
-import { useState } from 'react';
-
-const APPLIED_JOBS = [
-  { 
-    id: 'JOB-2024', 
-    title: 'Class 9 Math & Physics', 
-    location: 'Dhanmondi, Dhaka', 
-    salary: '৳8,000', 
-    status: 'Pending', 
-    date: '2 hours ago',
-    category: 'Science',
-    daysPerWeek: '3 Days/Week'
-  },
-  { 
-    id: 'JOB-2021', 
-    title: 'English Medium Grade 5', 
-    location: 'Gulshan 2, Dhaka', 
-    salary: '৳12,000', 
-    status: 'Shortlisted', 
-    date: '1 day ago',
-    category: 'English Medium',
-    daysPerWeek: '4 Days/Week'
-  },
-  { 
-    id: 'JOB-2018', 
-    title: 'BBA Accounting', 
-    location: 'Uttara, Dhaka', 
-    salary: '৳10,000', 
-    status: 'Rejected', 
-    date: '3 days ago',
-    category: 'University',
-    daysPerWeek: '2 Days/Week'
-  },
-  { 
-    id: 'JOB-2015', 
-    title: 'Class 10 Chemistry', 
-    location: 'Mirpur 10, Dhaka', 
-    salary: '৳7,500', 
-    status: 'Hired', 
-    date: '1 week ago',
-    category: 'Science',
-    daysPerWeek: '3 Days/Week'
-  },
-  { 
-    id: 'JOB-2012', 
-    title: 'Standard 4 All Subjects', 
-    location: 'Banani, Dhaka', 
-    salary: '৳15,000', 
-    status: 'Pending', 
-    date: '2 weeks ago',
-    category: 'Primary',
-    daysPerWeek: '5 Days/Week'
-  },
-];
-
-const STATUS_FILTERS = ['All', 'Pending', 'Shortlisted', 'Hired', 'Rejected'];
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/src/context/AuthContext.tsx';
+import { ApplicationService } from '@/src/services/applicationService.ts';
+import { TuitionService } from '@/src/services/tuitionService.ts';
+import { TuitionJob } from '@/src/types';
 
 export default function TutorAppliedJobs() {
+  const { user } = useAuth();
   const [activeFilter, setActiveFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [appliedJobs, setAppliedJobs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredJobs = APPLIED_JOBS.filter(job => {
-    const matchesFilter = activeFilter === 'All' || job.status === activeFilter;
+  useEffect(() => {
+    const fetchApplied = async () => {
+      if (!user?.uid) {
+        setAppliedJobs([]);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const apps = await ApplicationService.listForTutor(user.uid);
+        const allJobs = await TuitionService.list();
+        const jobsById: Record<string, TuitionJob> = {};
+        ((allJobs as TuitionJob[]) || []).forEach((j) => { if (j && j.id) jobsById[j.id] = j; });
+
+        const mapped = (Array.isArray(apps) ? apps : []).map((a: any) => {
+          const job = jobsById[a.jobId];
+          return {
+            id: a.jobId || a.id || '',
+            title: job ? job.medium + ' Tuition' : (a.title || 'Tuition Opportunity'),
+            location: job ? `${job.area}, ${job.location}` : (a.location || 'Unknown'),
+            salary: job ? `${job.salary} ৳/mo` : (a.salary ? `${a.salary} ৳` : 'N/A'),
+            status: a.status ?? 'pending',
+            date: a.createdAt || '',
+            category: job?.category || a.category || 'General',
+            daysPerWeek: job?.tutoringDays || a.daysPerWeek || 'N/A'
+          };
+        });
+
+        setAppliedJobs(mapped);
+      } catch (error) {
+        console.error('Failed to load applied jobs:', error);
+        setAppliedJobs([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchApplied();
+  }, [user]);
+
+  const filteredJobs = appliedJobs.filter(job => {
+    const matchesFilter = activeFilter === 'All' || job.status.toLowerCase() === activeFilter.toLowerCase();
     const matchesSearch = job.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                          job.id.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesFilter && matchesSearch;
   });
+
+  const STATUS_FILTERS = ['All', 'Pending', 'Shortlisted', 'Hired', 'Rejected'];
 
   const getStatusStyles = (status: string) => {
     switch (status) {
@@ -118,13 +113,11 @@ export default function TutorAppliedJobs() {
           <div className="flex items-center gap-3">
             <div className="bg-white px-4 py-2 rounded-xl border border-ink/5 shadow-sm">
               <p className="text-[10px] font-black text-ink-muted uppercase">Total Applied</p>
-              <p className="text-xl font-black text-primary">{APPLIED_JOBS.length}</p>
+              <p className="text-xl font-black text-primary">{appliedJobs.length}</p>
             </div>
             <div className="bg-white px-4 py-2 rounded-xl border border-ink/5 shadow-sm">
               <p className="text-[10px] font-black text-ink-muted uppercase">Shortlisted</p>
-              <p className="text-xl font-black text-emerald-500">
-                {APPLIED_JOBS.filter(j => j.status === 'Shortlisted').length}
-              </p>
+              <p className="text-xl font-black text-emerald-500">{appliedJobs.filter(j => j.status.toLowerCase() === 'shortlisted').length}</p>
             </div>
           </div>
         </div>

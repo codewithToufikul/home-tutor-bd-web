@@ -18,6 +18,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/src/context/AuthContext.tsx';
 import { cn } from '@/src/lib/utils';
+import { NotificationService } from '@/src/services/notificationService.ts';
 
 export default function Register() {
   const [userType, setUserType] = useState<'tutor' | 'student' | 'guardian' | 'coaching'>('tutor');
@@ -59,16 +60,12 @@ export default function Register() {
       );
       
       // Trigger Admin Notification
-      const newNotification = {
-        id: `REG-${Date.now()}`,
+      await NotificationService.create({
         type: 'user_registration',
         title: `New ${userType.toUpperCase()} Registration`,
         message: `${formData.name} has registered as a ${userType}. ${formData.tradeLicense ? `Trade License: ${formData.tradeLicense}` : ''} (Pending Admin Approval).`,
-        time: 'Just now',
-        isRead: false
-      };
-      const existing = JSON.parse(localStorage.getItem('admin_notifications') || '[]');
-      localStorage.setItem('admin_notifications', JSON.stringify([newNotification, ...existing]));
+        isRead: false,
+      });
 
       if (userType === 'guardian') {
         navigate('/pending-approval');

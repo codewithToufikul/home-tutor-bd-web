@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { ShieldCheck, Upload, CheckCircle2, AlertCircle, FileText, Camera, Check } from 'lucide-react';
+import { ShieldCheck, Upload, CheckCircle2, AlertCircle, Camera, Check } from 'lucide-react';
 import TutorLayout from '@/src/components/TutorLayout.tsx';
+import { useAuth } from '@/src/context/AuthContext.tsx';
+import { VerificationService } from '@/src/services/verificationService.ts';
 
 export default function TutorVerification() {
+  const { user } = useAuth();
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [files, setFiles] = useState({
     nidFront: null as File | null,
@@ -19,27 +22,38 @@ export default function TutorVerification() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Save to localStorage for Admin to review
-    const verificationData = {
-      id: `VERIFY-${Date.now()}`,
-      tutorName: 'Md Shakil Hosen',
-      tutorId: 'TS-150785',
-      docType,
-      docNumber,
-      nidFront: files.nidFront ? URL.createObjectURL(files.nidFront) : '',
-      nidBack: files.nidBack ? URL.createObjectURL(files.nidBack) : '',
-      studentId: files.studentId ? URL.createObjectURL(files.studentId) : '',
-      status: 'Pending',
-      date: 'Just now'
-    };
 
-    const existing = JSON.parse(localStorage.getItem('admin_verification_requests') || '[]');
-    localStorage.setItem('admin_verification_requests', JSON.stringify([verificationData, ...existing]));
+    if (!user?.uid) {
+      alert('You must be signed in as a tutor to submit a verification request.');
+      return;
+    }
 
-    setIsSubmitted(true);
+    if (!docNumber || !files.nidFront || !files.nidBack || !files.studentId) {
+      alert('Please provide all required documents and your document number.');
+      return;
+    }
+
+    try {
+      await VerificationService.create({
+        uid: user.uid,
+        name: user.name || user.displayName || 'Tutor',
+        email: user.email || '',
+        docType,
+        docNumber,
+        nidFrontName: files.nidFront.name,
+        nidBackName: files.nidBack.name,
+        studentIdName: files.studentId.name,
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+      });
+
+      setIsSubmitted(true);
+    } catch (error) {
+      console.error('Failed to submit verification request:', error);
+      alert('Verification request could not be submitted. Please try again later.');
+    }
   };
 
   return (
@@ -65,13 +79,12 @@ export default function TutorVerification() {
         {/* Verification Form */}
         <form onSubmit={handleSubmit} className="bg-white p-8 rounded-3xl border border-ink/10 shadow-sm space-y-6">
           <div className="space-y-4">
-            {/* Document Type */}
             <div>
               <label className="block text-xs font-bold text-[#001F3F] uppercase mb-2">Select National Identity Document*</label>
-              <select 
+              <select
                 value={docType}
                 onChange={(e) => setDocType(e.target.value)}
-                required 
+                required
                 className="w-full bg-gray-50 border border-ink/10 rounded-2xl p-3.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
               >
                 <option value="nid">National ID (NID)</option>
@@ -80,20 +93,18 @@ export default function TutorVerification() {
               </select>
             </div>
 
-            {/* Document Number */}
             <div>
               <label className="block text-xs font-bold text-[#001F3F] uppercase mb-2">Document ID Number*</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={docNumber}
                 onChange={(e) => setDocNumber(e.target.value)}
-                placeholder="e.g. 1998261234567" 
-                required 
+                placeholder="e.g. 1998261234567"
+                required
                 className="w-full bg-gray-50 border border-ink/10 rounded-2xl p-3.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
 
-            {/* Upload Front & Back */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
               <label className="border-2 border-dashed border-ink/10 rounded-2xl p-6 text-center hover:border-primary/45 transition-colors cursor-pointer bg-gray-50/50 block relative">
                 <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileChange('nidFront', e)} className="hidden" required />
@@ -130,7 +141,6 @@ export default function TutorVerification() {
               </label>
             </div>
 
-            {/* Student ID Card Upload */}
             <div className="pt-2">
               <label className="block text-xs font-bold text-[#001F3F] uppercase mb-2">Student ID / University Certificate*</label>
               <label className="border-2 border-dashed border-ink/10 rounded-2xl p-6 text-center hover:border-primary/45 transition-colors cursor-pointer bg-gray-50/50 block relative">
@@ -152,8 +162,8 @@ export default function TutorVerification() {
             </div>
           </div>
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             className="w-full py-4 rounded-2xl bg-[#9D174D] text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-rose-900/20 hover:bg-[#831843] transition-all cursor-pointer"
           >
             {isSubmitted ? 'Submitted for Review ✓' : 'Submit Verification Request'}

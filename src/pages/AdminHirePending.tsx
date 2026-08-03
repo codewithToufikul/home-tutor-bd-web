@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, Clock, CheckSquare, Filter, ChevronLeft, ChevronRight, 
@@ -6,51 +6,17 @@ import {
   CheckCircle2, AlertCircle, X
 } from 'lucide-react';
 import AdminLayout from '@/src/components/AdminLayout.tsx';
+import { HireService } from '@/src/services/hireService';
 import { cn } from '@/src/lib/utils';
 
-const MOCK_HIRE_REQUESTS = [
-  { 
-    id: 'REQ-H001', 
-    tutorName: 'Jane Smith', 
-    tutorId: 'TUTOR-002', 
-    tutorArea: 'Chittagong, Bangladesh',
-    tutorPhone: '8801987654321',
-    subject: 'Math',
-    category: 'School',
-    salary: '4000৳',
-    tuitionStart: 'Start March',
-    guardianName: 'Mrs. Johnson',
-    guardianId: 'PARENT-002',
-    guardianArea: 'Chittagong, Bangladesh',
-    guardianPhone: '8801712345678',
-    applyDate: '1/19/2025 11:52:31 PM',
-    status: 'pending'
-  },
-  { 
-    id: 'REQ-H002', 
-    tutorName: 'Alice Brown', 
-    tutorId: 'TUTOR-003', 
-    tutorArea: 'Sylhet, Bangladesh',
-    tutorPhone: '8801912345678',
-    subject: 'Grammar',
-    category: 'Home',
-    salary: '6000৳',
-    tuitionStart: 'Start April',
-    guardianName: 'Mr. Ahmed',
-    guardianId: 'PARENT-003',
-    guardianArea: 'Sylhet, Bangladesh',
-    guardianPhone: '8801934567890',
-    applyDate: '1/19/2025 11:52:31 PM',
-    status: 'pending'
-  },
-];
+// Hire requests are stored in Firestore
 
 const ITEMS_PER_PAGE = 5;
 
 export default function AdminHirePending() {
   const [activeTab, setActiveTab] = useState<'pending' | 'approved'>('pending');
   const [searchQuery, setSearchQuery] = useState('');
-  const [requests, setRequests] = useState(MOCK_HIRE_REQUESTS);
+  const [requests, setRequests] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
 
   // Filtering Logic
@@ -71,13 +37,30 @@ export default function AdminHirePending() {
     return filteredRequests.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredRequests, currentPage]);
 
-  const handleApprove = (id: string) => {
-    setRequests(requests.map(req => req.id === id ? { ...req, status: 'approved' } : req));
+  const handleApprove = async (id: string) => {
+    try {
+      await HireService.updateStatus(id, 'approved');
+      setRequests(requests.map(req => req.id === id ? { ...req, status: 'approved' } : req));
+    } catch (err) { console.error('Approve failed', err); }
   };
 
-  const handleCancel = (id: string) => {
-    setRequests(requests.filter(req => req.id !== id));
+  const handleCancel = async (id: string) => {
+    try {
+      await HireService.remove(id);
+      setRequests(requests.filter(req => req.id !== id));
+    } catch (err) { console.error('Cancel failed', err); }
   };
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const items = await HireService.list();
+        if (active) setRequests(items as any[]);
+      } catch (err) { console.error('Failed to load hire requests', err); }
+    })();
+    return () => { active = false };
+  }, []);
 
   return (
     <AdminLayout>

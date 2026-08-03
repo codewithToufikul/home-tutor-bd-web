@@ -6,6 +6,7 @@ import {
   Users, Info, Clock, Megaphone
 } from 'lucide-react';
 import AdminLayout from '@/src/components/AdminLayout.tsx';
+import { NoticeService } from '@/src/services/noticeService';
 import { cn } from '@/src/lib/utils';
 
 export default function AdminCreateNotice() {
@@ -15,30 +16,28 @@ export default function AdminCreateNotice() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    (async () => {
+      try {
+        const formData = new FormData(e.target as HTMLFormElement);
+        const payload = {
+          title: String(formData.get('title') || ''),
+          audience: String(formData.get('audience') || ''),
+          priority: String(formData.get('priority') || ''),
+          category: String(formData.get('category') || ''),
+          content: String(formData.get('content') || ''),
+          displayUntil: String(formData.get('displayUntil') || ''),
+          isRead: false,
+        };
 
-    const formData = new FormData(e.target as HTMLFormElement);
-    const newNotice = {
-      id: Date.now(),
-      title: formData.get('title'),
-      audience: formData.get('audience'),
-      priority: formData.get('priority'),
-      category: formData.get('category'),
-      content: formData.get('content'),
-      date: new Date().toISOString(),
-      displayUntil: formData.get('displayUntil'),
-      isRead: false
-    };
-
-    // Simulate API call
-    setTimeout(() => {
-      // Save to localStorage
-      const existingNotices = JSON.parse(localStorage.getItem('system_notices') || '[]');
-      localStorage.setItem('system_notices', JSON.stringify([newNotice, ...existingNotices]));
-
-      setIsSubmitting(false);
-      setIsSuccess(true);
-      setTimeout(() => setIsSuccess(false), 3000);
-    }, 1500);
+        await NoticeService.create(payload);
+        setIsSuccess(true);
+      } catch (err) {
+        console.error('Failed to create notice:', err);
+      } finally {
+        setIsSubmitting(false);
+        setTimeout(() => setIsSuccess(false), 3000);
+      }
+    })();
   };
 
   const inputClasses = "w-full bg-white/60 backdrop-blur-xl border border-white/40 rounded-2xl py-4 px-5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all shadow-sm placeholder:text-ink-muted/40";
