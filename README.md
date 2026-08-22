@@ -18,3 +18,4 @@ View your app in AI Studio: https://ai.studio/apps/8f9867f6-eb69-4070-8288-f38e9
 2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
 3. Run the app:
    `npm run dev`
+# home-tutor-bd-web
