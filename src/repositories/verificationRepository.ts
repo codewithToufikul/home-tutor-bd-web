@@ -1,32 +1,22 @@
-import { createDocument, deleteDocument, getDocument, listDocuments, updateDocument } from '@/src/repositories/baseRepository.ts';
+import { apiGet, apiPost } from './baseRepository';
 
 export interface VerificationRecord {
   id?: string;
+  _id?: string;
   uid?: string;
-  name?: string;
-  type?: string;
-  status?: 'pending' | 'approved' | 'rejected';
-  createdAt?: string;
+  tutorId?: string;
+  nidDocument?: string;
+  certificateDocuments?: string[];
+  cvDocument?: string;
+  status?: 'Pending' | 'Approved' | 'Rejected' | 'pending';
+  [key: string]: unknown;
 }
 
 export const VerificationRepository = {
-  async getById(id: string) {
-    return getDocument<VerificationRecord>('admin_verification_requests', id);
-  },
-
-  async getAll() {
-    return listDocuments<VerificationRecord>('admin_verification_requests');
-  },
-
-  async create(record: VerificationRecord) {
-    return createDocument('admin_verification_requests', record);
-  },
-
-  async update(id: string, data: Partial<VerificationRecord>) {
-    return updateDocument('admin_verification_requests', id, data);
-  },
-
-  async remove(id: string) {
-    return deleteDocument('admin_verification_requests', id);
-  },
+  async get(id: string) { return apiGet<VerificationRecord>(`/verifications/${id}`); },
+  async getById(id: string) { return apiGet<VerificationRecord>(`/verifications/${id}`); },
+  async create(data: Partial<VerificationRecord>) { return apiPost<VerificationRecord>('/verifications', data); },
+  async update(id: string, data: Partial<VerificationRecord>) { return apiPost<VerificationRecord>('/verifications', data); },
+  async list() { return apiGet<VerificationRecord[]>('/admin/verifications'); },
+  async getAll() { return apiGet<VerificationRecord[]>('/admin/verifications'); },
 };

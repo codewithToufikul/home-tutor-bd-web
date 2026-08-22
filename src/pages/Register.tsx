@@ -18,7 +18,6 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/src/context/AuthContext.tsx';
 import { cn } from '@/src/lib/utils';
-import { NotificationService } from '@/src/services/notificationService.ts';
 
 export default function Register() {
   const [userType, setUserType] = useState<'tutor' | 'student' | 'guardian' | 'coaching'>('tutor');
@@ -51,29 +50,18 @@ export default function Register() {
 
     setIsSubmitting(true);
     try {
-      // ফিক্স: এখানে guardian বা coaching-এর জন্য সঠিক রোল পাস করা হলো (coaching-এর ক্ষেত্রে আপাতত student বা coaching)
+      // Pass the exact userType ('coaching', 'tutor', 'student', 'guardian')
       await register(
         formData.name, 
         formData.email, 
         formData.password, 
-        userType === 'coaching' ? 'student' : userType
+        userType
       );
       
-      // Trigger Admin Notification
-      await NotificationService.create({
-        type: 'user_registration',
-        title: `New ${userType.toUpperCase()} Registration`,
-        message: `${formData.name} has registered as a ${userType}. ${formData.tradeLicense ? `Trade License: ${formData.tradeLicense}` : ''} (Pending Admin Approval).`,
-        isRead: false,
-      });
 
-      if (userType === 'guardian') {
-        navigate('/pending-approval');
-      } else if (userType === 'coaching') {
-        navigate('/coaching/dashboard');
-      } else {
-        navigate('/pending-approval');
-      }
+
+      // Navigate to OTP Verification Page
+      navigate('/verify-otp', { state: { email: formData.email } });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
     } finally {

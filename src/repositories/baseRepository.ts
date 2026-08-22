@@ -1,6 +1,85 @@
-import { collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, query, where, orderBy, Timestamp } from 'firebase/firestore';
+// ─── BASE REPOSITORY ────────────────────────────────────────────────────────
+// Firestore has been removed. All data now comes from our Node.js backend.
+// This base client wraps the REST API using fetch with Bearer token auth.
 
-import { db } from '@/src/firebase.js';
+const metaEnv = (import.meta as unknown as { env?: Record<string, string> }).env;
+const API_BASE_URL = metaEnv?.VITE_API_URL || 'http://localhost:5001/api/v1';
+
+const getAuthHeaders = (): Record<string, string> => {
+  const token = localStorage.getItem('accessToken');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+const apiFetch = async <T>(
+  path: string,
+  options: RequestInit = {},
+  isRetry: boolean = false,
+): Promise<T> => {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders(),
+      ...(options.headers ?? {}),
+    },
+  });
+
+  const json = (await res.json()) as { success: boolean; message?: string; data?: T };
+
+  if (!res.ok) {
+    // If token expired (401) and we haven't retried yet, attempt automatic token refresh
+    if (res.status === 401 && !isRetry && !path.includes('/auth/login') && !path.includes('/auth/refresh')) {
+      console.warn('⚠️ Token expired in apiFetch. Attempting automatic token refresh...');
+      try {
+        const refreshRes = await fetch(`${API_BASE_URL}/auth/refresh`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        const refreshJson = await refreshRes.json();
+        if (refreshRes.ok && refreshJson?.data?.accessToken) {
+          const newAccessToken = refreshJson.data.accessToken;
+          localStorage.setItem('accessToken', newAccessToken);
+          console.log('✅ Access Token refreshed in baseRepository. Retrying request...');
+          return apiFetch<T>(path, options, true);
+        }
+      } catch (err) {
+        console.error('❌ Automatic token refresh failed in baseRepository:', err);
+      }
+      // If refresh failed, clear local session
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('user');
+    }
+
+    throw new Error(json.message || `API Error: ${res.status}`);
+  }
+
+  return json.data as T;
+};
+
+// ─── Generic CRUD helpers (used by specific repositories) ───────────────────
+
+export const apiGet = <T>(path: string): Promise<T> =>
+  apiFetch<T>(path, { method: 'GET' });
+
+export const apiPost = <T>(path: string, body: unknown): Promise<T> =>
+  apiFetch<T>(path, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+
+export const apiPatch = <T>(path: string, body: unknown): Promise<T> =>
+  apiFetch<T>(path, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+
+export const apiDelete = <T>(path: string): Promise<T> =>
+  apiFetch<T>(path, { method: 'DELETE' });
+
+// ─── Legacy Firestore types kept for migration compat ───────────────────────
+// TODO: Remove once all repositories have been updated to use RTK Query endpoints.
 
 export type FirestoreFilter = {
   field: string;
@@ -8,73 +87,49 @@ export type FirestoreFilter = {
   value: unknown;
 };
 
-export function getCollectionRef(name: string) {
-  return collection(db, name);
-}
+export type FirestoreQueryOptions = {
+  filters?: FirestoreFilter[];
+  orderByField?: string;
+  orderDirection?: 'asc' | 'desc';
+  limitCount?: number;
+  startAfterDocId?: string;
+};
 
-export function getDocumentRef(collectionName: string, id: string) {
-  return doc(db, collectionName, id);
-}
+export type FirestoreQueryResult<T> = {
+  items: T[];
+  lastDocId?: string;
+  hasMore: boolean;
+};
 
-export async function listDocuments<T>(collectionName: string, filters: FirestoreFilter[] = [], orderByField?: string) {
-  const constraints = [] as any[];
+// Stubs for backward compat — throw informative errors if called
+export const getCollectionRef = (_name: string): never => {
+  throw new Error('[DEPRECATED] Firestore has been removed. Use RTK Query or apiGet() instead.');
+};
 
-  filters.forEach((filter) => {
-    constraints.push(where(filter.field, filter.op, filter.value));
-  });
+export const getDocumentRef = (_collectionName: string, _id: string): never => {
+  throw new Error('[DEPRECATED] Firestore has been removed. Use RTK Query or apiGet() instead.');
+};
 
-  if (orderByField) {
-    constraints.push(orderBy(orderByField));
-  }
+export const queryDocuments = <T = unknown>(_collectionName: string, _options?: FirestoreQueryOptions): Promise<FirestoreQueryResult<T>> => {
+  throw new Error('[DEPRECATED] Firestore has been removed. Use RTK Query endpoints instead.');
+};
 
-  const snapshot = await getDocs(query(getCollectionRef(collectionName), ...constraints));
+export const getDocument = <T = unknown>(_collectionName: string, _id: string): Promise<(T & { id: string }) | null> => {
+  throw new Error('[DEPRECATED] Firestore has been removed. Use RTK Query endpoints instead.');
+};
 
-  return snapshot.docs.map((item) => ({
-    id: item.id,
-    ...item.data(),
-  })) as T[];
-}
+export const createDocument = <T = unknown>(_collectionName: string, _data: Partial<T>): Promise<T & { id: string }> => {
+  throw new Error('[DEPRECATED] Firestore has been removed. Use RTK Query endpoints instead.');
+};
 
-export async function getDocument<T>(collectionName: string, id: string) {
-  const snapshot = await getDoc(getDocumentRef(collectionName, id));
+export const setDocument = <T = unknown>(_collectionName: string, _id: string, _data: Partial<T>): Promise<T & { id: string }> => {
+  throw new Error('[DEPRECATED] Firestore has been removed. Use RTK Query endpoints instead.');
+};
 
-  if (!snapshot.exists()) {
-    return null;
-  }
+export const updateDocument = <T = unknown>(_collectionName: string, _id: string, _data: Partial<T>): Promise<T & { id: string }> => {
+  throw new Error('[DEPRECATED] Firestore has been removed. Use RTK Query endpoints instead.');
+};
 
-  return {
-    id: snapshot.id,
-    ...snapshot.data(),
-  } as T & { id: string };
-}
-
-export async function createDocument<T extends { id?: string }>(collectionName: string, data: T) {
-  const record = {
-    ...data,
-    createdAt: data.createdAt ?? Timestamp.now().toDate().toISOString(),
-    updatedAt: Timestamp.now().toDate().toISOString(),
-  };
-
-  if (record.id) {
-    const ref = getDocumentRef(collectionName, record.id);
-    await setDoc(ref, record, { merge: true });
-    return record.id;
-  }
-
-  const ref = await addDoc(getCollectionRef(collectionName), record);
-  return ref.id;
-}
-
-export async function updateDocument<T>(collectionName: string, id: string, data: Partial<T>) {
-  const ref = getDocumentRef(collectionName, id);
-  await updateDoc(ref, {
-    ...data,
-    updatedAt: Timestamp.now().toDate().toISOString(),
-  });
-
-  return id;
-}
-
-export async function deleteDocument(collectionName: string, id: string) {
-  await deleteDoc(getDocumentRef(collectionName, id));
-}
+export const deleteDocument = (_collectionName: string, _id: string): Promise<{ success: boolean }> => {
+  throw new Error('[DEPRECATED] Firestore has been removed. Use RTK Query endpoints instead.');
+};

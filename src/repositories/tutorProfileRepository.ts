@@ -1,80 +1,35 @@
-import { createDocument, deleteDocument, getDocument, listDocuments, updateDocument } from '@/src/repositories/baseRepository.ts';
+import { apiGet, apiPatch, apiPost } from './baseRepository';
 
 export interface TutorProfileRecord {
   id?: string;
-  uid: string;
-  email?: string;
+  _id?: string;
+  userId?: string;
   name?: string;
-  photoUrl?: string;
-  sscInstitute?: string;
-  sscCurriculum?: string;
-  sscGroup?: string;
-  sscYear?: string;
-  sscResult?: string;
-  hscInstitute?: string;
-  hscCurriculum?: string;
-  hscGroup?: string;
-  hscYear?: string;
-  hscResult?: string;
-  gradInstituteType?: string;
-  gradInstitute?: string;
-  gradStudyType?: string;
-  gradDept?: string;
-  gradCurriculum?: string;
-  gradYear?: string;
-  gradCgpa?: string;
-  tuitionDistrict?: string;
-  preferredArea?: string;
-  preferredMedium?: string;
-  preferredClass?: string;
-  preferredSubject?: string;
-  daysPerWeek?: string;
-  timingShift?: string;
-  expectedSalary?: string;
-  tutoringStyle?: string;
-  experienceYears?: string;
-  fullName?: string;
-  phone?: string;
-  altPhone?: string;
-  gender?: string;
-  currentCity?: string;
-  currentArea?: string;
-  permanentAddress?: string;
-  fatherName?: string;
-  fatherPhone?: string;
-  motherName?: string;
-  motherPhone?: string;
-  emergencyPhone?: string;
-  guardianRelation?: string;
-  bio?: string;
-  verificationStatus?: string;
-  createdAt?: string;
-  updatedAt?: string;
+  university?: string;
+  department?: string;
+  qualification?: string;
+  subjects?: string[];
+  mediums?: string[];
+  location?: { district?: string; area?: string };
+  salary?: number;
+  rating?: number;
+  reviewCount?: number;
+  isVerified?: boolean;
+  isPremium?: boolean;
+  [key: string]: unknown;
 }
 
 export const TutorProfileRepository = {
-  async getById(id: string) {
-    return getDocument<TutorProfileRecord>('tutor_profiles', id);
+  async get(id: string) { return apiGet<TutorProfileRecord>(`/tutors/${id}`); },
+  async getById(id: string) { return apiGet<TutorProfileRecord>(`/tutors/${id}`); },
+  async getByUid(uid: string) { return apiGet<TutorProfileRecord>(`/tutors/${uid}`); },
+  async getMe() { return apiGet<TutorProfileRecord>('/tutors/me'); },
+  async getAll() { return apiGet<TutorProfileRecord[]>('/tutors'); },
+  async list(params?: Record<string, unknown>) {
+    const qs = params ? '?' + new URLSearchParams(params as Record<string,string>).toString() : '';
+    return apiGet<{ data: TutorProfileRecord[] }>(`/tutors${qs}`);
   },
-
-  async getByUid(uid: string) {
-    const items = await listDocuments<TutorProfileRecord>('tutor_profiles', [{ field: 'uid', op: '==', value: uid }]);
-    return items[0] ?? null;
-  },
-
-  async getAll() {
-    return listDocuments<TutorProfileRecord>('tutor_profiles');
-  },
-
-  async create(record: TutorProfileRecord) {
-    return createDocument('tutor_profiles', record);
-  },
-
-  async update(id: string, data: Partial<TutorProfileRecord>) {
-    return updateDocument('tutor_profiles', id, data);
-  },
-
-  async remove(id: string) {
-    return deleteDocument('tutor_profiles', id);
-  },
+  async create(data: Partial<TutorProfileRecord>) { return apiPost<TutorProfileRecord>('/tutors/profile', data); },
+  async update(_id: string, data: Partial<TutorProfileRecord>) { return apiPatch<TutorProfileRecord>('/tutors/profile', data); },
+  async remove(_id: string) { return apiGet<TutorProfileRecord>('/tutors/profile'); },
 };

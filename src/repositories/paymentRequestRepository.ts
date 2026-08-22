@@ -1,39 +1,19 @@
-import { createDocument, deleteDocument, getDocument, listDocuments, updateDocument } from '@/src/repositories/baseRepository.ts';
+import { apiGet, apiPatch, apiPost } from './baseRepository';
 
 export interface PaymentRequestRecord {
   id?: string;
-  tutorId: string;
-  method: string;
-  senderNumber: string;
-  trxId: string;
-  amount: number;
-  status?: 'pending' | 'approved' | 'rejected';
-  createdAt?: string;
-  updatedAt?: string;
+  _id?: string;
+  tutorId?: string;
+  amount?: number;
+  status?: string;
+  method?: string;
+  [key: string]: unknown;
 }
 
 export const PaymentRequestRepository = {
-  async getById(id: string) {
-    return getDocument<PaymentRequestRecord>('payment_requests', id);
-  },
-
-  async getAll() {
-    return listDocuments<PaymentRequestRecord>('payment_requests');
-  },
-
-  async getByTutor(tutorId: string) {
-    return listDocuments<PaymentRequestRecord>('payment_requests', [{ field: 'tutorId', op: '==', value: tutorId }], 'createdAt');
-  },
-
-  async create(record: PaymentRequestRecord) {
-    return createDocument('payment_requests', record);
-  },
-
-  async update(id: string, data: Partial<PaymentRequestRecord>) {
-    return updateDocument('payment_requests', id, data);
-  },
-
-  async remove(id: string) {
-    return deleteDocument('payment_requests', id);
-  },
+  async list() { return apiGet<PaymentRequestRecord[]>('/admin/payments'); },
+  async getByTutor(_tutorId: string) { return apiGet<PaymentRequestRecord[]>('/admin/payments'); },
+  async create(data: Partial<PaymentRequestRecord>) { return apiPost<PaymentRequestRecord>('/payments', data); },
+  async update(id: string, data: Partial<PaymentRequestRecord>) { return apiPatch(`/admin/payments/${id}`, data); },
+  async updateStatus(id: string, status: string) { return apiPatch(`/admin/payments/${id}`, { status }); },
 };

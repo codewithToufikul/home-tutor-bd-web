@@ -29,6 +29,9 @@ export interface TutorProfile {
   memberSince?: string;
   totalViews?: number;
   location?: string;
+  preferredClass?: string;
+  daysPerWeek?: string;
+  timingShift?: string;
 }
 
 export interface TuitionJob {

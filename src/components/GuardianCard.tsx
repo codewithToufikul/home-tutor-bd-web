@@ -3,6 +3,7 @@ import { Star, MapPin, ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { cn } from '@/src/lib/utils';
+import { DEFAULT_PROFILE_IMAGE } from '@/src/constants';
 
 interface GuardianCardProps {
   guardian: {
@@ -38,8 +39,8 @@ export default function GuardianCard({ guardian, className }: GuardianCardProps)
           <div className="relative w-24 h-24 rounded-full p-1 border-2 border-primary/20 shadow-md">
             <div className="w-full h-full rounded-full overflow-hidden bg-white border-2 border-white">
               <img
-                src={guardian.photoUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${guardian.id}`}
-                alt={guardian.name}
+                src={(guardian.photoUrl ?? '').trim() || DEFAULT_PROFILE_IMAGE}
+                alt={guardian.name || 'Guardian'}
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
               />
             </div>

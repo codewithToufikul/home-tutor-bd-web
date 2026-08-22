@@ -5,11 +5,11 @@ import {
   ChevronLeft, ChevronRight, PlayCircle, Star, ShieldCheck
 } from 'lucide-react';
 import { AREAS, SUBJECTS, CLASSES, MEDIUMS, CATEGORIES_DATA } from '@/src/constants';
-import { TutorProfileRepository } from '@/src/repositories/tutorProfileRepository.ts';
 import TutorCard from '@/src/components/TutorCard.tsx';
 import { TutorProfile } from '@/src/types';
 import { cn } from '@/src/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
+import { useGetTutorsQuery } from '@/src/services/tutorApi';
 
 const DISTRICTS = ['Dhaka', 'Sylhet', 'Chattogram', 'Rajshahi', 'Khulna', 'Barishal', 'Rangpur', 'Mymensingh'];
 
@@ -24,49 +24,55 @@ export default function Tutors() {
   const [selectedMedium, setSelectedMedium] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [showVideoPopup, setShowVideoPopup] = useState(false);
-  
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [tutors, setTutors] = useState<TutorProfile[]>([]);
+  // Debounce query
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setDebouncedQuery(searchQuery), 350);
+    return () => window.clearTimeout(timeout);
+  }, [searchQuery]);
 
   useEffect(() => {
-    const fetchTutors = async () => {
-      try {
-        // Fetch tutors from Firestore
-        const loadedTutors = await TutorProfileRepository.getAll();
-        setTutors(loadedTutors || []);
-      } catch (error) {
-        console.error('Failed to load tutors:', error);
-        setTutors([]);
-      }
-    };
+    setCurrentPage(1);
+  }, [debouncedQuery, tutorType, genderPref, district, area, category, studentClass, selectedMedium, itemsPerPage]);
 
-    fetchTutors();
-  }, []);
+  const queryParams = useMemo(() => ({
+    ...(debouncedQuery ? { search: debouncedQuery } : {}),
+    ...(district !== 'All' ? { district } : {}),
+    ...(area !== 'All' ? { area } : {}),
+    ...(category !== 'All' ? { subject: category } : {}),
+    ...(selectedMedium ? { medium: selectedMedium } : {}),
+    ...(studentClass !== 'All' ? { studentClass } : {}),
+    ...(genderPref !== 'All' ? { gender: genderPref } : {}),
+    ...(tutorType === 'Verified' ? { isVerified: true } : {}),
+    page: currentPage,
+    limit: itemsPerPage,
+  }), [debouncedQuery, district, area, category, selectedMedium, studentClass, genderPref, tutorType, currentPage, itemsPerPage]);
 
-  const filteredTutors = useMemo(() => {
-    return tutors.filter(tutor => {
-      const matchesSearch = !searchQuery || 
-                           tutor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           tutor.university.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           tutor.subjects.some(s => s.toLowerCase().includes(searchQuery.toLowerCase()));
-      
-      const matchesTutorType = tutorType === 'All' || (tutorType === 'Premium' && tutor.isPremium);
-      const matchesGender = genderPref === 'All' || tutor.gender === genderPref;
-      const matchesDistrict = district === 'All' || tutor.preferredAreas.some(a => a.includes(district));
-      const matchesArea = area === 'All' || tutor.preferredAreas.includes(area);
-      const matchesMedium = !selectedMedium || tutor.mediums.includes(selectedMedium as any);
-      
-      return matchesSearch && matchesTutorType && matchesGender && matchesDistrict && matchesArea && matchesMedium;
-    });
-  }, [searchQuery, tutorType, genderPref, district, area, selectedMedium]);
+  const { data: tutorsData, isLoading, isFetching } = useGetTutorsQuery(queryParams);
 
-  const totalPages = Math.ceil(filteredTutors.length / itemsPerPage);
-  const paginatedTutors = filteredTutors.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const activeTutors: TutorProfile[] = useMemo(() => {
+    const raw = (tutorsData as { data?: { tutors?: unknown[] } } | undefined)?.data?.tutors ?? [];
+    return raw as TutorProfile[];
+  }, [tutorsData]);
+
+  const totalItems: number = (tutorsData as { data?: { total?: number } } | undefined)?.data?.total ?? activeTutors.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+  const hasMore = currentPage < totalPages;
+
+
 
   const handlePageChange = (page: number) => {
+    if (page < 1) return;
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleLoadMore = () => {
+    if (hasMore) {
+      setCurrentPage((prev) => prev + 1);
+    }
   };
 
   const clearFilters = () => {
@@ -79,6 +85,7 @@ export default function Tutors() {
     setStudentClass('All');
     setSelectedMedium('');
     setCurrentPage(1);
+    setPageData({});
   };
 
   return (
@@ -122,7 +129,7 @@ export default function Tutors() {
         {/* Header Stats */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
           <p className="text-sm text-ink-muted font-medium">
-            Showing <span className="text-ink font-bold">{(currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, filteredTutors.length)}</span> of <span className="text-ink font-bold">{filteredTutors.length}</span> tutors
+            Showing <span className="text-ink font-bold">{activeTutors.length > 0 ? 1 : 0}-{activeTutors.length}</span> of <span className="text-ink font-bold">{activeTutors.length}</span> tutors
           </p>
           <div className="flex items-center gap-2">
             <span className="text-sm text-ink-muted">Show:</span>
@@ -361,7 +368,7 @@ export default function Tutors() {
             {/* Tutor Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               <AnimatePresence mode="popLayout">
-                {paginatedTutors.map((tutor) => (
+                {activeTutors.map((tutor) => (
                   <motion.div
                     key={tutor.id}
                     layout
@@ -370,13 +377,17 @@ export default function Tutors() {
                     exit={{ opacity: 0, scale: 0.9 }}
                     className="w-full max-w-sm mx-auto md:max-w-none md:mx-0"
                   >
-                    <TutorCard tutor={tutor} />
+                    <TutorCard tutor={tutor} highlightQuery={debouncedQuery} />
                   </motion.div>
                 ))}
               </AnimatePresence>
             </div>
 
-            {filteredTutors.length === 0 ? (
+            {isLoading ? (
+              <div className="text-center py-16 bg-white rounded-3xl border border-ink/5 shadow-sm">
+                <p className="text-ink-muted font-medium">Loading tutors...</p>
+              </div>
+            ) : activeTutors.length === 0 ? (
               <div className="text-center py-24 bg-white rounded-3xl border border-ink/5 shadow-sm space-y-4">
                 <div className="w-20 h-20 bg-primary/5 rounded-full flex items-center justify-center text-primary mx-auto">
                   <Search size={32} />
@@ -394,7 +405,7 @@ export default function Tutors() {
               /* Pagination */
               <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pt-8 border-t border-ink/5">
                 <p className="text-sm text-ink-muted font-medium order-2 sm:order-1">
-                  Showing <span className="text-ink font-bold">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="text-ink font-bold">{Math.min(currentPage * itemsPerPage, filteredTutors.length)}</span> of <span className="text-ink font-bold">{filteredTutors.length}</span> results
+                  Page <span className="text-ink font-bold">{currentPage}</span> · {activeTutors.length} loaded results
                 </p>
                 <div className="flex items-center gap-2 order-1 sm:order-2">
                   <button
@@ -404,43 +415,18 @@ export default function Tutors() {
                   >
                     <ChevronLeft size={20} />
                   </button>
-                  
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: totalPages }).map((_, i) => {
-                      const page = i + 1;
-                      if (
-                        page === 1 ||
-                        page === totalPages ||
-                        (page >= currentPage - 1 && page <= currentPage + 1)
-                      ) {
-                        return (
-                          <button
-                            key={page}
-                            onClick={() => handlePageChange(page)}
-                            className={cn(
-                              "w-10 h-10 rounded-lg text-sm font-bold transition-all cursor-pointer",
-                              currentPage === page
-                                ? "bg-primary text-white shadow-lg shadow-primary/20"
-                                : "text-ink-muted hover:bg-white hover:text-primary border border-transparent hover:border-ink/10"
-                            )}
-                          >
-                            {page}
-                          </button>
-                        );
-                      }
-                      if (
-                        (page === 2 && currentPage > 3) ||
-                        (page === totalPages - 1 && currentPage < totalPages - 2)
-                      ) {
-                        return <span key={page} className="px-1 text-ink-muted">...</span>;
-                      }
-                      return null;
-                    })}
-                  </div>
+
+                  <button
+                    onClick={handleLoadMore}
+                    disabled={!hasMore}
+                    className="px-4 py-2 rounded-lg border border-primary/20 bg-primary/5 text-sm font-bold text-primary disabled:opacity-50 disabled:hover:bg-primary/5 transition-all cursor-pointer"
+                  >
+                    Load More
+                  </button>
 
                   <button
                     onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
+                    disabled={!hasMore}
                     className="p-2 rounded-lg border border-ink/10 text-ink-muted hover:bg-white hover:text-primary disabled:opacity-50 disabled:hover:bg-transparent transition-all cursor-pointer"
                   >
                     <ChevronRight size={20} />

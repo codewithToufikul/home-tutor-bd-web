@@ -1,8 +1,9 @@
 import { TutorProfileRepository, TutorProfileRecord } from '@/src/repositories/tutorProfileRepository';
+import { getCachedList, getCachedDocument } from '@/src/services/cachedRepository';
 
 export const TutorProfileService = {
   async getById(id: string) {
-    return TutorProfileRepository.getById(id);
+    return getCachedDocument<TutorProfileRecord>('tutor_profiles', id);
   },
 
   async getByUid(uid: string) {
@@ -10,7 +11,7 @@ export const TutorProfileService = {
   },
 
   async getAll() {
-    return TutorProfileRepository.getAll();
+    return getCachedList<TutorProfileRecord>('tutor_profiles');
   },
 
   async create(payload: Partial<TutorProfileRecord>) {

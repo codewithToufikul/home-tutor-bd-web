@@ -1,3 +1,4 @@
+import NotificationBell from '@/src/components/NotificationBell.tsx';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -14,7 +15,9 @@ import {
   GraduationCap,
   PlusCircle,
   MessageSquare,
-  Heart
+  Heart,
+  Building2,
+  Home
 } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -23,11 +26,14 @@ import logoImage from '@/src/lib/Home.png';
 
 const SIDEBAR_ITEMS = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/student/dashboard' },
+  { icon: Building2, label: 'Coaching Centers', href: '/student/coaching-centers' },
   { icon: PlusCircle, label: 'Post a Job', href: '/request-tutor' },
   { icon: History, label: 'My Requests', href: '/student/requests' },
   { icon: Heart, label: 'Saved Tutors', href: '/student/saved' },
   { icon: MessageSquare, label: 'Messages', href: '/student/messages' },
+  { icon: Bell, label: 'Notifications', href: '/student/notifications' },
   { icon: Settings, label: 'Settings', href: '/student/settings' },
+  { icon: Home, label: 'Home', href: '/' },
 ];
 
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
@@ -129,10 +135,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
           </div>
 
           <div className="flex items-center gap-3 lg:gap-6">
-            <button className="relative p-2.5 text-ink-muted hover:text-secondary hover:bg-secondary/5 rounded-xl transition-all">
-              <Bell size={22} />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border-2 border-white" />
-            </button>
+            <NotificationBell role="student" />
             
             <div className="h-10 w-[1px] bg-ink/5 hidden sm:block" />
 

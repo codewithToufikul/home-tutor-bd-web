@@ -59,13 +59,13 @@ export default function TutorPayments() {
         const records = await PaymentRequestService.listForTutor(user.uid);
         const formatted: Transaction[] = records.map((p) => ({
           id: p.id || '',
-          type: 'payment',
+          type: 'payment' as const,
           amount: Number(p.amount ?? 0),
-          status: p.status === 'approved' ? 'completed' : p.status === 'rejected' ? 'failed' : 'pending',
-          date: p.createdAt?.split('T')[0] ?? new Date().toISOString().split('T')[0],
+          status: (p.status === 'approved' ? 'completed' : p.status === 'rejected' ? 'failed' : 'pending') as Transaction['status'],
+          date: String(p.createdAt || '').split('T')[0] || new Date().toISOString().split('T')[0],
           description: `Fee Payment via ${String(p.method ?? '').toUpperCase()}`,
-          method: p.method,
-          trxId: p.trxId,
+          method: String(p.method ?? ''),
+          trxId: String(p.trxId ?? ''),
         }));
 
         setTransactions(formatted);
@@ -121,7 +121,7 @@ export default function TutorPayments() {
 
     try {
       const requestId = await PaymentRequestService.create({
-        tutorId: user.uid,
+        userId: user.uid,
         method: paymentMethod,
         senderNumber,
         trxId,
@@ -134,11 +134,11 @@ export default function TutorPayments() {
         title: 'New Payment Submitted',
         message: `Tutor submitted ৳${amount} via ${paymentMethod.toUpperCase()} (TrxID: ${trxId})`,
         type: 'payment',
-        tutorId: user.uid,
+        userId: user.uid,
         isRead: false,
       });
 
-      setTransactions((prev) => [
+      setTransactions((prev: any[]) => [
         {
           id: requestId || `PAY-${Date.now()}`,
           type: 'payment',

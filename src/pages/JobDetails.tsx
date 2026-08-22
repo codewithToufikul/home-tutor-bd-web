@@ -12,6 +12,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/src/lib/utils';
 import { TuitionJob } from '@/src/types';
 import { TuitionService } from '@/src/services/tuitionService.ts';
+import { ApplicationService } from '@/src/services/applicationService.ts';
+import { RecommendationService } from '@/src/services/recommendationService.ts';
 import { useEffect, useMemo, useState } from 'react';
 import JobApplyModal from './JobApplyModal';
 import { useAuth } from '@/src/context/AuthContext.tsx';
@@ -34,8 +36,19 @@ export default function JobDetails() {
         const currentJob = await TuitionService.get(id || '');
         const allJobs = await TuitionService.list();
 
-        setJobData(currentJob || null);
-        setSuggestedJobs((allJobs || []).filter((job) => job.id !== id).slice(0, 3));
+        setJobData((currentJob as unknown as TuitionJob) || null);
+        const similar = RecommendationService.getSimilarJobs(currentJob as unknown as TuitionJob, (allJobs || []) as unknown as TuitionJob[]);
+        setSuggestedJobs(similar.slice(0, 3).map((entry) => entry.item));
+
+        if (user?.uid && id) {
+          try {
+            const myApps = await ApplicationService.listForTutor(user.uid);
+            const exists = Array.isArray(myApps) && myApps.some((a: any) => String(a.jobId?._id || a.jobId || a.id) === String(id));
+            if (exists) setHasApplied(true);
+          } catch (err) {
+            console.warn('Check application error:', err);
+          }
+        }
       } catch (error) {
         console.error('Failed to load job details:', error);
         setJobData(null);
@@ -44,18 +57,26 @@ export default function JobDetails() {
     };
 
     loadJob();
-  }, [id]);
+  }, [id, user]);
 
   const job = useMemo(() => {
     if (!jobData) return null;
 
+    const rawId = String((jobData as any)._id || (jobData as any).id || id || '');
+    const locArea = typeof (jobData as any).location === 'object' ? ((jobData as any).location?.area || '') : (jobData.area || '');
+    const locDistrict = typeof (jobData as any).location === 'object' ? ((jobData as any).location?.district || '') : (typeof (jobData as any).location === 'string' ? (jobData as any).location : '');
+
     return {
       ...jobData,
+      id: rawId,
+      _id: rawId,
+      location: locDistrict,
+      area: locArea,
       views: 1,
       applications: 0,
-      postedDate: new Date(jobData.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+      postedDate: new Date(jobData.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
     };
-  }, [jobData]);
+  }, [jobData, id]);
 
   if (!job) {
     return (
@@ -196,11 +217,17 @@ export default function JobDetails() {
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                   <span className="text-sm font-black text-[#001F3F]">Subjects:</span>
                   <div className="flex flex-wrap gap-2">
-                    {job.subjects.map(sub => (
-                      <span key={sub} className="px-3 py-1 bg-emerald-600 text-white rounded text-[10px] font-black uppercase shadow-sm">
-                        {sub}
+                    {(Array.isArray(job.subjects) ? job.subjects : []).filter(Boolean).length > 0 ? (
+                      (Array.isArray(job.subjects) ? job.subjects : []).filter(Boolean).map((sub) => (
+                        <span key={sub} className="px-3 py-1 bg-emerald-600 text-white rounded text-[10px] font-black uppercase shadow-sm">
+                          {sub}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="px-3 py-1 bg-emerald-600 text-white rounded text-[10px] font-black uppercase shadow-sm">
+                        General Subjects
                       </span>
-                    ))}
+                    )}
                   </div>
                 </div>
 
@@ -441,11 +468,12 @@ export default function JobDetails() {
       <AnimatePresence>
         {showApplyModal && (
           <JobApplyModal 
-            jobId={job.id}
+            jobId={String(job._id || job.id || id || '')}
             jobTitle={`Tutor Need For ${job.medium}`}
             salary={`${job.salary} Tk`}
             location={`${job.area}, ${job.location}`}
             onClose={() => setShowApplyModal(false)}
+            onSuccess={() => setHasApplied(true)}
           />
         )}
       </AnimatePresence>

@@ -1,3 +1,4 @@
+import { useAuth } from '@/src/context/AuthContext';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Phone, Lock, Building2, FileText, ShieldCheck, ArrowRight } from 'lucide-react';
@@ -13,24 +14,23 @@ export default function AuthPortal() {
   
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const { login, register } = useAuth();
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isLogin) {
-      if (role === 'guardian') {
-        alert('Guardian Login Successful!');
-        navigate('/guardian/dashboard');
+    setError(null);
+    try {
+      if (isLogin) {
+        await login(phone, password, role);
+        if (role === 'guardian') navigate('/guardian/dashboard', { replace: true });
+        else navigate('/coaching/dashboard', { replace: true });
       } else {
-        alert('Coaching Center Login Successful!');
-        navigate('/coaching/dashboard');
+        await register(name, phone.includes('@') ? phone : `${phone}@coaching.com`, password, role);
+        navigate('/verify-otp', { state: { email: phone.includes('@') ? phone : `${phone}@coaching.com` } });
       }
-    } else {
-      if (role === 'guardian') {
-        alert('Registration Successful! Your details have been sent to Admin for verification. Once approved, you can access your dashboard.');
-        setIsLogin(true);
-      } else {
-        alert('Registration Successful! Your Trade License has been sent to Admin for review. Once verified, your institute will be approved.');
-        setIsLogin(true);
-      }
+    } catch (err: any) {
+      setError(err.message || 'Action failed');
     }
   };
 

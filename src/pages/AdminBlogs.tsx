@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import AdminLayout from '@/src/components/AdminLayout.tsx';
 import { BlogService } from '@/src/services/blogService';
+import { SearchService } from '@/src/services/searchService';
 import { cn } from '@/src/lib/utils';
 
 const ITEMS_PER_PAGE = 5;
@@ -60,10 +61,9 @@ export default function AdminBlogs() {
 
   // Filtering Logic
   const filteredBlogs = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
     return blogs.filter(blog => {
-      const matchesSearch = blog.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                           blog.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           blog.id.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = !query || [blog.title, blog.author, blog.id, blog.category, blog.content].some((value) => String(value || '').toLowerCase().includes(query));
       const matchesStatus = statusFilter === 'All' || blog.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
@@ -71,10 +71,7 @@ export default function AdminBlogs() {
 
   // Pagination Logic
   const totalPages = Math.ceil(filteredBlogs.length / ITEMS_PER_PAGE);
-  const paginatedBlogs = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredBlogs.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredBlogs, currentPage]);
+  const paginatedBlogs = useMemo(() => SearchService.paginate(filteredBlogs, currentPage, ITEMS_PER_PAGE).items, [filteredBlogs, currentPage]);
 
   const toggleStatus = async (id: string) => {
     const currentBlog = blogs.find((blog) => blog.id === id);

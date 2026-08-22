@@ -1,38 +1,27 @@
-import { createDocument, deleteDocument, getDocument, listDocuments, updateDocument } from '@/src/repositories/baseRepository.ts';
+import { apiGet, apiPatch, apiPost } from './baseRepository';
 
 export interface NotificationRecord {
   id?: string;
-  title: string;
-  message: string;
+  _id?: string;
+  userId?: string;
   tutorId?: string;
-  type?: string;
+  title?: string;
+  message?: string;
   isRead?: boolean;
-  createdAt?: string;
-  updatedAt?: string;
+  type?: string;
+  [key: string]: unknown;
 }
 
 export const NotificationRepository = {
-  async getById(id: string) {
-    return getDocument<NotificationRecord>('notifications', id);
-  },
-
   async getAll() {
-    return listDocuments<NotificationRecord>('notifications');
+    const res = await apiGet<any>('/notifications');
+    if (Array.isArray(res)) return res;
+    if (res && Array.isArray(res.notifications)) return res.notifications;
+    return [];
   },
-
-  async getByTutor(tutorId: string) {
-    return listDocuments<NotificationRecord>('notifications', [{ field: 'tutorId', op: '==', value: tutorId }], 'createdAt');
-  },
-
-  async create(record: NotificationRecord) {
-    return createDocument('notifications', record);
-  },
-
-  async update(id: string, data: Partial<NotificationRecord>) {
-    return updateDocument('notifications', id, data);
-  },
-
-  async remove(id: string) {
-    return deleteDocument('notifications', id);
-  },
+  async getByTutor(_tutorId?: string) { return apiGet<NotificationRecord[]>('/notifications'); },
+  async create(record: Partial<NotificationRecord>) { return apiPost<NotificationRecord>('/notifications', record); },
+  async update(id: string, data: Partial<NotificationRecord>) { return apiPatch(`/notifications/${id}`, data); },
+  async markAllRead() { return apiPatch('/notifications/read-all', {}); },
+  async remove(id: string) { return apiPatch(`/notifications/${id}/read`, {}); },
 };

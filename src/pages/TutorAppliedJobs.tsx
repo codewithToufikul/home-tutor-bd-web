@@ -40,19 +40,26 @@ export default function TutorAppliedJobs() {
         const apps = await ApplicationService.listForTutor(user.uid);
         const allJobs = await TuitionService.list();
         const jobsById: Record<string, TuitionJob> = {};
-        ((allJobs as TuitionJob[]) || []).forEach((j) => { if (j && j.id) jobsById[j.id] = j; });
+        ((allJobs as unknown as TuitionJob[]) || []).forEach((j) => { if (j && j.id) jobsById[j.id] = j; });
 
         const mapped = (Array.isArray(apps) ? apps : []).map((a: any) => {
-          const job = jobsById[a.jobId];
+          const rawJobId = typeof a.jobId === 'object' ? (a.jobId?._id || a.jobId?.id) : a.jobId;
+          const populatedJob = typeof a.jobId === 'object' ? a.jobId : null;
+          const job = populatedJob || jobsById[rawJobId] || jobsById[a.id];
+
+          const locArea = typeof job?.location === 'object' ? job?.location?.area : job?.area;
+          const locDist = typeof job?.location === 'object' ? job?.location?.district : (typeof job?.location === 'string' ? job?.location : '');
+          const locStr = locArea || locDist ? `${locArea || ''}${locArea && locDist ? ', ' : ''}${locDist || ''}` : 'Dhaka';
+
           return {
-            id: a.jobId || a.id || '',
-            title: job ? job.medium + ' Tuition' : (a.title || 'Tuition Opportunity'),
-            location: job ? `${job.area}, ${job.location}` : (a.location || 'Unknown'),
-            salary: job ? `${job.salary} ৳/mo` : (a.salary ? `${a.salary} ৳` : 'N/A'),
-            status: a.status ?? 'pending',
-            date: a.createdAt || '',
-            category: job?.category || a.category || 'General',
-            daysPerWeek: job?.tutoringDays || a.daysPerWeek || 'N/A'
+            id: String(rawJobId || a.id || ''),
+            title: job?.medium ? `Tutor Needed For ${job.medium}` : (a.title || 'Tuition Opportunity'),
+            location: locStr,
+            salary: job?.salary ? `${Number(job.salary).toLocaleString()} ৳/mo` : (a.expectedSalary ? `${a.expectedSalary} ৳/mo` : 'N/A'),
+            status: a.status || 'Pending',
+            date: a.createdAt ? new Date(a.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recently',
+            category: job?.medium || a.category || 'General',
+            daysPerWeek: Array.isArray(job?.tutoringDays) ? job.tutoringDays.join(', ') : (job?.tutoringDays || 'N/A')
           };
         });
 

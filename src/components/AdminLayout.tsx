@@ -9,10 +9,12 @@ import {
 import { cn } from '@/src/lib/utils';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/src/context/AuthContext.tsx';
+import NotificationBell from '@/src/components/NotificationBell.tsx';
 import logoImage from '@/src/lib/Home.png';
 
 const SIDEBAR_ITEMS = [
   { icon: LayoutDashboard, label: 'Admin Home', href: '/admin' },
+  { icon: Bell, label: 'Notifications', href: '/admin/notifications' },
   { icon: Users, label: 'Users', href: '/admin/users' },
   { icon: CreditCard, label: 'All Payments', href: '/admin/payments' },
   { icon: CheckSquare, label: 'Jobs Request-Approve', href: '/admin/jobs-approve' },
@@ -221,107 +223,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             >
               <Menu size={24} />
             </button>
-
-            {/* Notification Bell */}
-            <div className="relative">
-              <button 
-                onClick={() => setIsNotifOpen(!isNotifOpen)}
-                className={cn(
-                  "w-10 h-10 md:w-11 md:h-11 flex items-center justify-center rounded-xl transition-all relative",
-                  isNotifOpen ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-ink-muted bg-white/50 border border-white/20 hover:bg-white hover:text-primary hover:shadow-sm"
-                )}
-              >
-                <Bell size={20} />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-[20px] px-1 bg-rose-500 text-white text-[10px] font-black rounded-full border-2 border-white flex items-center justify-center shadow-lg shadow-rose-500/20 animate-in zoom-in duration-300">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
-              </button>
-
-              <AnimatePresence>
-                {isNotifOpen && (
-                  <>
-                    <motion.div 
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      onClick={() => setIsNotifOpen(false)}
-                      className="fixed inset-0 z-40"
-                    />
-                    <motion.div 
-                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      className="absolute top-full left-0 mt-4 w-[calc(100vw-2rem)] sm:w-80 md:w-96 bg-white/85 backdrop-blur-2xl rounded-[32px] shadow-2xl border border-white/20 overflow-hidden z-50 origin-top-left"
-                    >
-                      <div className="p-6 border-b border-ink/5 flex items-center justify-between bg-white/40">
-                        <h3 className="font-display font-black text-ink">Notifications</h3>
-                        <span className="px-2 py-1 bg-primary/10 text-primary text-[10px] font-black rounded-lg uppercase">{unreadCount} New</span>
-                      </div>
-
-                      <div className="max-h-[400px] overflow-y-auto scrollbar-hide divide-y divide-ink/5">
-                        {notifications.length > 0 ? (
-                          notifications.map((notif) => (
-                            <div 
-                              key={notif.id}
-                              onClick={() => markAsReadAndNavigate(notif)}
-                              className={cn(
-                                "p-5 flex items-start gap-4 hover:bg-white/60 transition-all cursor-pointer group relative",
-                                !notif.isRead && "bg-primary/[0.02]"
-                              )}
-                            >
-                              {!notif.isRead && (
-                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />
-                              )}
-                              <div className={cn(
-                                "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
-                                notif.type === 'tutor_request' ? "bg-rose-50 text-rose-500" :
-                                notif.type === 'user_registration' ? "bg-blue-50 text-blue-500" :
-                                "bg-emerald-50 text-emerald-500"
-                              )}>
-                                <Bell size={18} />
-                              </div>
-                              <div className="flex-grow space-y-1 min-w-0">
-                                <div className="flex items-center justify-between gap-2">
-                                  <h4 className="text-xs font-black text-ink truncate">{notif.title}</h4>
-                                  <span className="text-[10px] font-bold text-ink-muted shrink-0">{notif.time}</span>
-                                </div>
-                                <p className="text-[11px] text-ink-muted font-medium line-clamp-2 leading-relaxed">{notif.message}</p>
-                              </div>
-                              <button 
-                                onClick={(e) => { e.stopPropagation(); deleteNotif(notif.id); }}
-                                className="opacity-0 group-hover:opacity-100 p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="py-12 text-center space-y-3">
-                            <div className="w-12 h-12 bg-ink/5 rounded-full flex items-center justify-center text-ink-muted mx-auto">
-                              <Bell size={24} />
-                            </div>
-                            <p className="text-xs font-bold text-ink-muted">No new notifications</p>
-                          </div>
-                        )}
-                      </div>
-
-                      <Link 
-                        to="/admin/notifications" 
-                        onClick={() => setIsNotifOpen(false)}
-                        className="block w-full py-4 text-center text-[10px] font-black text-primary uppercase tracking-widest bg-white/40 hover:bg-primary hover:text-white transition-all"
-                      >
-                        View All Notifications
-                      </Link>
-                    </motion.div>
-                  </>
-                )}
-              </AnimatePresence>
-            </div>
           </div>
 
           <div className="flex items-center gap-4 lg:gap-8">
+            {/* Notification Bell */}
+            <NotificationBell role="admin" />
             <div className="flex items-center gap-4">
               <div className="hidden lg:flex flex-col items-end">
                 <span className="text-sm font-black text-ink leading-none">Sen Watson</span>

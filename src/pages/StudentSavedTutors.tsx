@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/src/context/AuthContext.tsx';
 import { SavedTutorsService } from '@/src/services/savedTutorsService.ts';
 import { TutorProfileRepository } from '@/src/repositories/tutorProfileRepository.ts';
+import { DEFAULT_PROFILE_IMAGE } from '@/src/constants';
 
 export default function StudentSavedTutors() {
   const { user } = useAuth();
@@ -49,7 +50,7 @@ export default function StudentSavedTutors() {
                 <Trash2 size={16} />
               </button>
               <div className="flex items-center gap-4">
-                <img src={tutor?.photoUrl || tutor?.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor'} alt={tutor?.name} className="w-16 h-16 rounded-2xl object-cover border border-ink/5" />
+                <img src={(tutor?.photoUrl ?? tutor?.avatar ?? '').toString().trim() || DEFAULT_PROFILE_IMAGE} alt={tutor?.name || 'Tutor'} className="w-16 h-16 rounded-2xl object-cover border border-ink/5" />
                 <div>
                   <h3 className="text-base font-black text-[#001F3F]">{tutor?.name || tutor?.fullName}</h3>
                   <p className="text-xs font-bold text-secondary">{tutor?.gradInstitute || tutor?.university}</p>

@@ -13,6 +13,7 @@ import {
 import TutorLayout from '@/src/components/TutorLayout.tsx';
 import { cn } from '@/src/lib/utils';
 import { NoticeService } from '@/src/services/noticeService.ts';
+import { NotificationRepository } from '@/src/repositories/notificationRepository';
 
 interface Notice {
   id: string;
@@ -34,13 +35,34 @@ export default function TutorNotifications() {
   useEffect(() => {
     const fetchNotices = async () => {
       try {
-        let items = await NoticeService.list();
-        const tutorNotices = items.filter((notice) =>
-          !notice.audience || notice.audience === 'Tutors' || notice.audience === 'All'
-        );
+        const [items, userNotifs] = await Promise.all([
+          NoticeService.list().catch(() => []),
+          NotificationRepository.getAll().catch(() => [])
+        ]);
 
-        // Use Firestore notices only; do not auto-insert records.
-        setNotices(tutorNotices as Notice[]);
+        const formattedNotifs: Notice[] = (Array.isArray(userNotifs) ? userNotifs : []).map((n: any) => ({
+          id: String(n._id || n.id || ''),
+          title: n.title || 'Notification',
+          content: n.message || '',
+          date: n.createdAt ? new Date(n.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Recently',
+          isRead: Boolean(n.isRead),
+          priority: 'high',
+          category: n.type || 'system',
+        }));
+
+        const tutorNotices = (Array.isArray(items) ? items : []).filter((notice: any) =>
+          !notice.audience || notice.audience === 'Tutors' || notice.audience === 'All'
+        ).map((n: any) => ({
+          id: String(n.id || n._id || ''),
+          title: n.title || '',
+          content: n.content || '',
+          date: n.date || '',
+          isRead: Boolean(n.isRead),
+          priority: n.priority || 'medium',
+          category: n.category || 'announcement',
+        }));
+
+        setNotices([...formattedNotifs, ...tutorNotices]);
       } catch (error) {
         console.error('Failed to load notifications:', error);
         setNotices([]);

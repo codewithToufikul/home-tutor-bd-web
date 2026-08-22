@@ -6,6 +6,7 @@ import { useAuth } from '@/src/context/AuthContext.tsx';
 import { VerificationService } from '@/src/services/verificationService.ts';
 import { can } from '@/src/shared/authorization.ts';
 import { PERMISSIONS } from '@/src/shared/constants/permissions.ts';
+import { StorageService } from '@/src/services/storageService.ts';
 
 export default function TutorVerification() {
   const { user } = useAuth();
@@ -46,15 +47,27 @@ export default function TutorVerification() {
     }
 
     try {
+      const [nidFrontMeta, nidBackMeta, studentIdMeta] = await Promise.all([
+        StorageService.upload({ folder: 'nid', uid: user.uid, file: files.nidFront }),
+        StorageService.upload({ folder: 'nid', uid: user.uid, file: files.nidBack }),
+        StorageService.upload({ folder: 'verification', uid: user.uid, file: files.studentId }),
+      ]);
+
       await VerificationService.create({
         uid: user.uid,
-        name: user.name || user.displayName || 'Tutor',
-        email: user.email || '',
+        name: user?.name || 'Tutor',
+        email: user?.email || '',
         docType,
         docNumber,
         nidFrontName: files.nidFront.name,
         nidBackName: files.nidBack.name,
         studentIdName: files.studentId.name,
+        nidFrontUrl: nidFrontMeta.downloadURL,
+        nidBackUrl: nidBackMeta.downloadURL,
+        studentIdUrl: studentIdMeta.downloadURL,
+        nidFrontStoragePath: nidFrontMeta.storagePath,
+        nidBackStoragePath: nidBackMeta.storagePath,
+        studentIdStoragePath: studentIdMeta.storagePath,
         status: 'pending',
         createdAt: new Date().toISOString(),
       });

@@ -60,6 +60,12 @@ export function RequireRole({
     return <Navigate to="/" replace />;
   }
 
+  // Pending Approval Check: Tutors, Guardians, Coaching must be approved by Admin
+  // Only tutor & coaching require admin approval. Student & Guardian are auto-approved.
+  if (user && !user.isApproved && (user.role === 'tutor' || user.role === 'coaching')) {
+    return <Navigate to="/pending-approval" replace />;
+  }
+
   return <>{children}</>;
 }
 

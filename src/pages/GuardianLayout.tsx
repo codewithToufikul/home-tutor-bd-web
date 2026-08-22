@@ -1,13 +1,24 @@
 import { ReactNode, useEffect, useState } from 'react';
-import { LayoutDashboard, PlusCircle, History, Heart, MessageSquare, Settings, LogOut } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { LayoutDashboard, PlusCircle, History, Heart, MessageSquare, Settings, LogOut, Home } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/src/context/AuthContext.tsx';
 import { GuardianProfileService } from '@/src/services/guardianProfileService.ts';
+import NotificationBell from '@/src/components/NotificationBell.tsx';
 
 export default function GuardianLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
+  const navigate = useNavigate();
 
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login', { replace: true });
+    } catch (err) {
+      console.error('Logout failed:', err);
+    }
+  };
   const [guardianAvatar, setGuardianAvatar] = useState('https://api.dicebear.com/7.x/avataaars/svg?seed=guardian');
   const [guardianName, setGuardianName] = useState('Guardian Panel');
 
@@ -34,6 +45,7 @@ export default function GuardianLayout({ children }: { children: ReactNode }) {
     { label: 'Saved Tutors', path: '/guardian/saved', icon: Heart },
     { label: 'Messages', path: '/guardian/messages', icon: MessageSquare },
     { label: 'Settings', path: '/guardian/profile', icon: Settings },
+    { label: 'Home', path: '/', icon: Home },
   ];
 
   return (
@@ -78,19 +90,24 @@ export default function GuardianLayout({ children }: { children: ReactNode }) {
 
         {/* Logout */}
         <div className="pt-6 border-t border-ink/5 mt-6">
-          <Link
-            to="/login"
-            className="flex items-center gap-3 px-4 py-3 rounded-2xl font-black text-xs uppercase tracking-wider text-rose-500 hover:bg-rose-50 transition-all"
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-black text-xs uppercase tracking-wider text-rose-500 hover:bg-rose-50 transition-all cursor-pointer"
           >
             <LogOut size={18} />
             Logout Account
-          </Link>
+          </button>
         </div>
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-grow p-6 md:p-10 overflow-y-auto">
-        {children}
+      <main className="flex-grow flex flex-col min-w-0 overflow-y-auto">
+        <header className="h-16 bg-white/60 backdrop-blur-xl border-b border-ink/5 flex items-center justify-end px-6 md:px-10 shrink-0">
+          <NotificationBell role="guardian" />
+        </header>
+        <div className="p-6 md:p-10 flex-grow">
+          {children}
+        </div>
       </main>
     </div>
   );

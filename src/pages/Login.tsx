@@ -42,7 +42,12 @@ export default function Login() {
         navigate(from, { replace: true });
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      const errMsg = err instanceof Error ? err.message : 'Login failed';
+      if (errMsg.toLowerCase().includes('not verified') || errMsg.toLowerCase().includes('verify')) {
+        navigate('/verify-otp', { state: { email: formData.email } });
+        return;
+      }
+      setError(errMsg);
     } finally {
       setIsSubmitting(false);
     }

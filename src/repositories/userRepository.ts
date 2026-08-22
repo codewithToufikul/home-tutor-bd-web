@@ -1,32 +1,23 @@
-import { createDocument, getDocument, listDocuments, updateDocument } from '@/src/repositories/baseRepository.ts';
+import { apiGet, apiPatch } from './baseRepository';
 
 export type UserRole = 'admin' | 'tutor' | 'student' | 'guardian' | 'coaching';
 
 export interface UserRecord {
-  uid: string;
-  email: string;
-  name: string;
-  role: UserRole;
-  isVerified: boolean;
-  isApproved: boolean;
-  createdAt?: string;
-  updatedAt?: string;
+  id?: string;
+  _id?: string;
+  name?: string;
+  email?: string;
+  role?: UserRole | string;
+  status?: string;
+  isApproved?: boolean;
+  isEmailVerified?: boolean;
+  [key: string]: unknown;
 }
 
 export const UserRepository = {
-  async getByUid(uid: string) {
-    return getDocument<UserRecord>('users', uid);
-  },
-
-  async getAll() {
-    return listDocuments<UserRecord>('users');
-  },
-
-  async create(record: UserRecord) {
-    return createDocument('users', record);
-  },
-
-  async update(uid: string, data: Partial<UserRecord>) {
-    return updateDocument('users', uid, data);
-  },
+  async get(id: string) { return apiGet<UserRecord>(`/users/${id}`); },
+  async list() { return apiGet<UserRecord[]>('/admin/users'); },
+  async getAll() { return apiGet<UserRecord[]>('/admin/users'); },
+  async update(id: string, data: Partial<UserRecord>) { return apiPatch<UserRecord>(`/admin/users/${id}`, data); },
+  async updateStatus(id: string, status: string) { return apiPatch<UserRecord>(`/admin/users/${id}/status`, { status }); },
 };

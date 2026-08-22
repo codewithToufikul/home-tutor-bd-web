@@ -29,6 +29,7 @@ import { SavedTutorsService } from '@/src/services/savedTutorsService.ts';
 import { NoticeService } from '@/src/services/noticeService.ts';
 import { ApplicationRepository } from '@/src/repositories/applicationRepository.ts';
 import { TutorProfileRepository } from '@/src/repositories/tutorProfileRepository.ts';
+import { DEFAULT_PROFILE_IMAGE } from '@/src/constants';
 
 export default function StudentDashboard() {
   const [selectedApplicants, setSelectedApplicants] = useState<any[] | null>(null);
@@ -192,7 +193,7 @@ export default function StudentDashboard() {
                   selectedApplicants.map((tutor) => (
                     <div key={tutor.id} className="p-4 bg-gray-50 rounded-2xl border border-ink/10 flex items-center justify-between gap-4">
                       <div className="flex items-center gap-3">
-                        <img src={tutor.image} alt={tutor.name} className="w-12 h-12 rounded-xl object-cover" />
+                        <img src={(tutor.image ?? '').trim() || DEFAULT_PROFILE_IMAGE} alt={tutor.name || 'Tutor'} className="w-12 h-12 rounded-xl object-cover" />
                         <div>
                           <h4 className="font-black text-ink text-sm">{tutor.name}</h4>
                           <p className="text-xs text-secondary font-bold">{tutor.university} • {tutor.department}</p>

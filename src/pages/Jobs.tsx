@@ -4,13 +4,13 @@ import {
   Briefcase, MapPin, BookOpen, GraduationCap, 
   Calendar, Clock, ChevronRight, Search, Filter, 
   PlayCircle, User, Layout, CheckSquare, Square, ChevronDown,
-  ChevronLeft
+  ChevronLeft, Home
 } from 'lucide-react';
-import { TuitionJob } from '@/src/types';
+import type { TuitionJob } from '@/src/types';
 import { cn } from '@/src/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { AREAS, CLASSES, CATEGORIES_DATA } from '@/src/constants';
-import { TuitionService } from '@/src/services/tuitionService.ts';
+import { useGetTuitionJobsQuery } from '@/src/services/tuitionApi';
 
 const DISTRICTS = ['Dhaka', 'Sylhet', 'Chattogram', 'Rajshahi', 'Khulna', 'Barishal', 'Rangpur', 'Mymensingh'];
 
@@ -18,8 +18,8 @@ export default function Jobs() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialCategory = searchParams.get('category') || 'All';
   
-  const [jobs, setJobs] = useState<TuitionJob[]>([]);
   const [searchId, setSearchId] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [tuitionType, setTuitionType] = useState('All');
@@ -33,19 +33,56 @@ export default function Jobs() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
   useEffect(() => {
-    const fetchJobs = async () => {
-      try {
-        const items = await TuitionService.list();
-        setJobs((items || []) as TuitionJob[]);
-      } catch (error) {
-        console.error('Failed to load jobs:', error);
-        setJobs([]);
-      }
-    };
+    const timeout = window.setTimeout(() => setDebouncedSearch(searchId), 350);
+    return () => window.clearTimeout(timeout);
+  }, [searchId]);
 
-    fetchJobs();
-  }, []);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, tuitionType, genderPref, district, area, category, studentClass, itemsPerPage]);
 
+  // ── RTK Query replaces SearchService/Firestore pagination ──────────────
+  const queryParams = useMemo(() => ({
+    ...(debouncedSearch ? { search: debouncedSearch } : {}),
+    ...(district !== 'All' ? { district } : {}),
+    ...(area !== 'All' ? { area } : {}),
+    ...(category !== 'All' ? { subject: category } : {}),
+    ...(studentClass !== 'All' ? { studentClass } : {}),
+    ...(tuitionType !== 'All' ? { tuitionType } : {}),
+    ...(genderPref !== 'All' ? { gender: genderPref } : {}),
+    page: currentPage,
+    limit: itemsPerPage,
+  }), [debouncedSearch, district, area, category, studentClass, tuitionType, genderPref, currentPage, itemsPerPage]);
+
+  const { data: jobsData, isLoading, isFetching } = useGetTuitionJobsQuery(queryParams);
+
+  const jobs: TuitionJob[] = useMemo(() => {
+    const raw = (jobsData as any)?.data ?? [];
+    if (!Array.isArray(raw)) return [];
+
+    return raw.map((j: any) => {
+      const locArea = typeof j.location === 'object' ? String(j.location?.area || '') : String(j.area || '');
+      const locDistrict = typeof j.location === 'object' ? String(j.location?.district || '') : String(typeof j.location === 'string' ? j.location : '');
+      return {
+        ...j,
+        id: String(j._id || j.id || ''),
+        location: locDistrict,
+        area: locArea,
+        studentClass: j.studentClass || 'N/A',
+        subjects: Array.isArray(j.subjects) ? j.subjects : [j.subject || 'General'],
+        salary: Number(j.salary || 0),
+        medium: j.medium || 'Bangla Medium',
+        tuitionType: j.tuitionType || 'Home Tuition',
+        genderPreference: j.genderPreference || 'Any',
+        tutoringDays: Array.isArray(j.tutoringDays) ? j.tutoringDays : [],
+        createdAt: j.createdAt || new Date().toISOString(),
+      };
+    }) as TuitionJob[];
+  }, [jobsData]);
+
+  const totalItems: number = (jobsData as any)?.meta?.total ?? jobs.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+  const hasMore = currentPage < totalPages;
   // Sync category state with URL param if it changes
   useEffect(() => {
     const cat = searchParams.get('category');
@@ -68,25 +105,19 @@ export default function Jobs() {
     setSearchParams(searchParams);
   };
 
-  const filteredJobs = useMemo(() => {
-    return jobs.filter(job => {
-      if (searchId && !job.id.toLowerCase().includes(searchId.toLowerCase())) return false;
-      if (tuitionType !== 'All' && job.tuitionType !== tuitionType) return false;
-      if (genderPref !== 'All' && job.genderPreference !== genderPref) return false;
-      if (district !== 'All' && job.location !== district) return false;
-      if (area !== 'All' && job.area !== area) return false;
-      if (category !== 'All' && job.category !== category) return false;
-      if (studentClass !== 'All' && job.studentClass !== studentClass) return false;
-      return true;
-    });
-  }, [jobs, searchId, tuitionType, genderPref, district, area, category, studentClass]);
-
-  const totalPages = Math.ceil(filteredJobs.length / itemsPerPage);
-  const paginatedJobs = filteredJobs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  // Jobs come filtered from the backend via RTK Query
+  const activeJobs = jobs;
 
   const handlePageChange = (page: number) => {
+    if (page < 1) return;
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleLoadMore = () => {
+    if (hasMore) {
+      setCurrentPage((prev) => prev + 1);
+    }
   };
 
   return (
@@ -96,7 +127,7 @@ export default function Jobs() {
         {/* Header Stats */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
           <p className="text-sm text-ink-muted font-medium">
-            Showing <span className="text-ink font-bold">{filteredJobs.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}-{Math.min(currentPage * itemsPerPage, filteredJobs.length)}</span> of <span className="text-ink font-bold">{filteredJobs.length}</span> jobs
+            Showing <span className="text-ink font-bold">{activeJobs.length > 0 ? 1 : 0}-{activeJobs.length}</span> of <span className="text-ink font-bold">{activeJobs.length}</span> jobs
           </p>
           <div className="flex items-center gap-2">
             <span className="text-sm text-ink-muted">Show:</span>
@@ -275,7 +306,7 @@ export default function Jobs() {
           <main className="flex-grow w-full space-y-6">
             <AnimatePresence mode="popLayout">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {paginatedJobs.map((job) => (
+                {activeJobs.map((job) => (
                   <motion.div
                     key={job.id}
                     layout
@@ -289,7 +320,7 @@ export default function Jobs() {
                       <div className="px-6 py-4 flex justify-between items-center border-b border-ink/5 bg-primary/5">
                         <div className="flex items-center gap-2 text-ink font-bold text-xs truncate">
                           <MapPin size={16} className="text-primary shrink-0" />
-                          <span className="truncate">{job.area}, {job.location}</span>
+                          <span className="truncate">{typeof job.area === "string" ? job.area : ""}{job.area && job.location ? ", " : ""}{typeof job.location === "string" ? job.location : (typeof job.location === "object" ? `${(job.location as any)?.area || ""}, ${(job.location as any)?.district || ""}` : "")}</span>
                         </div>
                         <div className="px-2.5 py-1 rounded-lg bg-white border border-primary/20 text-primary font-bold text-[11px] whitespace-nowrap shadow-sm">
                           ID: {job.id}
@@ -367,7 +398,11 @@ export default function Jobs() {
               </div>
             </AnimatePresence>
 
-            {filteredJobs.length === 0 ? (
+            {isLoading ? (
+              <div className="text-center py-16 bg-white rounded-3xl border border-ink/5 shadow-sm">
+                <p className="text-ink-muted font-medium">Loading jobs...</p>
+              </div>
+            ) : activeJobs.length === 0 ? (
               <div className="text-center py-24 bg-white rounded-3xl border border-ink/5 shadow-sm space-y-4">
                 <div className="w-16 h-16 bg-primary/5 rounded-full flex items-center justify-center text-primary mx-auto">
                   <Briefcase size={32} />
@@ -379,7 +414,7 @@ export default function Jobs() {
               /* Pagination */
               <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pt-8 border-t border-ink/5">
                 <p className="text-sm text-ink-muted font-medium order-2 sm:order-1">
-                  Showing <span className="text-ink font-bold">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="text-ink font-bold">{Math.min(currentPage * itemsPerPage, filteredJobs.length)}</span> of <span className="text-ink font-bold">{filteredJobs.length}</span> results
+                  Page <span className="text-ink font-bold">{currentPage}</span> · {activeJobs.length} loaded results
                 </p>
                 
                 <div className="flex items-center gap-2 order-1 sm:order-2">
@@ -390,35 +425,18 @@ export default function Jobs() {
                   >
                     <ChevronLeft size={20} />
                   </button>
-                  
-                  {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
-                    let pageNum = i + 1;
-                    if (totalPages > 5 && currentPage > 3) {
-                      pageNum = currentPage - 3 + i;
-                      if (pageNum + (5 - i - 1) > totalPages) {
-                        pageNum = totalPages - 4 + i;
-                      }
-                    }
-                    
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => handlePageChange(pageNum)}
-                        className={cn(
-                          "w-10 h-10 rounded-xl font-bold text-sm transition-all cursor-pointer",
-                          currentPage === pageNum 
-                            ? "bg-primary text-white shadow-lg shadow-primary/20" 
-                            : "border border-ink/10 text-ink-muted hover:bg-primary/5 hover:text-primary"
-                        )}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  })}
+
+                  <button
+                    onClick={handleLoadMore}
+                    disabled={!hasMore}
+                    className="px-4 py-2 rounded-xl border border-primary/20 bg-primary/5 text-sm font-bold text-primary disabled:opacity-50 transition-all cursor-pointer"
+                  >
+                    Load More
+                  </button>
 
                   <button 
                     onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
+                    disabled={!hasMore}
                     className="w-10 h-10 rounded-xl border border-ink/10 flex items-center justify-center text-ink-muted hover:bg-primary hover:text-white hover:border-primary transition-all disabled:opacity-50 cursor-pointer"
                   >
                     <ChevronRight size={20} />
@@ -434,7 +452,7 @@ export default function Jobs() {
   );
 }
 
-function Home({ size, className }: { size: number, className?: string }) {
+function CustomHomeIcon({ size, className }: { size: number, className?: string }) {
   return (
     <svg 
       xmlns="http://www.w3.org/2000/svg" 

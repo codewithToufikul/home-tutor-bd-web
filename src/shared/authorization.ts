@@ -8,7 +8,7 @@ import {
 } from '@/src/shared/constants/permissions.ts';
 
 export type AuthorizationDecision =
-  | { ok: true; code: 'OK' }
+  | { ok: true; code: 'OK'; message?: string }
   | { ok: false; code: 'UNAUTHORIZED' | 'FORBIDDEN'; message: string };
 
 export class AuthorizationError extends Error {
@@ -99,7 +99,7 @@ export const requirePermission = (args: Parameters<typeof can>[0]) => {
   const decision = can(args);
 
   if (!decision.ok) {
-    throw new AuthorizationError(decision.code, decision.message);
+    throw new AuthorizationError(decision.code as 'UNAUTHORIZED' | 'FORBIDDEN', decision.message!);
   }
 
   return true;

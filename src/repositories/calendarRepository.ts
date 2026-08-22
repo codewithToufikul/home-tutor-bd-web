@@ -1,32 +1,19 @@
-import { createDocument, deleteDocument, getDocument, listDocuments, updateDocument } from '@/src/repositories/baseRepository.ts';
+import { apiDelete, apiGet, apiPost } from './baseRepository';
 
-export interface EventRecord {
+export interface CalendarEventRecord {
   id?: string;
-  title: string;
-  date: string;
-  description?: string;
-  location?: string;
-  createdAt?: string;
+  _id?: string;
+  title?: string;
+  date?: string;
+  userId?: string;
+  [key: string]: unknown;
 }
 
 export const CalendarRepository = {
-  async getById(id: string) {
-    return getDocument<EventRecord>('calendar_events', id);
-  },
-
-  async getAll() {
-    return listDocuments<EventRecord>('calendar_events');
-  },
-
-  async create(record: EventRecord) {
-    return createDocument('calendar_events', record);
-  },
-
-  async update(id: string, data: Partial<EventRecord>) {
-    return updateDocument('calendar_events', id, data);
-  },
-
-  async remove(id: string) {
-    return deleteDocument('calendar_events', id);
-  },
+  async list() { return apiGet<CalendarEventRecord[]>('/calendar'); },
+  async getAll() { return apiGet<CalendarEventRecord[]>('/calendar'); },
+  async getById(id: string) { return apiGet<CalendarEventRecord>(`/calendar/${id}`); },
+  async create(data: Partial<CalendarEventRecord>) { return apiPost<CalendarEventRecord>('/calendar', data); },
+  async update(id: string, data: Partial<CalendarEventRecord>) { return apiPost<CalendarEventRecord>(`/calendar`, data); },
+  async remove(id: string) { return apiDelete(`/calendar/${id}`); },
 };

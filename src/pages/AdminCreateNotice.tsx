@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import AdminLayout from '@/src/components/AdminLayout.tsx';
 import { NoticeService } from '@/src/services/noticeService';
+import { StorageService } from '@/src/services/storageService.ts';
 import { cn } from '@/src/lib/utils';
 import { useAuth } from '@/src/context/AuthContext.tsx';
 import { can } from '@/src/shared/authorization.ts';
@@ -16,6 +17,7 @@ export default function AdminCreateNotice() {
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,7 +47,22 @@ export default function AdminCreateNotice() {
           isRead: false,
         };
 
-        await NoticeService.create(payload);
+        const noticeId = await NoticeService.create(payload as any);
+
+        if (attachmentFile && user?.uid) {
+          const attachment = await StorageService.upload({
+            folder: 'notice-attachments',
+            uid: user.uid,
+            file: attachmentFile,
+          });
+
+          await NoticeService.update(noticeId, {
+            attachmentURL: attachment.downloadURL,
+            attachmentPath: attachment.storagePath,
+            attachmentName: attachment.fileName,
+          } as any);
+        }
+
         setIsSuccess(true);
       } catch (err) {
         console.error('Failed to create notice:', err);
@@ -168,6 +185,16 @@ export default function AdminCreateNotice() {
                 placeholder="Write your detailed notice message here..." 
                 required
                 className={cn(inputClasses, "min-h-[180px] py-5 resize-none")}
+              />
+            </div>
+
+            <div className="md:col-span-2 space-y-2">
+              <label className={labelClasses}>Attachment (Optional)</label>
+              <input
+                type="file"
+                accept="application/pdf,application/zip,image/*"
+                onChange={(e) => setAttachmentFile(e.target.files?.[0] || null)}
+                className="w-full text-sm text-ink-muted file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer"
               />
             </div>
 

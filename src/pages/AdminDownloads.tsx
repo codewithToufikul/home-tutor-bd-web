@@ -7,11 +7,14 @@ import {
 } from 'lucide-react';
 import AdminLayout from '@/src/components/AdminLayout.tsx';
 import { DownloadService } from '@/src/services/downloadService';
+import { StorageService } from '@/src/services/storageService.ts';
+import { useAuth } from '@/src/context/AuthContext.tsx';
 import { cn } from '@/src/lib/utils';
 
 const ITEMS_PER_PAGE = 5;
 
 export default function AdminDownloads() {
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [downloads, setDownloads] = useState<any[]>([]);
@@ -24,6 +27,7 @@ export default function AdminDownloads() {
   const [newFileCategory, setNewFileCategory] = useState('Lecture Notes');
   const [newFileStatus, setNewFileStatus] = useState('Public');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Filtering Logic
   useEffect(() => {
@@ -82,21 +86,31 @@ export default function AdminDownloads() {
   // 🌟 ফাইল হ্যান্ডেল করার এবং লিস্টে যোগ করার ফাংশন
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newFileTitle.trim()) return;
+    if (!newFileTitle.trim() || !selectedFile || !user?.uid) return;
+
+    setIsUploading(true);
 
     const newEntry = {
       id: `DL-00${downloads.length + 1}`,
       title: newFileTitle,
       category: newFileCategory,
-      type: selectedFile ? selectedFile.name.split('.').pop()?.toUpperCase() || 'PDF' : 'PDF',
-      size: selectedFile ? `${(selectedFile.size / (1024 * 1024)).toFixed(1)} MB` : '2.5 MB',
+      type: selectedFile.name.split('.').pop()?.toUpperCase() || 'PDF',
+      size: `${(selectedFile.size / (1024 * 1024)).toFixed(1)} MB`,
       date: new Date().toLocaleDateString('en-GB'),
       downloads: 0,
-      status: newFileStatus
+      status: newFileStatus,
+      storagePath: '',
+      downloadURL: '',
     };
 
     try {
-      await DownloadService.create({
+      const metadata = await StorageService.upload({
+        folder: 'downloads',
+        uid: user.uid,
+        file: selectedFile,
+      });
+
+      const created = await DownloadService.create({
         title: newEntry.title,
         category: newEntry.category,
         type: newEntry.type,
@@ -104,13 +118,18 @@ export default function AdminDownloads() {
         date: newEntry.date,
         downloads: newEntry.downloads,
         status: newEntry.status,
+        storagePath: metadata.storagePath,
+        downloadURL: metadata.downloadURL,
       } as any);
-      setDownloads([newEntry, ...downloads]);
+
+      setDownloads([{ ...newEntry, id: created || newEntry.id, storagePath: metadata.storagePath, downloadURL: metadata.downloadURL }, ...downloads]);
       setNewFileTitle('');
       setSelectedFile(null);
       setIsUploadModalOpen(false);
     } catch (err) {
-      console.error('Failed to upload file metadata:', err);
+      console.error('Failed to upload file:', err);
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -471,9 +490,10 @@ export default function AdminDownloads() {
                   </button>
                   <button 
                     type="submit"
-                    className="flex-1 py-3.5 rounded-2xl bg-primary text-white font-bold text-xs shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all cursor-pointer flex items-center justify-center gap-2"
+                    disabled={isUploading}
+                    className="flex-1 py-3.5 rounded-2xl bg-primary text-white font-bold text-xs shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60"
                   >
-                    <Upload size={16} /> Upload File
+                    {isUploading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><Upload size={16} /> Upload File</>}
                   </button>
                 </div>
               </form>

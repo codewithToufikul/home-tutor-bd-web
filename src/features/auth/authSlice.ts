@@ -1,0 +1,82 @@
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+
+export interface User {
+  _id: string;
+  name: string;
+  email: string;
+  role: 'student' | 'guardian' | 'tutor' | 'admin';
+  avatar?: string;
+  isEmailVerified: boolean;
+  isApproved: boolean;
+}
+
+interface AuthState {
+  user: User | null;
+  accessToken: string | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+}
+
+const getSavedUser = (): User | null => {
+  try {
+    const raw = localStorage.getItem('user');
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+const savedUser = getSavedUser();
+const savedToken = localStorage.getItem('accessToken');
+
+const initialState: AuthState = {
+  user: savedUser,
+  accessToken: savedToken || null,
+  isAuthenticated: Boolean(savedToken),
+  isLoading: false,
+};
+
+const authSlice = createSlice({
+  name: 'auth',
+  initialState,
+  reducers: {
+    setCredentials: (
+      state,
+      action: PayloadAction<{ user: User; accessToken: string }>,
+    ) => {
+      state.user = action.payload.user;
+      state.accessToken = action.payload.accessToken;
+      state.isAuthenticated = true;
+      state.isLoading = false;
+      localStorage.setItem('accessToken', action.payload.accessToken);
+      localStorage.setItem('user', JSON.stringify(action.payload.user));
+    },
+    setAccessToken: (state, action: PayloadAction<string>) => {
+      state.accessToken = action.payload;
+      state.isAuthenticated = true;
+      localStorage.setItem('accessToken', action.payload);
+    },
+    setUser: (state, action: PayloadAction<User>) => {
+      state.user = action.payload;
+      state.isAuthenticated = true;
+      state.isLoading = false;
+      localStorage.setItem('user', JSON.stringify(action.payload));
+    },
+    setAuthLoading: (state, action: PayloadAction<boolean>) => {
+      state.isLoading = action.payload;
+    },
+    logout: (state) => {
+      state.user = null;
+      state.accessToken = null;
+      state.isAuthenticated = false;
+      state.isLoading = false;
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('user');
+    },
+  },
+});
+
+export const { setCredentials, setAccessToken, setUser, setAuthLoading, logout } =
+  authSlice.actions;
+
+export default authSlice.reducer;

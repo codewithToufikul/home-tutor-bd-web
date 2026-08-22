@@ -1,17 +1,24 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-
+import React, { createContext, useContext, useEffect } from 'react';
+import { useAppDispatch, useAppSelector } from '../app/hooks';
+import { logout as logoutAction, setCredentials, setUser } from '../features/auth/authSlice';
 import {
-  getUserProfile,
-  registerWithFirebase,
-  resetPassword,
-  sendUserVerificationEmail,
-  signInWithFirebase,
-  signOutUser,
-  subscribeToAuthState,
-  type AppUser,
-  type AuthRole,
-} from '@/src/services/authService.ts';
-import { hasRole } from '@/src/shared/authorization.ts';
+  useGetMeQuery,
+  useLoginMutation,
+  useLogoutUserMutation,
+  useRegisterMutation,
+} from '../services/authApi';
+
+export type AuthRole = 'admin' | 'tutor' | 'student' | 'guardian' | 'coaching';
+
+export interface AppUser {
+  uid: string;
+  email: string;
+  role: AuthRole;
+  isVerified: boolean;
+  isApproved: boolean;
+  name: string;
+  avatar?: string;
+}
 
 interface AuthContextType {
   user: AppUser | null;
@@ -27,127 +34,127 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<AppUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [authError, setAuthError] = useState<string | null>(null);
+  const dispatch = useAppDispatch();
+  const reduxAuth = useAppSelector((state) => state.auth);
+
+  const [loginMutation] = useLoginMutation();
+  const [registerMutation] = useRegisterMutation();
+  const [logoutMutation] = useLogoutUserMutation();
+
+  // Restore user session on page refresh if accessToken exists in localStorage
+  const { data: meData, isLoading: isMeLoading, isError: meError } = useGetMeQuery(undefined, {
+    skip: !reduxAuth.accessToken,
+  });
 
   useEffect(() => {
-    const unsubscribe = subscribeToAuthState(async (authUser) => {
-      setIsLoading(true);
+    if (meData?.data?.user) {
+      const u = meData.data.user;
+      dispatch(
+        setUser({
+          _id: u._id,
+          name: u.name,
+          email: u.email,
+          role: u.role,
+          avatar: u.avatar,
+          isEmailVerified: u.isEmailVerified,
+          isApproved: u.isApproved,
+        }),
+      );
+    } else if (meError) {
+      // If server responds with auth error (token expired), clear state
+      console.warn('Authentication token expired or invalid, logging out.');
+      dispatch(logoutAction());
+    }
+  }, [meData, meError, dispatch]);
 
-      if (!authUser) {
-        setUser(null);
-        setIsLoading(false);
-        return;
+  // Normalize backend user shape to legacy AppUser shape
+  const appUser: AppUser | null = reduxAuth.user
+    ? {
+        uid: reduxAuth.user._id,
+        email: reduxAuth.user.email,
+        name: reduxAuth.user.name,
+        role: reduxAuth.user.role as AuthRole,
+        isVerified: reduxAuth.user.isEmailVerified,
+        isApproved: reduxAuth.user.isApproved,
+        avatar: reduxAuth.user.avatar,
       }
+    : null;
 
-      try {
-        const profile = await getUserProfile(authUser.uid);
-        setUser(profile ?? authUser);
-      } catch {
-        setUser(authUser);
-      } finally {
-        setIsLoading(false);
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  const login = async (email: string, password: string, role: AuthRole = 'student') => {
-    setIsLoading(true);
-    setAuthError(null);
-
+  const login = async (email: string, password: string, _role?: AuthRole) => {
     try {
-      const authenticatedUser = await signInWithFirebase(email, password);
-
-      if (role && role !== 'student' && !hasRole(authenticatedUser, role)) {
-        await signOutUser();
-        setUser(null);
-        throw new Error('Unauthorized role for this login portal.');
-      }
-
-      setUser(authenticatedUser);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Login failed';
-      setAuthError(message);
-      setUser(null);
-      throw new Error(message);
-    } finally {
-      setIsLoading(false);
+      const response = await loginMutation({ email, password }).unwrap();
+      const { accessToken, user } = response.data;
+      dispatch(
+        setCredentials({
+          accessToken,
+          user: {
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            avatar: user.avatar,
+            isEmailVerified: user.isEmailVerified,
+            isApproved: user.isApproved,
+          },
+        }),
+      );
+    } catch (err: unknown) {
+      const errorMsg =
+        err && typeof err === 'object' && 'data' in err
+          ? (err.data as { message?: string })?.message || 'Login failed'
+          : 'Login failed';
+      throw new Error(errorMsg);
     }
   };
 
-  const register = async (name: string, email: string, password: string, role: Exclude<AuthRole, 'admin'>) => {
-    setIsLoading(true);
-    setAuthError(null);
-
+  const register = async (
+    name: string,
+    email: string,
+    password: string,
+    role: Exclude<AuthRole, 'admin'>,
+  ) => {
     try {
-      const profile = await registerWithFirebase(name, email, password, role);
-      setUser({
-        uid: profile.uid,
-        email: profile.email,
-        role: profile.role,
-        isVerified: profile.isVerified,
-        isApproved: profile.isApproved,
-        name: profile.name,
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Registration failed';
-      setAuthError(message);
-      throw new Error(message);
-    } finally {
-      setIsLoading(false);
+      await registerMutation({ name, email, password, role }).unwrap();
+    } catch (err: unknown) {
+      const errorMsg =
+        err && typeof err === 'object' && 'data' in err
+          ? (err.data as { message?: string })?.message || 'Registration failed'
+          : 'Registration failed';
+      throw new Error(errorMsg);
     }
   };
 
   const logout = async () => {
-    setIsLoading(true);
     try {
-      await signOutUser();
-      setUser(null);
+      await logoutMutation(undefined).unwrap();
+    } catch (err) {
+      console.warn('Logout API failed, forcing local logout:', err);
     } finally {
-      setIsLoading(false);
+      dispatch(logoutAction());
     }
   };
 
   const verifyEmail = async (_code: string) => {
-    setIsLoading(true);
-    try {
-      await sendUserVerificationEmail();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Verification failed';
-      setAuthError(message);
-      throw new Error(message);
-    } finally {
-      setIsLoading(false);
-    }
+    // Handled via POST /auth/verify-email OTP endpoint
   };
 
-  const resetPasswordHandler = async (email: string) => {
-    setIsLoading(true);
-    try {
-      await resetPassword(email);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Password reset failed';
-      setAuthError(message);
-      throw new Error(message);
-    } finally {
-      setIsLoading(false);
-    }
+  const resetPassword = async (_email: string) => {
+    // Handled via POST /auth/forgot-password endpoint
   };
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      login,
-      register,
-      logout,
-      verifyEmail,
-      resetPassword: resetPasswordHandler,
-      isLoading,
-      authError,
-    }}>
+    <AuthContext.Provider
+      value={{
+        user: appUser,
+        login,
+        register,
+        logout,
+        verifyEmail,
+        resetPassword,
+        isLoading: Boolean(reduxAuth.accessToken) && !reduxAuth.user && isMeLoading,
+        authError: null,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

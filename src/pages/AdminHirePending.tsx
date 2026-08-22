@@ -6,6 +6,8 @@ import {
   CheckCircle2, AlertCircle, X
 } from 'lucide-react';
 import AdminLayout from '@/src/components/AdminLayout.tsx';
+import { useGetAdminApplicationsQuery } from '@/src/services/adminApi';
+import { ApplicationRepository } from '@/src/repositories/applicationRepository';
 import { HireService } from '@/src/services/hireService';
 import { cn } from '@/src/lib/utils';
 
@@ -16,8 +18,43 @@ const ITEMS_PER_PAGE = 5;
 export default function AdminHirePending() {
   const [activeTab, setActiveTab] = useState<'pending' | 'approved'>('pending');
   const [searchQuery, setSearchQuery] = useState('');
-  const [requests, setRequests] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+
+  const { data: appsData, isLoading } = useGetAdminApplicationsQuery(undefined);
+
+  const requests = useMemo(() => {
+    const rawApps = (appsData as any)?.data ?? appsData ?? [];
+    if (!Array.isArray(rawApps)) return [];
+
+    return rawApps.map((a: any) => {
+      const tutor = typeof a.tutorId === 'object' ? a.tutorId : {};
+      const job = typeof a.jobId === 'object' ? a.jobId : {};
+      const jobLoc = typeof job.location === 'object' ? `${job.location?.area || ''}, ${job.location?.district || ''}` : (job.location || '');
+      const statusLower = String(a.status || 'pending').toLowerCase();
+
+      return {
+        id: String(a._id || a.id || ''),
+        status: statusLower === 'approved' || statusLower === 'accepted' ? 'approved' : 'pending',
+        tutorName: tutor.name || 'Tutor',
+        tutorId: String(tutor._id || tutor.id || 'TUTOR'),
+        tutorArea: tutor.area || 'N/A',
+        tutorPhone: tutor.phone || 'N/A',
+        jobSubject: Array.isArray(job.subjects) ? job.subjects.join(', ') : (job.subject || 'Tuition'),
+        subject: Array.isArray(job.subjects) ? job.subjects.join(', ') : (job.subject || 'Tuition'),
+        jobCategory: job.medium || 'General',
+        category: job.medium || 'General',
+        jobSalary: `${a.expectedSalary || job.salary || 0} ৳`,
+        salary: `${a.expectedSalary || job.salary || 0} ৳`,
+        tuitionStart: 'Immediate',
+        guardianName: job.postedBy?.name || 'Guardian/Student',
+        guardianId: String(job.postedBy?._id || 'USER'),
+        guardianArea: jobLoc || 'Dhaka',
+        guardianPhone: job.postedBy?.phone || 'N/A',
+        date: a.createdAt ? new Date(a.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Recent',
+        applyDate: a.createdAt ? new Date(a.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Recent',
+      };
+    });
+  }, [appsData]);
 
   // Filtering Logic
   const filteredRequests = useMemo(() => {
@@ -39,28 +76,19 @@ export default function AdminHirePending() {
 
   const handleApprove = async (id: string) => {
     try {
-      await HireService.updateStatus(id, 'approved');
-      setRequests(requests.map(req => req.id === id ? { ...req, status: 'approved' } : req));
+      await ApplicationRepository.accept(id);
+      window.location.reload();
     } catch (err) { console.error('Approve failed', err); }
   };
 
   const handleCancel = async (id: string) => {
     try {
-      await HireService.remove(id);
-      setRequests(requests.filter(req => req.id !== id));
+      await ApplicationRepository.reject(id);
+      window.location.reload();
     } catch (err) { console.error('Cancel failed', err); }
   };
 
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      try {
-        const items = await HireService.list();
-        if (active) setRequests(items as any[]);
-      } catch (err) { console.error('Failed to load hire requests', err); }
-    })();
-    return () => { active = false };
-  }, []);
+
 
   return (
     <AdminLayout>

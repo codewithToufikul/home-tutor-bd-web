@@ -14,11 +14,12 @@ import {
   ChevronDown,
   GraduationCap,
   CheckCircle2,
-  Camera
-} from 'lucide-react';
+  Camera,
+  Home} from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/src/context/AuthContext.tsx';
+import NotificationBell from '@/src/components/NotificationBell.tsx';
 import logoImage from '@/src/lib/Home.png';
 
 const SIDEBAR_ITEMS = [
@@ -32,6 +33,7 @@ const SIDEBAR_ITEMS = [
   { icon: CheckCircle2, label: 'Profile Verification Request', href: '/tutor/verification' },
   { icon: Settings, label: 'Settings', href: '/tutor/settings' },
   { icon: Settings, label: 'Security', href: '/tutor/security' },
+  { icon: Home, label: 'Home', href: '/' },
 ];
 
 export default function TutorLayout({ children }: { children: React.ReactNode }) {
@@ -136,13 +138,7 @@ export default function TutorLayout({ children }: { children: React.ReactNode })
           </div>
 
           <div className="flex items-center gap-3 lg:gap-6">
-            <Link 
-              to="/tutor/notifications"
-              className="relative p-2.5 text-ink-muted hover:text-primary hover:bg-primary/5 rounded-xl transition-all"
-            >
-              <Bell size={22} />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border-2 border-white" />
-            </Link>
+            <NotificationBell role="tutor" />
             
             <div className="h-10 w-[1px] bg-ink/5 hidden sm:block" />
 

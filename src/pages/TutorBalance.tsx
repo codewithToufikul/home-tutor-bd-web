@@ -42,7 +42,7 @@ export default function TutorBalance() {
           trxId: record.trxId,
         }));
 
-        setTransactions(formatted);
+        setTransactions(formatted as any);
       } catch (error) {
         console.error('Failed to load tutor transactions:', error);
         setTransactions([]);

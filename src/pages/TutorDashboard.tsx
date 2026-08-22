@@ -18,13 +18,13 @@ import {
 import TutorLayout from '@/src/components/TutorLayout.tsx';
 import { cn } from '@/src/lib/utils';
 import { Link } from 'react-router-dom';
-import { getMatchedJobsForTutor } from '@/src/lib/matching';
 import { TuitionJob, TutorProfile } from '@/src/types';
 import { useAuth } from '@/src/context/AuthContext.tsx';
 import { ApplicationService } from '@/src/services/applicationService.ts';
 import { TuitionService } from '@/src/services/tuitionService.ts';
 import { TransactionService } from '@/src/services/transactionService.ts';
 import { TutorProfileService } from '@/src/services/tutorProfileService.ts';
+import { RecommendationService } from '@/src/services/recommendationService.ts';
 
 // Stats will be computed from Firestore data inside the component
 
@@ -57,8 +57,8 @@ export default function TutorDashboard() {
         const allJobs = await TuitionService.list();
 
         if (profile) {
-          const matched = getMatchedJobsForTutor(profile as TutorProfile, (allJobs as TuitionJob[]) || []);
-          setMatchedJobs(matched || []);
+          const rankedJobs = RecommendationService.getTutorJobRecommendations(profile as unknown as TutorProfile, (allJobs as unknown as TuitionJob[]) || []);
+          setMatchedJobs(rankedJobs.slice(0, 3).map((entry: any) => entry.item) || []);
         } else {
           setMatchedJobs([]);
         }
@@ -70,7 +70,7 @@ export default function TutorDashboard() {
 
         // Build recent applications with job info when available
         const jobsById: Record<string, TuitionJob> = {};
-        ((allJobs as TuitionJob[]) || []).forEach((j) => { if (j && j.id) jobsById[j.id] = j; });
+        ((allJobs as unknown as TuitionJob[]) || []).forEach((j) => { if (j && j.id) jobsById[j.id] = j; });
 
         const recent = appList.slice().reverse().slice(0, 6).map((a: any) => {
           const job = jobsById[a.jobId];
@@ -134,7 +134,7 @@ export default function TutorDashboard() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {STATS.map((stat, index) => (
+          {stats.map((stat, index) => (
             <Link
               key={stat.label}
               to={
@@ -188,7 +188,7 @@ export default function TutorDashboard() {
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="px-3 py-1 bg-primary/10 text-primary text-[10px] font-black uppercase rounded-lg">
-                        100% Matched
+                        Recommended
                       </span>
                       <span className="text-xs font-black text-primary">{job.salary} ৳/mo</span>
                     </div>

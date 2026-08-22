@@ -1,32 +1,18 @@
-import { createDocument, deleteDocument, getDocument, listDocuments, updateDocument } from '@/src/repositories/baseRepository.ts';
+import { apiGet, apiPost } from './baseRepository';
 
 export interface PaymentRecord {
   id?: string;
-  tutorId?: string;
+  _id?: string;
+  userId?: string;
   amount?: number;
-  status?: 'pending' | 'completed' | 'rejected';
-  method?: string;
-  createdAt?: string;
+  status?: string;
+  type?: string;
+  [key: string]: unknown;
 }
 
 export const PaymentRepository = {
-  async getById(id: string) {
-    return getDocument<PaymentRecord>('payments', id);
-  },
-
-  async getAll() {
-    return listDocuments<PaymentRecord>('payments');
-  },
-
-  async create(record: PaymentRecord) {
-    return createDocument('payments', record);
-  },
-
-  async update(id: string, data: Partial<PaymentRecord>) {
-    return updateDocument('payments', id, data);
-  },
-
-  async remove(id: string) {
-    return deleteDocument('payments', id);
-  },
+  async list() { return apiGet<PaymentRecord[]>('/admin/payments'); },
+  async getAll() { return apiGet<PaymentRecord[]>('/admin/payments'); },
+  async get(id: string) { return apiGet<PaymentRecord>(`/payments/${id}`); },
+  async create(data: Partial<PaymentRecord>) { return apiPost<PaymentRecord>('/payments', data); },
 };

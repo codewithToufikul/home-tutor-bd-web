@@ -28,6 +28,9 @@ import { SavedTutorsService } from '@/src/services/savedTutorsService.ts';
 import { NoticeService } from '@/src/services/noticeService.ts';
 import { ApplicationRepository } from '@/src/repositories/applicationRepository.ts';
 import { TutorProfileRepository } from '@/src/repositories/tutorProfileRepository.ts';
+import { RecommendationService } from '@/src/services/recommendationService.ts';
+import type { TutorProfile, TuitionJob } from '@/src/types';
+import { DEFAULT_PROFILE_IMAGE } from '@/src/constants';
 
 // stats will be computed from Firestore
 
@@ -47,6 +50,7 @@ export default function GuardianDashboard() {
   const { user } = useAuth();
   const [stats, setStats] = useState<any[]>([]);
   const [myRequests, setMyRequests] = useState<any[]>([]);
+  const [recommendedTutors, setRecommendedTutors] = useState<TutorProfile[]>([]);
 
   const [isSaving, setIsSaving] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
@@ -58,6 +62,7 @@ export default function GuardianDashboard() {
       try {
         const allJobs = await TuitionService.list();
         const myJobs = (allJobs || []).filter((j: any) => j.parentId === user.uid);
+        const allTutors = await TutorProfileRepository.getAll();
 
         const totalRequests = myJobs.length;
         const hired = myJobs.filter((j: any) => j.status === 'Matched' || j.status === 'Hired' || j.status === 'Closed').length;
@@ -77,7 +82,8 @@ export default function GuardianDashboard() {
           const apps = await ApplicationRepository.getByJob(m.id);
           const applicants = await Promise.all((apps || []).map(async (a: any) => {
             const tutor = await TutorProfileRepository.getById(a.tutorId);
-            return { id: tutor?.id || a.tutorId, name: tutor?.fullName || tutor?.name, university: tutor?.gradInstitute || '', department: tutor?.gradDept || '', rating: tutor?.rating || 0, experience: tutor?.experienceYears || '', phone: '🔒 Secured (Admin Approval Needed)', image: tutor?.photoUrl || tutor?.avatar || '' };
+            const tutorData = tutor as any;
+            return { id: tutorData?.id || a.tutorId, name: tutorData?.fullName || tutorData?.name, university: tutorData?.gradInstitute || '', department: tutorData?.gradDept || '', rating: tutorData?.rating || 0, experience: tutorData?.experienceYears || '', phone: '🔒 Secured (Admin Approval Needed)', image: tutorData?.photoUrl || tutorData?.avatar || '' };
           }));
 
           return {
@@ -93,6 +99,14 @@ export default function GuardianDashboard() {
         }));
 
         setMyRequests(requestsMapped);
+
+        const rankedTutors = myJobs.length > 0
+          ? RecommendationService.getJobTutorRecommendations(myJobs[0] as unknown as TuitionJob, ((allTutors || []) as any[]).map((entry) => entry as unknown as TutorProfile))
+              .slice(0, 3)
+              .map((entry) => entry.item)
+          : [];
+
+        setRecommendedTutors(rankedTutors);
       } catch (err) {
         console.error('Failed to load guardian dashboard data:', err);
       }
@@ -193,7 +207,7 @@ export default function GuardianDashboard() {
                   selectedApplicants.map((tutor) => (
                     <div key={tutor.id} className="p-4 bg-gray-50 rounded-2xl border border-ink/10 flex items-center justify-between gap-4">
                       <div className="flex items-center gap-3">
-                        <img src={tutor.image} alt={tutor.name} className="w-12 h-12 rounded-xl object-cover" />
+                        <img src={(tutor.image ?? '').trim() || DEFAULT_PROFILE_IMAGE} alt={tutor.name || 'Tutor'} className="w-12 h-12 rounded-xl object-cover" />
                         <div>
                           <h4 className="font-black text-ink text-sm">{tutor.name}</h4>
                           <p className="text-xs text-secondary font-bold">{tutor.university} • {tutor.department}</p>

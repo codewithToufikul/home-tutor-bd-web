@@ -1,8 +1,30 @@
+import { useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Link } from 'react-router-dom';
-import { Clock, CheckCircle2, ArrowLeft, GraduationCap, ShieldCheck } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Clock, CheckCircle2, ArrowLeft, GraduationCap, ShieldCheck, LogOut } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export default function PendingApproval() {
+  const { logout, user } = useAuth();
+  const navigate = useNavigate();
+
+  // Auto-redirect if account is already approved by admin
+  useEffect(() => {
+    if (user?.isApproved) {
+      const targetPath = user.role === 'coaching' ? '/coaching/dashboard' : '/tutor/dashboard';
+      navigate(targetPath, { replace: true });
+    }
+  }, [user, navigate]);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login', { replace: true });
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6 relative overflow-hidden">
       {/* Decorative Background Blobs */}
@@ -25,7 +47,7 @@ export default function PendingApproval() {
               Registration <span className="text-primary">Successful!</span>
             </h1>
             <p className="text-lg font-medium text-ink-muted">
-              Your account is currently <span className="text-ink font-bold">Pending Approval</span>.
+              Your account {user?.email ? <span className="font-bold text-ink">({user.email})</span> : ''} is currently <span className="text-ink font-bold">Pending Approval</span>.
             </p>
           </div>
         </div>
@@ -63,14 +85,22 @@ export default function PendingApproval() {
             </div>
           </div>
 
-          <div className="pt-4">
+          <div className="pt-4 space-y-3">
             <Link 
               to="/"
-              className="w-full py-5 rounded-[24px] bg-primary text-white font-black text-sm uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-3 shadow-2xl shadow-primary/30 hover:bg-primary-dark"
+              className="w-full py-4 rounded-[24px] bg-primary text-white font-black text-sm uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-3 shadow-xl shadow-primary/30 hover:bg-primary-dark"
             >
               <ArrowLeft size={20} />
               Back to Home
             </Link>
+
+            <button
+              onClick={handleLogout}
+              className="w-full py-4 rounded-[24px] bg-rose-50 text-rose-600 hover:bg-rose-100 font-bold text-sm transition-all active:scale-95 flex items-center justify-center gap-2 border border-rose-100 cursor-pointer"
+            >
+              <LogOut size={18} />
+              Logout / Sign In Different Account
+            </button>
           </div>
         </div>
 

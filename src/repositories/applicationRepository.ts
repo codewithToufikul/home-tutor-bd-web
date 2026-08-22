@@ -1,41 +1,22 @@
-import { createDocument, deleteDocument, getDocument, listDocuments, updateDocument } from '@/src/repositories/baseRepository.ts';
+import { apiGet, apiPatch, apiPost } from './baseRepository';
 
 export interface ApplicationRecord {
   id?: string;
-  jobId: string;
-  tutorId: string;
-  guardianId?: string;
-  status: 'pending' | 'accepted' | 'rejected' | 'withdrawn';
-  createdAt?: string;
-  updatedAt?: string;
+  _id?: string;
+  jobId?: string;
+  tutorId?: string;
+  status?: 'Pending' | 'Accepted' | 'Rejected';
+  [key: string]: unknown;
 }
 
 export const ApplicationRepository = {
-  async getById(id: string) {
-    return getDocument<ApplicationRecord>('applications', id);
-  },
-
-  async getAll() {
-    return listDocuments<ApplicationRecord>('applications');
-  },
-
-  async getByJob(jobId: string) {
-    return listDocuments<ApplicationRecord>('applications', [{ field: 'jobId', op: '==', value: jobId }]);
-  },
-
-  async getByTutor(tutorId: string) {
-    return listDocuments<ApplicationRecord>('applications', [{ field: 'tutorId', op: '==', value: tutorId }]);
-  },
-
-  async create(record: ApplicationRecord) {
-    return createDocument('applications', record);
-  },
-
-  async update(id: string, data: Partial<ApplicationRecord>) {
-    return updateDocument('applications', id, data);
-  },
-
-  async remove(id: string) {
-    return deleteDocument('applications', id);
-  },
+  async listMine() { return apiGet<ApplicationRecord[]>('/applications/my'); },
+  async getByTutor(_tutorId?: string) { return apiGet<ApplicationRecord[]>('/applications/my'); },
+  async get(id: string) { return apiGet<ApplicationRecord>(`/applications/${id}`); },
+  async getById(id: string) { return apiGet<ApplicationRecord>(`/applications/${id}`); },
+  async getByJob(jobId: string) { return apiGet<ApplicationRecord[]>(`/applications/job/${jobId}`); },
+  async create(data: Partial<ApplicationRecord>) { return apiPost('/applications', data); },
+  async update(id: string, data: Partial<ApplicationRecord>) { return apiPatch(`/applications/${id}`, data); },
+  async accept(id: string) { return apiPatch(`/applications/${id}/accept`, {}); },
+  async reject(id: string) { return apiPatch(`/applications/${id}/reject`, {}); },
 };

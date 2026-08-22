@@ -19,6 +19,7 @@ import { cn } from '@/src/lib/utils';
 import { TutorProfileService } from '@/src/services/tutorProfileService.ts';
 import { can } from '@/src/shared/authorization.ts';
 import { PERMISSIONS } from '@/src/shared/constants/permissions.ts';
+import { StorageService } from '@/src/services/storageService.ts';
 
 type TabType = 'educational' | 'tuition' | 'personal' | 'documents' | 'verification';
 
@@ -52,7 +53,7 @@ export default function TutorProfileDashboard() {
     tutoringStyle: 'Private Tutoring', experienceYears: '0 year(s)',
     
     // Personal
-    fullName: user?.displayName || 'Md Shakil Hosen', phone: '01722773191', altPhone: '01722773191', gender: 'Male',
+    fullName: user?.name || 'Md Shakil Hosen', phone: '01722773191', altPhone: '01722773191', gender: 'Male',
     currentCity: 'Dhaka', currentArea: 'Mirpur -1', permanentAddress: '',
     fatherName: '', fatherPhone: '', motherName: '', motherPhone: '',
     emergencyPhone: '', guardianRelation: '', bio: ''
@@ -100,27 +101,36 @@ export default function TutorProfileDashboard() {
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      alert('File size is too large! Please upload an image under 5MB.');
-      return;
-    }
-
     setUploadingPhoto(true);
     try {
-      const photoUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result));
-        reader.onerror = () => reject(new Error('Failed to read file'));
-        reader.readAsDataURL(file);
+      const metadata = await StorageService.upload({
+        folder: 'profile-images',
+        uid: user.uid,
+        file,
       });
 
-      setProfileData((prev: any) => ({ ...prev, photoUrl }));
+      setProfileData((prev: any) => ({ ...prev, photoUrl: metadata.downloadURL }));
 
       const existing = await TutorProfileService.getByUid(user.uid);
       if (existing?.id) {
-        await TutorProfileService.update(existing.id, { photoUrl });
+        await TutorProfileService.update(existing.id, {
+          photoUrl: metadata.downloadURL,
+          storagePath: metadata.storagePath,
+          contentType: metadata.contentType,
+          size: metadata.size,
+          uploadedAt: metadata.uploadedAt,
+          ownerUid: metadata.ownerUid,
+        });
       } else {
-        await TutorProfileService.create({ uid: user.uid, photoUrl });
+        await TutorProfileService.create({
+          uid: user.uid,
+          photoUrl: metadata.downloadURL,
+          storagePath: metadata.storagePath,
+          contentType: metadata.contentType,
+          size: metadata.size,
+          uploadedAt: metadata.uploadedAt,
+          ownerUid: metadata.ownerUid,
+        });
       }
 
       alert('Profile photo uploaded successfully!');

@@ -1,5 +1,7 @@
 import { Globe, Palette, Heart, BookOpen, GraduationCap, Award, Trophy, Code, Briefcase, UserCheck, Microscope } from 'lucide-react';
 
+export const DEFAULT_PROFILE_IMAGE = 'https://api.dicebear.com/7.x/avataaars/svg?seed=default-tutor';
+
 // 📍 ডিফল্ট বা ফলব্যাক এরিয়া
 export const AREAS = [
   'Uttara', 'Gulshan', 'Banani', 'Mirpur', 'Dhanmondi'

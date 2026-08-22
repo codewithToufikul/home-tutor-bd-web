@@ -1,31 +1,18 @@
-import { createDocument, deleteDocument, getDocument, listDocuments, updateDocument } from '@/src/repositories/baseRepository.ts';
+import { apiGet } from './baseRepository';
 
 export interface DownloadRecord {
   id?: string;
-  title: string;
+  _id?: string;
+  title?: string;
   url?: string;
-  category?: string;
-  createdAt?: string;
+  [key: string]: unknown;
 }
 
 export const DownloadRepository = {
-  async getById(id: string) {
-    return getDocument<DownloadRecord>('downloads', id);
-  },
-
-  async getAll() {
-    return listDocuments<DownloadRecord>('downloads');
-  },
-
-  async create(record: DownloadRecord) {
-    return createDocument('downloads', record);
-  },
-
-  async update(id: string, data: Partial<DownloadRecord>) {
-    return updateDocument('downloads', id, data);
-  },
-
-  async remove(id: string) {
-    return deleteDocument('downloads', id);
-  },
+  async list() { return apiGet<DownloadRecord[]>('/downloads'); },
+  async getAll() { return apiGet<DownloadRecord[]>('/downloads'); },
+  async get(id: string) { return apiGet<DownloadRecord>(`/downloads/${id}`); },
+  async getById(id: string) { return apiGet<DownloadRecord>(`/downloads/${id}`); },
+  async create(data: Partial<DownloadRecord>) { return apiGet<DownloadRecord>('/downloads'); },
+  async remove(id: string) { return apiGet<DownloadRecord>('/downloads'); },
 };

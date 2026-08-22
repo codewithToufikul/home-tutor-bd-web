@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { 
   Building2, 
@@ -7,26 +7,55 @@ import {
   MapPin, 
   FileText, 
   Save, 
-  CheckCircle2 
+  CheckCircle2,
+  Globe
 } from 'lucide-react';
 import CoachingLayout from '@/src/components/CoachingLayout.tsx';
 import { useAuth } from '@/src/context/AuthContext.tsx';
 import { cn } from '@/src/lib/utils';
+import { CoachingService } from '@/src/services/coachingService.ts';
 
 export default function CoachingProfile() {
   const { user } = useAuth();
   const [formData, setFormData] = useState({
-    name: user?.name || 'Home Tutor Provider BD Coaching',
-    email: user?.email || 'coaching@hometutorproviderbd.com',
-    phone: '01700000000',
+    instituteName: user?.name || '',
+    email: user?.email || '',
+    phone: '',
     district: 'Dhaka',
-    location: 'Dhanmondi, Dhaka',
-    tradeLicense: 'TRAD/DHAKA/123456/2026',
-    about: 'Leading coaching and educational center providing specialized training and qualified tutors.'
+    location: '',
+    tradeLicense: '',
+    about: '',
   });
 
   const [success, setSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      setLoading(true);
+      try {
+        const prof = await CoachingService.getProfile();
+        if (prof) {
+          setFormData({
+            instituteName: prof.instituteName || user?.name || '',
+            email: prof.email || user?.email || '',
+            phone: prof.phone || '',
+            district: prof.district || 'Dhaka',
+            location: prof.location || '',
+            tradeLicense: prof.tradeLicense || '',
+            about: prof.about || '',
+          });
+        }
+      } catch (err) {
+        console.error('Failed to load profile:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProfile();
+  }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,10 +63,18 @@ export default function CoachingProfile() {
     setSuccess(false);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await CoachingService.updateProfile({
+        instituteName: formData.instituteName,
+        phone: formData.phone,
+        district: formData.district,
+        location: formData.location,
+        tradeLicense: formData.tradeLicense,
+        about: formData.about,
+      });
       setSuccess(true);
-    } catch (err) {
-      console.error(err);
+      setTimeout(() => setSuccess(false), 4000);
+    } catch (err: any) {
+      alert(err.message || 'প্রোফাইল আপডেট করতে সমস্যা হয়েছে।');
     } finally {
       setIsSubmitting(false);
     }
@@ -53,151 +90,138 @@ export default function CoachingProfile() {
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center gap-3 text-emerald-600 text-sm font-bold"
+            className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center gap-3 text-emerald-600 text-sm font-bold shadow-sm"
           >
             <CheckCircle2 size={18} />
-            Profile updated successfully!
+            ইনস্টিটিউটের প্রোফাইল সফলভাবে আপডেট করা হয়েছে!
           </motion.div>
         )}
 
-        <div className="bg-white rounded-3xl border border-ink/5 shadow-sm p-6 sm:p-10">
-          <div className="flex items-center gap-4 border-b border-ink/5 pb-6 mb-8">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-primary to-purple-600 text-white flex items-center justify-center shadow-lg shadow-primary/25">
-              <Building2 size={32} />
-            </div>
-            <div>
-              <h3 className="text-xl font-display font-bold text-ink">{formData.name}</h3>
-              <p className="text-xs text-ink-muted">Manage your institute details and verification info.</p>
-            </div>
+        <form onSubmit={handleSubmit} className="bg-white rounded-3xl p-8 border border-ink/5 shadow-sm space-y-8">
+          <div className="border-b border-ink/5 pb-6">
+            <h3 className="text-xl font-display font-black text-ink">Institute Information</h3>
+            <p className="text-xs text-ink-muted mt-1">Update your coaching center credentials, license, and public details.</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="md:col-span-2">
-                <label className={labelClasses}>Institute Name *</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Building2 className="h-5 w-5 text-ink-muted" />
-                  </div>
-                  <input
-                    type="text"
-                    required
-                    className={inputClasses}
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className={labelClasses}>Email Address *</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Mail className="h-5 w-5 text-ink-muted" />
-                  </div>
-                  <input
-                    type="email"
-                    required
-                    className={inputClasses}
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className={labelClasses}>Phone Number *</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Phone className="h-5 w-5 text-ink-muted" />
-                  </div>
-                  <input
-                    type="tel"
-                    required
-                    className={inputClasses}
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className={labelClasses}>District *</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <MapPin className="h-5 w-5 text-ink-muted" />
-                  </div>
-                  <input
-                    type="text"
-                    required
-                    className={inputClasses}
-                    value={formData.district}
-                    onChange={(e) => setFormData({ ...formData, district: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className={labelClasses}>Detailed Location *</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <MapPin className="h-5 w-5 text-ink-muted" />
-                  </div>
-                  <input
-                    type="text"
-                    required
-                    className={inputClasses}
-                    value={formData.location}
-                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="md:col-span-2">
-                <label className={labelClasses}>Trade License (Verified by Admin)</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <FileText className="h-5 w-5 text-purple-600" />
-                  </div>
-                  <input
-                    type="text"
-                    disabled
-                    className={cn(inputClasses, "bg-ink/5 cursor-not-allowed")}
-                    value={formData.tradeLicense}
-                  />
-                </div>
-                <p className="text-[11px] text-ink-muted mt-1 ml-1 font-medium">Trade license cannot be changed directly. Contact support for updates.</p>
-              </div>
-
-              <div className="md:col-span-2">
-                <label className={labelClasses}>About Institute</label>
-                <textarea
-                  rows={4}
-                  className="block w-full p-4 bg-background border border-ink/5 rounded-2xl text-ink placeholder:text-ink-muted/50 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm font-medium"
-                  value={formData.about}
-                  onChange={(e) => setFormData({ ...formData, about: e.target.value })}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Institute Name */}
+            <div className="md:col-span-2">
+              <label className={labelClasses}>Institute Name *</label>
+              <div className="relative">
+                <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-muted" size={18} />
+                <input 
+                  type="text"
+                  required
+                  className={inputClasses}
+                  placeholder="e.g. Excellence Academic Coaching"
+                  value={formData.instituteName}
+                  onChange={(e) => setFormData({ ...formData, instituteName: e.target.value })}
                 />
               </div>
             </div>
 
-            <div className="flex justify-end pt-4">
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="flex items-center gap-2 py-4 px-8 rounded-2xl bg-primary text-white font-bold text-sm shadow-xl shadow-primary/25 hover:bg-primary-dark transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
-              >
-                {isSubmitting ? (
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <Save size={18} />
-                    Save Changes
-                  </>
-                )}
-              </button>
+            {/* Email (Readonly) */}
+            <div>
+              <label className={labelClasses}>Official Email</label>
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-muted" size={18} />
+                <input 
+                  type="email"
+                  disabled
+                  className={cn(inputClasses, "bg-gray-100 cursor-not-allowed")}
+                  value={formData.email}
+                />
+              </div>
             </div>
-          </form>
-        </div>
+
+            {/* Phone */}
+            <div>
+              <label className={labelClasses}>Contact Phone *</label>
+              <div className="relative">
+                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-muted" size={18} />
+                <input 
+                  type="text"
+                  required
+                  className={inputClasses}
+                  placeholder="017XXXXXXXX"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                />
+              </div>
+            </div>
+
+            {/* Trade License */}
+            <div>
+              <label className={labelClasses}>Trade License Number *</label>
+              <div className="relative">
+                <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-600" size={18} />
+                <input 
+                  type="text"
+                  required
+                  className={inputClasses}
+                  placeholder="TRAD/DHAKA/XXXXXX/2026"
+                  value={formData.tradeLicense}
+                  onChange={(e) => setFormData({ ...formData, tradeLicense: e.target.value })}
+                />
+              </div>
+            </div>
+
+            {/* District */}
+            <div>
+              <label className={labelClasses}>District *</label>
+              <div className="relative">
+                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-muted" size={18} />
+                <input 
+                  type="text"
+                  required
+                  className={inputClasses}
+                  placeholder="Dhaka / Chattogram"
+                  value={formData.district}
+                  onChange={(e) => setFormData({ ...formData, district: e.target.value })}
+                />
+              </div>
+            </div>
+
+            {/* Full Address */}
+            <div className="md:col-span-2">
+              <label className={labelClasses}>Full Address / Location *</label>
+              <div className="relative">
+                <MapPin className="absolute left-4 top-4 text-ink-muted" size={18} />
+                <textarea 
+                  required
+                  rows={2}
+                  className="block w-full pl-11 pr-4 py-3.5 bg-background border border-ink/5 rounded-2xl text-ink placeholder:text-ink-muted/50 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm font-medium"
+                  placeholder="e.g. House 42, Road 7, Dhanmondi, Dhaka"
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                />
+              </div>
+            </div>
+
+            {/* About */}
+            <div className="md:col-span-2">
+              <label className={labelClasses}>About Coaching Center</label>
+              <textarea 
+                rows={4}
+                className="block w-full p-4 bg-background border border-ink/5 rounded-2xl text-ink placeholder:text-ink-muted/50 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm font-medium"
+                placeholder="Write a brief overview of your academic coaching center and faculty..."
+                value={formData.about}
+                onChange={(e) => setFormData({ ...formData, about: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-ink/5 flex justify-end">
+            <button 
+              type="submit"
+              disabled={isSubmitting}
+              className="bg-primary text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all active:scale-95 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              <Save size={18} />
+              {isSubmitting ? 'Saving Profile...' : 'Save Profile Changes'}
+            </button>
+          </div>
+        </form>
       </div>
     </CoachingLayout>
   );

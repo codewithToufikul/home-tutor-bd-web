@@ -3,6 +3,7 @@ import { MapPin, BookOpen } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { cn } from '@/src/lib/utils';
+import { DEFAULT_PROFILE_IMAGE } from '@/src/constants';
 
 interface StudentCardProps {
   student: {
@@ -29,8 +30,8 @@ export default function StudentCard({ student, className }: StudentCardProps) {
           <div className="relative w-24 h-24 rounded-full p-1 border-2 border-primary/20 shadow-md">
             <div className="w-full h-full rounded-full overflow-hidden bg-white border-2 border-white">
               <img
-                src={student.photoUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${student.id}`}
-                alt={student.name}
+                src={(student.photoUrl ?? '').trim() || DEFAULT_PROFILE_IMAGE}
+                alt={student.name || 'Student'}
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
               />
             </div>

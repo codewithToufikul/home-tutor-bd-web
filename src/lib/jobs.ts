@@ -1,35 +1,15 @@
-import { addDoc, collection, getDocs, query, where } from 'firebase/firestore';
+// Firestore removed. Use RTK Query useGetTuitionJobsQuery() instead.
+// These helpers are kept as migration stubs.
 
-import { db } from '@/src/firebase.js';
-import { TuitionJob } from '../types';
-import { TuitionRepository } from '@/src/repositories/tuitionRepository';
+import type { TuitionJob } from '../types';
 
 export const loadJobs = async (): Promise<TuitionJob[]> => {
-  const docs = await getDocs(query(collection(db, 'tuition_jobs'), where('isDeleted', '!=', true)));
-
-  return docs.docs.map((docSnapshot) => ({
-    ...(docSnapshot.data() as TuitionJob),
-    id: String(docSnapshot.id),
-  }));
-};
-
-export const getJobs = (): TuitionJob[] => {
+  console.warn('[DEPRECATED] loadJobs() - Use useGetTuitionJobsQuery() from tuitionApi instead.');
   return [];
 };
 
-export const addJob = async (job: TuitionJob) => {
-  const payload = {
-    ...job,
-    id: String(job.id),
-    status: job.status || 'Open',
-    createdAt: job.createdAt || new Date().toISOString(),
-  };
+export const getJobs = (): TuitionJob[] => [];
 
-  await TuitionRepository.create(payload);
-  return payload;
-};
-
-export const getJobById = async (id: string): Promise<TuitionJob | undefined> => {
-  const jobs = await loadJobs();
-  return jobs.find((job) => job.id === id);
+export const addJob = async (_job: TuitionJob): Promise<TuitionJob> => {
+  throw new Error('[DEPRECATED] addJob() - Use useCreateTuitionJobMutation() from tuitionApi instead.');
 };

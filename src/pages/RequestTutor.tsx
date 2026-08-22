@@ -8,6 +8,7 @@ import {
 import { SUBJECTS, CLASSES, MEDIUMS, DISTRICTS, DISTRICT_WISE_AREAS } from '@/src/constants';
 import { cn } from '@/src/lib/utils';
 import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '@/src/context/AuthContext.tsx';
 import { TuitionService } from '@/src/services/tuitionService.ts';
 import { TuitionJob } from '@/src/types';
 
@@ -24,6 +25,7 @@ function TakaIcon({ size = 16, className = "" }: { size?: number, className?: st
 
 export default function RequestTutor() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [matchedTutors, setMatchedTutors] = useState<any[]>([]);
@@ -115,27 +117,47 @@ export default function RequestTutor() {
   };
 
   const handleSubmit = async () => {
-    const newJob: TuitionJob = {
-      id: Math.floor(10000 + Math.random() * 90000).toString(),
-      parentId: 'p_new',
+    // Validate required fields before sending
+    if (!formData.district) {
+      alert('দয়া করে জেলা নির্বাচন করুন!');
+      return;
+    }
+    if (!formData.studentClass) {
+      alert('দয়া করে ক্লাস নির্বাচন করুন!');
+      return;
+    }
+    if (!formData.medium) {
+      alert('দয়া করে মাধ্যম নির্বাচন করুন!');
+      return;
+    }
+    if (!formData.salaryOffer || parseInt(formData.salaryOffer) <= 0) {
+      alert('দয়া করে বেতন উল্লেখ করুন!');
+      return;
+    }
+
+    // Build payload that matches backend schema exactly
+    const payload = {
       studentClass: formData.studentClass,
-      subjects: formData.subjects.length > 0 ? formData.subjects : ['GENERAL SUBJECTS'],
-      location: formData.district,
-      area: formData.areas.join(', '),
+      subjects: formData.subjects.length > 0 ? formData.subjects : ['General Subjects'],
+      location: {
+        district: formData.district,
+        area: formData.areas.length > 0 ? formData.areas.join(', ') : formData.district,
+      },
       salary: parseInt(formData.salaryOffer) || 0,
       medium: formData.medium,
-      genderPreference: formData.preferredTutor as any,
+      genderPreference: formData.preferredTutor || 'Any',
+      tutoringDays: formData.daysPerWeek || [],
       status: 'Open',
-      createdAt: new Date().toISOString(),
-      tutoringDays: formData.daysPerWeek,
-      tuitionType: formData.tuitionType,
-      category: formData.medium === 'Madrasah' ? 'Madrasah Medium' : formData.medium
     };
 
-    await TuitionService.create(newJob);
-
-    setMatchedTutors([]);
-    setIsSubmitted(true);
+    try {
+      await TuitionService.create(payload);
+      setMatchedTutors([]);
+      setIsSubmitted(true);
+    } catch (err: any) {
+      alert('টিউশন পোস্ট করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।');
+      console.error('Failed to create tuition job:', err);
+    }
   };
 
   // ডিস্ট্রিক্ট অনুযায়ী শুধু নির্দিষ্ট এরিয়াগুলো ফিল্টার করবে (অন্য জেলারগুলো দেখাবে না)

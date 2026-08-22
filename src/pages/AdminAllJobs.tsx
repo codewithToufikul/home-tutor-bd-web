@@ -3,46 +3,90 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, Briefcase, Trash2, ChevronLeft, ChevronRight, 
   MapPin, Clock, BookOpen, GraduationCap,
-  Users, Globe, AlertCircle
+  Users, Globe, AlertCircle, CheckCircle2, XCircle
 } from 'lucide-react';
 import AdminLayout from '@/src/components/AdminLayout.tsx';
 import { cn } from '@/src/lib/utils';
+import { useGetAllTuitionJobsQuery, useApproveJobMutation, useDeleteJobMutation } from '@/src/services/adminApi.ts';
 
-const ITEMS_PER_PAGE = 5;
+const ITEMS_PER_PAGE = 10;
 
 export default function AdminAllJobs() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [jobs, setJobs] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'all' | 'Pending' | 'Approved' | 'Rejected'>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [jobToDelete, setJobToDelete] = useState<string | null>(null);
 
-  // Filtering Logic
-  const filteredJobs = useMemo(() => {
-    return jobs.filter(job => {
-      return job.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
-             job.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-             job.subject.toLowerCase().includes(searchQuery.toLowerCase());
-    });
-  }, [jobs, searchQuery]);
+  const { data: jobsData, isLoading, refetch } = useGetAllTuitionJobsQuery(undefined);
+  const [approveJob] = useApproveJobMutation();
+  const [deleteJobMutation] = useDeleteJobMutation();
 
-  // Pagination Logic
+  // Normalize backend jobs to fit table view
+  const rawJobs: any[] = useMemo(() => {
+    const items = (jobsData as any)?.data ?? jobsData ?? [];
+    if (!Array.isArray(items)) return [];
+    return items.map((j: any) => ({
+      ...j,
+      id: String(j._id || j.id || ''),
+      address: typeof j.location === 'object' ? `${j.location?.area || ''}, ${j.location?.district || ''}` : (j.location || j.address || ''),
+      salary: j.salary || 0,
+      perWeek: Array.isArray(j.tutoringDays) ? j.tutoringDays.join(', ') : (j.perWeek || 'N/A'),
+      className: j.studentClass || j.className || 'N/A',
+      subject: Array.isArray(j.subjects) ? j.subjects.join(', ') : (j.subject || 'All'),
+      gender: j.genderPreference || j.gender || 'Any',
+      medium: j.medium || 'N/A',
+      category: j.category || j.medium || 'General',
+      approvalStatus: j.approvalStatus || 'Pending',
+    }));
+  }, [jobsData]);
+
+  // Filtering + Tab Logic
+  const filteredJobs = useMemo(() => {
+    return rawJobs.filter(job => {
+      const matchesSearch =
+        (job._id || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (job.location?.district || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (job.location?.area || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (job.subjects || []).join(',').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (job.studentClass || '').toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesTab = activeTab === 'all' || job.approvalStatus === activeTab;
+      return matchesSearch && matchesTab;
+    });
+  }, [rawJobs, searchQuery, activeTab]);
+
+  // Pagination
   const totalPages = Math.ceil(filteredJobs.length / ITEMS_PER_PAGE);
   const paginatedJobs = useMemo(() => {
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
     return filteredJobs.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredJobs, currentPage]);
 
-  const confirmDelete = () => {
+  const handleApprove = async (id: string) => {
+    try { await approveJob({ id, approvalStatus: 'Approved' }).unwrap(); refetch(); }
+    catch (err) { console.error('Approve failed:', err); }
+  };
+  const handleReject = async (id: string) => {
+    try { await approveJob({ id, approvalStatus: 'Rejected' }).unwrap(); refetch(); }
+    catch (err) { console.error('Reject failed:', err); }
+  };
+  const confirmDelete = async () => {
     if (jobToDelete) {
-      setJobs(jobs.filter(job => job.id !== jobToDelete));
+      try { await deleteJobMutation(jobToDelete).unwrap(); refetch(); }
+      catch (err) { console.error('Delete failed:', err); }
       setJobToDelete(null);
     }
   };
 
-  const getSubjectColor = (subject: string) => {
-    if (subject === 'All') return 'bg-emerald-500 text-white';
+  const getSubjectColor = (subject?: string) => {
+    if (!subject || subject === 'All') return 'bg-emerald-500 text-white';
     if (subject.includes(',')) return 'bg-slate-600 text-white';
     return 'bg-sky-400 text-white';
+  };
+
+  const getStatusBadge = (status: string) => {
+    if (status === 'Approved') return 'bg-emerald-100 text-emerald-700';
+    if (status === 'Rejected') return 'bg-red-100 text-red-700';
+    return 'bg-amber-100 text-amber-700';
   };
 
   return (

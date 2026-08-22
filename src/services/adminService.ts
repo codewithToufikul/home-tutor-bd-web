@@ -8,11 +8,27 @@ import { NoticeRepository } from '@/src/repositories/noticeRepository.ts';
 import { BlogRepository } from '@/src/repositories/blogRepository.ts';
 import { PaymentRepository } from '@/src/repositories/paymentRepository.ts';
 import { CoachingRepository } from '@/src/repositories/coachingRepository.ts';
+import type { UserRecord } from '@/src/repositories/userRepository.ts';
 
 export const AdminService = {
   async totalUsers() {
     const users = await UserRepository.getAll();
     return users.length;
+  },
+
+  async pendingUsers() {
+    const users = await UserRepository.getAll();
+    return users.filter((user: UserRecord) => !user.isApproved).length;
+  },
+
+  async approvedTutors() {
+    const users = await UserRepository.getAll();
+    return users.filter((user: UserRecord) => user.role === 'tutor' && user.isApproved).length;
+  },
+
+  async pendingTutors() {
+    const users = await UserRepository.getAll();
+    return users.filter((user: UserRecord) => user.role === 'tutor' && !user.isApproved).length;
   },
 
   async totalTutors() {
@@ -27,7 +43,17 @@ export const AdminService = {
 
   async totalGuardians() {
     const users = await UserRepository.getAll();
-    return users.filter(u => u.role === 'guardian').length;
+    return users.filter((u: UserRecord) => u.role === 'guardian').length;
+  },
+
+  async totalStudents() {
+    const users = await UserRepository.getAll();
+    return users.filter((u: UserRecord) => u.role === 'student').length;
+  },
+
+  async totalCoachingUsers() {
+    const users = await UserRepository.getAll();
+    return users.filter((u: UserRecord) => u.role === 'coaching').length;
   },
 
   async totalTuitionJobs() {

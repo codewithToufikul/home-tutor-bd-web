@@ -1,18 +1,22 @@
-import { ReactNode } from 'react';
+import { apiGet } from '@/src/repositories/baseRepository';
+import { ReactNode, useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  BookOpen, 
-  Users, 
-  Building2, 
-  LogOut, 
-  Bell, 
+import {
+  LayoutDashboard,
+  BookOpen,
+  Users,
+  Building2,
+  LogOut,
+  Bell,
   Settings,
-  ChevronRight
+  ChevronRight,
+  Home,
+  ClipboardList
 } from 'lucide-react';
 import { useAuth } from '@/src/context/AuthContext.tsx';
 import { cn } from '@/src/lib/utils';
 import logoImage from '@/src/lib/Home.png';
+import NotificationBell from '@/src/components/NotificationBell.tsx';
 
 interface CoachingLayoutProps {
   children: ReactNode;
@@ -29,12 +33,31 @@ export default function CoachingLayout({ children, title }: CoachingLayoutProps)
     navigate('/login');
   };
 
+  const [pendingCount, setPendingCount] = useState(0);
+
+  useEffect(() => {
+    const fetchPending = async () => {
+      const storedToken = localStorage.getItem('accessToken') || '';
+      if (!storedToken) return;
+      try {
+        const list = await apiGet<any[]>('/enrollments/my-enrollments');
+        const pending = (list || []).filter((e: any) => e.status === 'pending').length;
+        setPendingCount(pending);
+      } catch { /* ignore */ }
+    };
+    fetchPending();
+    const interval = setInterval(fetchPending, 15000);
+    return () => clearInterval(interval);
+  }, []);
+
   const navItems = [
     { label: 'Dashboard', path: '/coaching/dashboard', icon: LayoutDashboard },
     { label: 'Manage Batches', path: '/coaching/batches', icon: BookOpen },
     { label: 'Tutors & Students', path: '/coaching/members', icon: Users },
+    { label: 'Enrollment', path: '/coaching/enrollments', icon: ClipboardList, badge: pendingCount },
     { label: 'Institute Profile', path: '/coaching/profile', icon: Building2 },
     { label: 'Settings', path: '/coaching/settings', icon: Settings },
+    { label: 'Home', path: '/', icon: Home },
   ];
 
   return (
@@ -44,9 +67,9 @@ export default function CoachingLayout({ children, title }: CoachingLayoutProps)
         {/* Brand Header */}
         <div className="p-6 border-b border-ink/5 flex items-center gap-3">
           <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-primary shadow-lg shadow-primary/25 flex items-center justify-center bg-white shrink-0">
-            <img 
-              src={logoImage} 
-              alt="Home Tutor Provider BD" 
+            <img
+              src={logoImage}
+              alt="Home Tutor Provider BD"
               className="w-full h-full object-cover"
             />
           </div>
@@ -67,13 +90,18 @@ export default function CoachingLayout({ children, title }: CoachingLayoutProps)
                 to={item.path}
                 className={cn(
                   "flex items-center gap-3 px-4 py-3.5 rounded-2xl text-xs font-bold transition-all",
-                  isActive 
-                    ? "bg-primary text-white shadow-lg shadow-primary/20" 
+                  isActive
+                    ? "bg-primary text-white shadow-lg shadow-primary/20"
                     : "text-ink-muted hover:bg-primary/5 hover:text-primary"
                 )}
               >
                 <Icon size={18} />
                 <span className="flex-1">{item.label}</span>
+                {(item as any).badge > 0 && !isActive && (
+                  <span className="bg-rose-500 text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full min-w-[18px] text-center leading-none">
+                    {(item as any).badge}
+                  </span>
+                )}
                 {isActive && <ChevronRight size={14} />}
               </Link>
             );
@@ -106,10 +134,7 @@ export default function CoachingLayout({ children, title }: CoachingLayoutProps)
           </div>
 
           <div className="flex items-center gap-4">
-            <button className="w-10 h-10 rounded-2xl bg-background border border-ink/5 flex items-center justify-center text-ink-muted hover:text-primary transition-all relative">
-              <Bell size={18} />
-              <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-primary" />
-            </button>
+            <NotificationBell role="coaching" />
             <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
               {user?.name ? user.name.charAt(0).toUpperCase() : 'C'}
             </div>

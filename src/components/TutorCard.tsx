@@ -3,13 +3,21 @@ import { TutorProfile } from '@/src/types';
 import { cn } from '@/src/lib/utils';
 import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
+import { SearchService } from '@/src/services/searchService';
+import { DEFAULT_PROFILE_IMAGE } from '@/src/constants';
 
 interface TutorCardProps {
   tutor: TutorProfile;
   className?: string;
+  highlightQuery?: string;
 }
 
-export default function TutorCard({ tutor, className }: TutorCardProps) {
+export default function TutorCard({ tutor, className, highlightQuery }: TutorCardProps) {
+  const safePhotoUrl = (tutor.photoUrl ?? '').trim() || DEFAULT_PROFILE_IMAGE;
+  const safeSubject = tutor.subjects?.find((subject) => Boolean(subject?.trim())) || 'General Tutor';
+  const safeDepartment = tutor.department?.trim() || safeSubject;
+  const safeArea = tutor.preferredAreas?.find((area) => Boolean(area?.trim())) || tutor.location?.trim() || 'Dhaka';
+
   return (
     <Link to={`/tutor/${tutor.id}`} className="block h-full">
       <motion.div
@@ -48,8 +56,8 @@ export default function TutorCard({ tutor, className }: TutorCardProps) {
           <div className="relative w-44 h-44 rounded-full p-1.5 bg-[linear-gradient(45deg,#ff0000,#ff7300,#fffb00,#48ff00,#00ffd5,#002bff,#7a00ff,#ff00c8,#ff0000)] bg-[length:400%_400%] animate-rainbow-ring shadow-xl">
             <div className="w-full h-full rounded-full overflow-hidden bg-white border-2 border-white">
               <img
-                src={tutor.photoUrl || `https://picsum.photos/seed/${tutor.id}/400/400`}
-                alt={tutor.name}
+                src={safePhotoUrl}
+                alt={tutor.name || 'Tutor'}
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                 referrerPolicy="no-referrer"
               />
@@ -60,21 +68,25 @@ export default function TutorCard({ tutor, className }: TutorCardProps) {
         {/* Content Section */}
         <div className="p-4 flex-grow flex flex-col items-center text-center space-y-1">
           <h3 className="text-lg font-display font-bold text-[#001F3F] group-hover:text-primary transition-colors leading-tight">
-            {tutor.name}
+            {SearchService.highlightText(tutor.name || 'Tutor', highlightQuery || '').map((segment, index) => (
+              <span key={`${segment.text}-${index}`} className={segment.isMatch ? 'text-primary' : ''}>{segment.text}</span>
+            ))}
           </h3>
           
           <p className="text-xs text-ink-muted font-medium leading-tight">
-            {tutor.university}
+            {SearchService.highlightText(tutor.university || 'University', highlightQuery || '').map((segment, index) => (
+              <span key={`${segment.text}-${index}`} className={segment.isMatch ? 'text-primary' : ''}>{segment.text}</span>
+            ))}
           </p>
 
           <p className="text-sm font-bold text-[#001F3F] leading-tight">
-            {tutor.department || tutor.subjects[0]} ({tutor.department ? 'Dept' : tutor.subjects[0]})
+            {safeDepartment} ({tutor.department ? 'Dept' : safeSubject})
           </p>
 
           {/* Location Badge */}
           <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 bg-[#E8F0FE] border border-[#C2D7FF] rounded-md text-[#4285F4] font-bold text-[10px]">
             <MapPin size={12} className="text-[#EA4335]" fill="#EA4335" />
-            <span className="text-ink-muted">{tutor.preferredAreas[0] || 'Dhaka'}</span>
+            <span className="text-ink-muted">{safeArea}</span>
           </div>
         </div>
 

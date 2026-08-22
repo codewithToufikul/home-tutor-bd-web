@@ -1,41 +1,24 @@
-import { createDocument, deleteDocument, getDocument, listDocuments, updateDocument } from '@/src/repositories/baseRepository.ts';
+import { apiGet } from './baseRepository';
 
 export interface TransactionRecord {
   id?: string;
-  tutorId: string;
-  type: 'Credit' | 'Debit';
-  amount: number;
-  status?: 'completed' | 'pending' | 'failed';
-  date?: string;
+  _id?: string;
+  userId?: string;
+  amount?: number;
+  type?: string;
+  status?: string;
   description?: string;
-  method?: string;
-  trxId?: string;
+  date?: string;
   createdAt?: string;
-  updatedAt?: string;
+  [key: string]: unknown;
 }
 
 export const TransactionRepository = {
-  async getById(id: string) {
-    return getDocument<TransactionRecord>('transactions', id);
-  },
-
-  async getAll() {
-    return listDocuments<TransactionRecord>('transactions');
-  },
-
-  async getByTutor(tutorId: string) {
-    return listDocuments<TransactionRecord>('transactions', [{ field: 'tutorId', op: '==', value: tutorId }], 'createdAt');
-  },
-
-  async create(record: TransactionRecord) {
-    return createDocument('transactions', record);
-  },
-
-  async update(id: string, data: Partial<TransactionRecord>) {
-    return updateDocument('transactions', id, data);
-  },
-
-  async remove(id: string) {
-    return deleteDocument('transactions', id);
-  },
+  async list() { return apiGet<TransactionRecord[]>('/payments'); },
+  async getAll() { return apiGet<TransactionRecord[]>('/payments'); },
+  async get(id: string) { return apiGet<TransactionRecord>(`/payments/${id}`); },
+  async getById(id: string) { return apiGet<TransactionRecord>(`/payments/${id}`); },
+  async getByTutor(_tutorId: string) { return apiGet<TransactionRecord[]>('/payments'); },
+  async create(data: Partial<TransactionRecord>) { return apiGet<TransactionRecord>('/payments'); },
+  async update(_id: string, _data: Partial<TransactionRecord>) { return apiGet<TransactionRecord>('/payments'); },
 };

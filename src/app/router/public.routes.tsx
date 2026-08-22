@@ -13,6 +13,7 @@ import Login from '@/src/pages/Login.tsx';
 import PendingApproval from '@/src/pages/PendingApproval.tsx';
 import PrivacyPolicy from '@/src/pages/PrivacyPolicy.tsx';
 import Register from '@/src/pages/Register.tsx';
+import VerifyOTP from '@/src/pages/VerifyOTP.tsx';
 import RequestTutor from '@/src/pages/RequestTutor.tsx';
 import SafetyTips from '@/src/pages/SafetyTips.tsx';
 import TermsOfService from '@/src/pages/TermsOfService.tsx';
@@ -36,5 +37,6 @@ export const publicRoutes: RouteObject[] = [
   { path: 'for-tutors', element: <ForTutors /> },
   { path: 'login', element: <AuthGuard guestOnly><Login /></AuthGuard> },
   { path: 'register', element: <AuthGuard guestOnly><Register /></AuthGuard> },
+  { path: 'verify-otp', element: <VerifyOTP /> },
   { path: 'pending-approval', element: <PendingApproval /> },
 ];

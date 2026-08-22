@@ -8,12 +8,14 @@ import {
 } from 'lucide-react';
 import { TutorProfile } from '@/src/types';
 import { cn } from '@/src/lib/utils';
-import { TutorProfileRepository } from '@/src/repositories/tutorProfileRepository.ts';
+import { TutorProfileService } from '@/src/services/tutorProfileService.ts';
 import { TuitionService } from '@/src/services/tuitionService.ts';
 import { HireService } from '@/src/services/hireService.ts';
+import { RecommendationService } from '@/src/services/recommendationService.ts';
 import { useAuth } from '@/src/context/AuthContext.tsx';
 import { can } from '@/src/shared/authorization.ts';
 import { PERMISSIONS } from '@/src/shared/constants/permissions.ts';
+import { DEFAULT_PROFILE_IMAGE } from '@/src/constants';
 
 export default function TutorProfilePage() {
   const { id } = useParams<{ id: string }>();
@@ -27,6 +29,7 @@ export default function TutorProfilePage() {
 
   const [guardianName, setGuardianName] = useState('');
   const [guardianPhone, setGuardianPhone] = useState('');
+  const safePhotoUrl = (tutor?.photoUrl ?? '').trim() || DEFAULT_PROFILE_IMAGE;
   const [requirements, setRequirements] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -40,7 +43,7 @@ export default function TutorProfilePage() {
           return;
         }
 
-        const profile = await TutorProfileRepository.getById(id);
+        const profile = await TutorProfileService.getById(id);
         if (!profile) {
           setTutor(null);
           setSuggestedTutors([]);
@@ -49,11 +52,9 @@ export default function TutorProfilePage() {
 
         setTutor(profile as TutorProfile);
 
-        // Suggested tutors: fetch other tutor profiles from Firestore
-        const all = await TutorProfileRepository.getAll();
-        const suggested = (all || [])
-          .filter((entry) => entry.id !== profile.id)
-          .slice(0, 3) as TutorProfile[];
+        const all = await TutorProfileService.getAll();
+        const suggestions = RecommendationService.getSimilarTutors(profile as TutorProfile, (all || []) as TutorProfile[]);
+        const suggested = suggestions.slice(0, 3).map((entry) => entry.item);
 
         setSuggestedTutors(suggested);
       } catch (error) {
@@ -151,8 +152,8 @@ export default function TutorProfilePage() {
                 <div className="relative mb-4">
                   <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-full p-1.5 bg-[linear-gradient(45deg,#ff0000,#ff7300,#fffb00,#48ff00,#00ffd5,#002bff,#7a00ff,#ff00c8,#ff0000)] bg-[length:400%_400%] animate-rainbow-ring shadow-xl">
                     <div className="w-full h-full rounded-full overflow-hidden bg-white border-2 border-white flex items-center justify-center">
-                      {tutor.photoUrl ? (
-                        <img src={tutor.photoUrl} alt={tutor.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      {safePhotoUrl ? (
+                        <img src={safePhotoUrl} alt={tutor.name || 'Tutor'} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                       ) : (
                         <div className="w-full h-full bg-ink/5 flex items-center justify-center">
                           <div className="text-3xl font-black text-ink-muted">{(tutor.name || '').split(' ').map(n => n[0]).slice(0,2).join('')}</div>
@@ -180,7 +181,7 @@ export default function TutorProfilePage() {
                 <div className="w-full space-y-3 text-left">
                   <div className="flex justify-between text-xs">
                     <span className="text-ink-muted">Location:</span>
-                    <span className="font-bold text-ink text-right">{tutor.location}</span>
+                    <span className="font-bold text-ink text-right">{tutor.location || 'Dhaka'}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-ink-muted">ID#:</span>
@@ -192,7 +193,7 @@ export default function TutorProfilePage() {
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-ink-muted">Qualification:</span>
-                    <span className="font-bold text-ink text-right">{tutor.qualification}</span>
+                    <span className="font-bold text-ink text-right">{tutor.qualification || 'Pending'}</span>
                   </div>
                   <div className="space-y-1">
                     <span className="text-ink-muted text-xs">Area Covered:</span>

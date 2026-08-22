@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { TuitionRepository } from '@/src/repositories/tuitionRepository';
 import { motion } from 'motion/react';
 import { ShieldCheck, CheckCircle2, X, AlertTriangle, Sparkles, Facebook } from 'lucide-react';
 
@@ -8,19 +9,32 @@ interface JobApplyModalProps {
   salary: string;
   location: string;
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
-export default function JobApplyModal({ jobId, jobTitle, salary, location, onClose }: JobApplyModalProps) {
+export default function JobApplyModal({ jobId, jobTitle, salary, location, onClose, onSuccess }: JobApplyModalProps) {
   const [agreed, setAgreed] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!agreed) {
       alert('দয়া করে উপরোক্ত সকল শর্তে সম্মতি প্রদান করুন!');
       return;
     }
-    setSubmitted(true);
+    setLoading(true);
+    try {
+      await TuitionRepository.apply(jobId);
+      setSubmitted(true);
+      if (onSuccess) onSuccess();
+    } catch (err: any) {
+      console.error('Job application error:', err);
+      alert(err.message || 'আপনি ইতিমধ্যে এই জবে আবেদন করেছেন অথবা কোনো সমস্যা হয়েছে।');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -135,9 +149,10 @@ export default function JobApplyModal({ jobId, jobTitle, salary, location, onClo
 
               <button
                 type="submit"
-                className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-xl shadow-emerald-600/25 hover:bg-emerald-700 transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
+                disabled={loading}
+                className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-xl shadow-emerald-600/25 hover:bg-emerald-700 transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                <ShieldCheck size={18} /> Confirm & Apply Now
+                <ShieldCheck size={18} /> {loading ? 'Submitting Application...' : 'Confirm & Apply Now'}
               </button>
             </form>
           </>

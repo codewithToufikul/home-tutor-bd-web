@@ -1,34 +1,20 @@
-import { createDocument, deleteDocument, getDocument, listDocuments, updateDocument } from '@/src/repositories/baseRepository.ts';
+import { apiDelete, apiGet, apiPost } from './baseRepository';
 
 export interface NoticeRecord {
   id?: string;
-  title: string;
-  message: string;
-  authorId?: string;
-  isRead?: boolean;
-  isArchived?: boolean;
-  createdAt?: string;
-  updatedAt?: string;
+  _id?: string;
+  title?: string;
+  content?: string;
+  audience?: string;
+  [key: string]: unknown;
 }
 
 export const NoticeRepository = {
-  async getById(id: string) {
-    return getDocument<NoticeRecord>('system_notices', id);
-  },
-
-  async getAll() {
-    return listDocuments<NoticeRecord>('system_notices');
-  },
-
-  async create(record: NoticeRecord) {
-    return createDocument('system_notices', record);
-  },
-
-  async update(id: string, data: Partial<NoticeRecord>) {
-    return updateDocument('system_notices', id, data);
-  },
-
-  async remove(id: string) {
-    return deleteDocument('system_notices', id);
-  },
+  async list() { return apiGet<NoticeRecord[]>('/admin/notices'); },
+  async getAll() { return apiGet<NoticeRecord[]>('/admin/notices'); },
+  async get(id: string) { return apiGet<NoticeRecord>(`/admin/notices/${id}`); },
+  async getById(id: string) { return apiGet<NoticeRecord>(`/admin/notices/${id}`); },
+  async create(data: Partial<NoticeRecord>) { return apiPost<NoticeRecord>('/admin/notices', data); },
+  async update(id: string, data: Partial<NoticeRecord>) { return apiPost<NoticeRecord>('/admin/notices', data); },
+  async remove(id: string) { return apiDelete(`/admin/notices/${id}`); },
 };

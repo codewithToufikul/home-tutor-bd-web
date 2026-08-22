@@ -1,4 +1,4 @@
-import { CalendarRepository, EventRecord } from '@/src/repositories/calendarRepository';
+import { CalendarRepository, CalendarEventRecord as EventRecord } from '@/src/repositories/calendarRepository';
 
 export const CalendarService = {
   async list() {

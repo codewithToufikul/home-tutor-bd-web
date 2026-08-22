@@ -1,11 +1,13 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, Ban, Trash2, ShieldCheck, UserCheck, Users, 
-  Filter, ChevronLeft, ChevronRight, AlertCircle 
+  Filter, ChevronLeft, ChevronRight, AlertCircle, Clock3, CheckCircle2, XCircle
 } from 'lucide-react';
 import AdminLayout from '@/src/components/AdminLayout.tsx';
 import { cn } from '@/src/lib/utils';
+import { useGetAdminUsersQuery, useApproveTutorMutation, useUpdateUserStatusMutation, useDeleteUserMutation } from '@/src/services/adminApi';
+import type { UserRecord, UserRole } from '@/src/repositories/userRepository.ts';
 
 const ITEMS_PER_PAGE = 5;
 
@@ -14,18 +16,33 @@ export default function AdminUsers() {
   const [roleFilter, setRoleFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
 
-  const [users, setUsers] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
 
+  const { data: usersData, isLoading: loading } = useGetAdminUsersQuery(undefined);
+  const [approveTutorMutation] = useApproveTutorMutation();
+  const [updateUserStatusMutation] = useUpdateUserStatusMutation();
+  const [deleteUserMutation] = useDeleteUserMutation();
+
+  const users: UserRecord[] = useMemo(() => {
+    const raw = (usersData as { data?: unknown[] } | undefined)?.data ?? [];
+    return (raw as any[]).map((u) => ({
+      ...u,
+      uid: u._id || u.id,
+      isApproved: Boolean(u.isApproved),
+    })) as UserRecord[];
+  }, [usersData]);
+
   // Filtering Logic
   const filteredUsers = useMemo(() => {
-    return users.filter(user => {
-      const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                            user.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            user.email.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesRole = roleFilter === 'All' || user.role === roleFilter;
-      const matchesStatus = statusFilter === 'All' || user.status === statusFilter;
+    return users.filter((user) => {
+      const name = String(user.name || '').toLowerCase();
+      const email = String(user.email || '').toLowerCase();
+      const uid = String(user.uid || '').toLowerCase();
+      const matchesSearch = name.includes(searchQuery.toLowerCase()) || uid.includes(searchQuery.toLowerCase()) || email.includes(searchQuery.toLowerCase());
+      const matchesRole = roleFilter === 'All' || user.role === roleFilter.toLowerCase() as UserRole;
+      const approvalState = user.isApproved ? 'approved' : 'pending';
+      const matchesStatus = statusFilter === 'All' || approvalState === statusFilter;
       return matchesSearch && matchesRole && matchesStatus;
     });
   }, [users, searchQuery, roleFilter, statusFilter]);
@@ -37,31 +54,40 @@ export default function AdminUsers() {
     return filteredUsers.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredUsers, currentPage]);
 
-  const toggleBan = (userId: string) => {
-    const updatedUsers = users.map(user => {
-      if (user.id === userId) {
-        return { ...user, status: user.status === 'active' ? 'banned' : 'active' };
-      }
-      return user;
-    });
-    setUsers(updatedUsers);
-    syncWithStorage(updatedUsers);
+  const approveUser = async (userId: string) => {
+    try {
+      await approveTutorMutation({ id: userId, isApproved: true }).unwrap();
+    } catch (error) {
+      console.error('Failed to approve user:', error);
+    }
   };
 
-  const approveUser = (userId: string) => {
-    const updatedUsers = users.map(user => {
-      if (user.id === userId) {
-        return { ...user, status: 'active' };
-      }
-      return user;
-    });
-    setUsers(updatedUsers);
-    syncWithStorage(updatedUsers);
+  const rejectUser = async (userId: string) => {
+    try {
+      await approveTutorMutation({ id: userId, isApproved: false }).unwrap();
+    } catch (error) {
+      console.error('Failed to reject user:', error);
+    }
   };
 
-  const confirmDelete = () => {
-    if (userToDelete) {
-      setUsers(users.filter(user => user.id !== userToDelete));
+  const toggleBan = async (userId: string) => {
+    const target = users.find((user) => user.uid === userId);
+    if (!target) return;
+    const nextStatus = target.status === 'blocked' ? 'active' : 'blocked';
+    try {
+      await updateUserStatusMutation({ id: userId, status: nextStatus }).unwrap();
+    } catch (error) {
+      console.error('Failed to update user status:', error);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!userToDelete) return;
+    try {
+      await deleteUserMutation(userToDelete).unwrap();
+    } catch (error) {
+      console.error('Failed to delete user:', error);
+    } finally {
       setUserToDelete(null);
     }
   };
@@ -126,6 +152,8 @@ export default function AdminUsers() {
                   <option value="All">All Status</option>
                   <option value="active">Active</option>
                   <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
                   <option value="banned">Banned</option>
                 </select>
               </div>
@@ -158,7 +186,7 @@ export default function AdminUsers() {
                 <AnimatePresence mode="popLayout">
                   {paginatedUsers.map((user, index) => (
                     <motion.tr 
-                      key={user.id}
+                      key={user.uid || user._id || user.id || index}
                       layout
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -171,7 +199,7 @@ export default function AdminUsers() {
                       </td>
                       <td className="px-8 py-5">
                         <div className="flex flex-col">
-                          <span className="text-sm font-black text-ink">{user.name}</span>
+                          <span className="text-sm font-black text-ink">{user.name || 'Unnamed User'}</span>
                           <span className="text-[10px] font-bold text-ink-muted/60 uppercase tracking-tight">{user.role}</span>
                         </div>
                       </td>
@@ -179,46 +207,59 @@ export default function AdminUsers() {
                       <td className="px-8 py-5">
                         <span className={cn(
                           "px-3 py-1 rounded-lg text-[10px] font-black uppercase",
-                          user.role === 'Tutor' ? "bg-blue-100 text-blue-600" : 
-                          user.role === 'Coaching' ? "bg-cyan-100 text-cyan-600" :
-                          user.role === 'Guardian' ? "bg-emerald-100 text-emerald-600" :
+                          user.role === 'tutor' ? "bg-blue-100 text-blue-600" : 
+                          user.role === 'coaching' ? "bg-cyan-100 text-cyan-600" :
+                          user.role === 'guardian' ? "bg-emerald-100 text-emerald-600" :
                           "bg-amber-100 text-amber-600"
                         )}>
                           {user.role}
                         </span>
                       </td>
-                      <td className="px-8 py-5 text-sm font-mono font-bold text-primary">{user.id}</td>
+                      <td className="px-8 py-5 text-sm font-mono font-bold text-primary">{user.uid}</td>
                       <td className="px-8 py-5 text-center">
-                        {user.status === 'pending' ? (
-                          <button 
-                            onClick={() => approveUser(user.id)}
-                            className="px-4 py-2 rounded-xl text-[10px] font-black uppercase bg-emerald-500 text-white shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 transition-all active:scale-95 flex items-center gap-2 mx-auto"
-                          >
-                            <UserCheck size={14} />
-                            Approve
-                          </button>
-                        ) : (
-                          <button 
-                            onClick={() => toggleBan(user.id)}
-                            className={cn(
-                              "px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all active:scale-95 flex items-center gap-2 mx-auto",
-                              user.status === 'active' 
-                                ? "bg-[#F59E0B] text-white shadow-lg shadow-amber-500/20 hover:bg-amber-600" 
-                                : "bg-[#EF4444] text-white shadow-lg shadow-rose-500/20 hover:bg-rose-600"
-                            )}
-                          >
-                            {user.status === 'active' ? <Ban size={14} /> : <ShieldCheck size={14} />}
-                            {user.status === 'active' ? 'Ban' : 'UnBan'}
-                          </button>
-                        )}
+                        <div className="flex flex-col items-center gap-2">
+                          <span className={cn(
+                            'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-black uppercase',
+                            user.isVerified ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
+                          )}>
+                            {user.isVerified ? <CheckCircle2 size={12} /> : <Clock3 size={12} />}
+                            {user.isVerified ? 'Verified' : 'Pending'}
+                          </span>
+                          <span className={cn(
+                            'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-black uppercase',
+                            user.isApproved ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
+                          )}>
+                            {user.isApproved ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
+                            {user.isApproved ? 'Approved' : 'Pending'}
+                          </span>
+                        </div>
                       </td>
                       <td className="px-8 py-5 text-center">
-                        <button 
-                          onClick={() => setUserToDelete(user.id)}
-                          className="p-2.5 rounded-xl bg-[#991B1B] text-white shadow-lg shadow-rose-900/20 hover:bg-rose-900 transition-all active:scale-95 mx-auto flex items-center justify-center"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        <div className="flex items-center justify-center gap-2">
+                          {!user.isApproved ? (
+                            <button 
+                              onClick={() => approveUser(user.uid)}
+                              className="px-3 py-2 rounded-xl text-[10px] font-black uppercase bg-emerald-500 text-white shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 transition-all active:scale-95 flex items-center gap-1"
+                            >
+                              <UserCheck size={12} />
+                              Approve
+                            </button>
+                          ) : (
+                            <button 
+                              onClick={() => rejectUser(user.uid)}
+                              className="px-3 py-2 rounded-xl text-[10px] font-black uppercase bg-rose-500 text-white shadow-lg shadow-rose-500/20 hover:bg-rose-600 transition-all active:scale-95 flex items-center gap-1"
+                            >
+                              <XCircle size={12} />
+                              Reject
+                            </button>
+                          )}
+                          <button 
+                            onClick={() => setUserToDelete(user.uid)}
+                            className="p-2 rounded-xl bg-[#991B1B] text-white shadow-lg shadow-rose-900/20 hover:bg-rose-900 transition-all active:scale-95 flex items-center justify-center"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       </td>
                     </motion.tr>
                   ))}
@@ -233,7 +274,7 @@ export default function AdminUsers() {
           <AnimatePresence mode="popLayout">
             {paginatedUsers.map((user, index) => (
               <motion.div
-                key={user.id}
+                key={user.uid || user._id || user.id || index}
                 layout
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -243,50 +284,55 @@ export default function AdminUsers() {
                 <div className="flex justify-between items-start">
                   <div className="space-y-1">
                     <p className="text-[10px] font-black text-ink-muted uppercase">
-                      #{(currentPage - 1) * ITEMS_PER_PAGE + index + 1} • {user.id}
+                      #{(currentPage - 1) * ITEMS_PER_PAGE + index + 1} • {user.uid}
                     </p>
-                    <h3 className="text-lg font-black text-ink leading-tight">{user.name}</h3>
+                    <h3 className="text-lg font-black text-ink leading-tight">{user.name || 'Unnamed User'}</h3>
                     <p className="text-sm font-medium text-ink-muted">{user.email}</p>
                   </div>
                   <span className={cn(
                     "px-3 py-1 rounded-lg text-[10px] font-black uppercase",
-                    user.role === 'Tutor' ? "bg-blue-100 text-blue-600" : 
-                    user.role === 'Coaching' ? "bg-cyan-100 text-cyan-600" :
-                    user.role === 'Guardian' ? "bg-emerald-100 text-emerald-600" :
+                    user.role === 'tutor' ? "bg-blue-100 text-blue-600" : 
+                    user.role === 'coaching' ? "bg-cyan-100 text-cyan-600" :
+                    user.role === 'guardian' ? "bg-emerald-100 text-emerald-600" :
                     "bg-amber-100 text-amber-600"
                   )}>
                     {user.role}
                   </span>
                 </div>
-                <div className="flex gap-3 pt-2">
-                  {user.status === 'pending' ? (
+                <div className="flex flex-col gap-2 pt-2">
+                  <div className="flex items-center gap-2 text-[10px] font-black uppercase">
+                    <span className={cn('rounded-full px-2 py-1', user.isVerified ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600')}>
+                      {user.isVerified ? 'Verified' : 'Pending Verification'}
+                    </span>
+                    <span className={cn('rounded-full px-2 py-1', user.isApproved ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600')}>
+                      {user.isApproved ? 'Approved' : 'Pending Approval'}
+                    </span>
+                  </div>
+                  <div className="flex gap-3">
+                    {!user.isApproved ? (
+                      <button 
+                        onClick={() => approveUser(user.uid)}
+                        className="flex-grow py-3 rounded-2xl text-[10px] font-black uppercase bg-emerald-500 text-white shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
+                      >
+                        <UserCheck size={14} />
+                        Approve User
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={() => rejectUser(user.uid)}
+                        className="flex-grow py-3 rounded-2xl text-[10px] font-black uppercase bg-rose-500 text-white shadow-lg shadow-rose-500/20 flex items-center justify-center gap-2"
+                      >
+                        <XCircle size={14} />
+                        Reject User
+                      </button>
+                    )}
                     <button 
-                      onClick={() => approveUser(user.id)}
-                      className="flex-grow py-3 rounded-2xl text-[10px] font-black uppercase bg-emerald-500 text-white shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
+                      onClick={() => setUserToDelete(user.uid)}
+                      className="w-12 h-12 rounded-2xl bg-[#991B1B] text-white shadow-lg shadow-rose-900/20 flex items-center justify-center active:scale-95 transition-all"
                     >
-                      <UserCheck size={14} />
-                      Approve User
+                      <Trash2 size={18} />
                     </button>
-                  ) : (
-                    <button 
-                      onClick={() => toggleBan(user.id)}
-                      className={cn(
-                        "flex-grow py-3 rounded-2xl text-[10px] font-black uppercase transition-all active:scale-95 flex items-center justify-center gap-2",
-                        user.status === 'active' 
-                          ? "bg-[#F59E0B] text-white shadow-lg shadow-amber-500/20" 
-                          : "bg-[#EF4444] text-white shadow-lg shadow-rose-500/20"
-                      )}
-                    >
-                      {user.status === 'active' ? <Ban size={14} /> : <ShieldCheck size={14} />}
-                      {user.status === 'active' ? 'Ban' : 'UnBan'}
-                    </button>
-                  )}
-                  <button 
-                    onClick={() => setUserToDelete(user.id)}
-                    className="w-12 h-12 rounded-2xl bg-[#991B1B] text-white shadow-lg shadow-rose-900/20 flex items-center justify-center active:scale-95 transition-all"
-                  >
-                    <Trash2 size={18} />
-                  </button>
+                  </div>
                 </div>
               </motion.div>
             ))}

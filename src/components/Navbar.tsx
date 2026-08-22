@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Search, Briefcase, User, Mail, LayoutDashboard } from 'lucide-react';
+import { Menu, X, Search, Briefcase, User, Mail, LayoutDashboard, Building2 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/src/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';

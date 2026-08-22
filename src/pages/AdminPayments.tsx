@@ -5,7 +5,7 @@ import {
   Hash, Wallet, Check, X, CheckCircle2, XCircle, Clock, Building2
 } from 'lucide-react';
 import AdminLayout from '@/src/components/AdminLayout.tsx';
-import { PaymentService } from '@/src/services/paymentService';
+import { useGetAdminPaymentsQuery, useUpdatePaymentStatusMutation } from '@/src/services/adminApi';
 import { cn } from '@/src/lib/utils';
 
 interface PaymentRecord {
@@ -31,36 +31,29 @@ export default function AdminPayments() {
   const [searchQuery, setSearchQuery] = useState('');
   const [payTypeFilter, setPayTypeFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [payments, setPayments] = useState<PaymentRecord[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
 
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      try {
-        const items = await PaymentService.list();
-        if (active) setPayments((items as any[]).map(i => ({
-          id: i.id,
-          userName: (i as any).userName || (i as any).name || '',
-          email: (i as any).email || '',
-          payType: (i as any).method || (i as any).payType || 'bKash',
-          amount: String((i as any).amount || 0),
-          trxId: (i as any).trxId || (i as any).id || '',
-          date: (i as any).createdAt || '',
-          status: (i as any).status === 'completed' ? 'Approved' : ((i as any).status || 'Pending') as any
-        })));
-      } catch (err) {
-        console.error('Failed to load payments:', err);
-        setPayments([]);
-      }
-    })();
-    return () => { active = false };
-  }, []);
+  const { data: paymentsData, isLoading } = useGetAdminPaymentsQuery(undefined);
+  const [updatePaymentStatusMutation] = useUpdatePaymentStatusMutation();
+
+  const payments: PaymentRecord[] = useMemo(() => {
+    const raw = (paymentsData as { data?: { payments?: unknown[]; withdrawals?: unknown[] } } | undefined)?.data;
+    const items = [...(raw?.payments || []), ...(raw?.withdrawals || [])];
+    return items.map((i: any) => ({
+      id: i._id || i.id,
+      userName: i.userId?.name || i.userName || 'User',
+      email: i.userId?.email || i.email || '',
+      payType: i.method || i.payType || 'bKash',
+      amount: String(i.amount || 0),
+      trxId: i.trxId || (i._id || i.id).slice(-8),
+      date: i.createdAt ? new Date(i.createdAt).toLocaleDateString() : '',
+      status: i.status === 'Approved' ? 'Approved' : (i.status === 'Rejected' ? 'Rejected' : 'Pending'),
+    }));
+  }, [paymentsData]);
 
   const handleStatusChange = async (id: string, newStatus: 'Approved' | 'Rejected') => {
     try {
-      await PaymentService.update(id, { status: newStatus === 'Approved' ? 'completed' : 'rejected' } as any);
-      setPayments(payments.map(p => p.id === id ? { ...p, status: newStatus } : p));
+      await updatePaymentStatusMutation({ id, status: newStatus }).unwrap();
     } catch (err) {
       console.error('Failed to update payment status:', err);
     }
