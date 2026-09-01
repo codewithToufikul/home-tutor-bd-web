@@ -183,44 +183,59 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
-              className="fixed inset-y-0 left-0 w-72 bg-white z-[70] lg:hidden flex flex-col shadow-2xl"
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed inset-y-0 left-0 w-80 max-w-[85vw] bg-white z-[70] lg:hidden flex flex-col shadow-2xl h-full"
             >
-              <div className="p-8 flex items-center justify-between">
+              {/* Mobile Drawer Header */}
+              <div className="p-6 border-b border-ink/5 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-primary shadow-lg shadow-primary/25 flex items-center justify-center bg-white shrink-0">
+                  <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-secondary shadow-md shadow-secondary/20 flex items-center justify-center bg-white shrink-0">
                     <img src={logoImage} alt="Logo" className="w-full h-full object-cover" />
                   </div>
-                  <span className="text-lg font-display font-black text-ink">StudentPanel</span>
+                  <div>
+                    <span className="text-base font-display font-black text-ink block leading-tight">StudentPanel</span>
+                    <span className="text-[10px] font-bold text-ink-muted">{user?.name || 'Student'}</span>
+                  </div>
                 </div>
-                <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 text-ink-muted"><X size={24} /></button>
+                <button 
+                  onClick={() => setIsMobileMenuOpen(false)} 
+                  className="p-2 text-ink-muted hover:text-ink rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  <X size={20} />
+                </button>
               </div>
 
-              <nav className="flex-grow px-4 space-y-1">
+              {/* Mobile Drawer Scrollable Navigation */}
+              <nav className="flex-grow px-3 py-3 space-y-1 overflow-y-auto custom-scrollbar">
                 {SIDEBAR_ITEMS.map((item) => (
                   <Link
                     key={item.href}
                     to={item.href}
                     onClick={() => setIsMobileMenuOpen(false)}
                     className={cn(
-                      "flex items-center gap-4 px-4 py-4 rounded-2xl transition-all font-bold text-sm",
+                      "flex items-center gap-3.5 px-4 py-3 rounded-2xl transition-all font-bold text-xs",
                       location.pathname === item.href 
-                        ? "bg-secondary text-white shadow-lg shadow-secondary/20" 
-                        : "text-ink-muted hover:bg-secondary/5"
+                        ? "bg-secondary text-white shadow-md shadow-secondary/20" 
+                        : "text-slate-600 hover:bg-slate-50 hover:text-ink"
                     )}
                   >
-                    <item.icon size={20} />
-                    {item.label}
+                    <item.icon size={18} className={location.pathname === item.href ? "text-white" : "text-slate-400"} />
+                    <span>{item.label}</span>
                   </Link>
                 ))}
               </nav>
 
-              <div className="p-6 border-t border-ink/5">
+              {/* Mobile Drawer Sticky Logout Footer */}
+              <div className="p-4 border-t border-ink/5 bg-slate-50/80 shrink-0">
                 <button 
-                  onClick={handleLogout}
-                  className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl text-rose-500 hover:bg-rose-50 transition-all font-bold text-sm"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    handleLogout();
+                  }}
+                  className="w-full flex items-center justify-center gap-2.5 px-4 py-3.5 rounded-2xl bg-rose-50 hover:bg-rose-500 text-rose-600 hover:text-white transition-all font-bold text-xs shadow-xs cursor-pointer active:scale-95"
                 >
-                  <LogOut size={20} />
-                  Sign Out
+                  <LogOut size={16} />
+                  <span>Sign Out</span>
                 </button>
               </div>
             </motion.aside>

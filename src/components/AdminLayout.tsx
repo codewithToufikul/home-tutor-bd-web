@@ -172,26 +172,38 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsMobileMenuOpen(false)}
-              className="fixed inset-0 bg-ink/10 backdrop-blur-md z-40 lg:hidden"
+              className="fixed inset-0 bg-ink/20 backdrop-blur-sm z-[60] lg:hidden"
             />
             <motion.aside 
-              initial={{ x: -320 }}
+              initial={{ x: '-100%' }}
               animate={{ x: 0 }}
-              exit={{ x: -320 }}
-              className="fixed inset-y-0 left-0 w-72 bg-white/80 backdrop-blur-2xl z-50 lg:hidden flex flex-col shadow-2xl border-r border-white/20"
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed inset-y-0 left-0 w-80 max-w-[85vw] bg-white z-[70] lg:hidden flex flex-col shadow-2xl h-full border-r border-ink/5"
             >
-              <div className="p-8 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-primary shadow-lg shadow-primary/20 flex items-center justify-center bg-white">
+              {/* Mobile Drawer Header */}
+              <div className="p-6 border-b border-ink/5 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-primary shadow-md shadow-primary/20 flex items-center justify-center bg-white shrink-0">
                     <img src={logoImage} alt="Logo" className="w-full h-full object-cover" />
                   </div>
-                  <span className="font-display font-black text-xl text-ink">Admin<span className="text-primary">.</span></span>
+                  <div>
+                    <span className="font-display font-black text-base text-ink block leading-tight">Admin<span className="text-primary">.</span></span>
+                    <span className="text-[10px] font-bold text-amber-600">
+                      {userRole === 'super_admin' ? '👑 Super Admin' : userRole === 'moderator' ? '⚖️ Moderator' : '🛡️ Admin'}
+                    </span>
+                  </div>
                 </div>
-                <button onClick={() => setIsMobileMenuOpen(false)} className="w-10 h-10 rounded-xl bg-ink/5 flex items-center justify-center text-ink-muted">
+                <button 
+                  onClick={() => setIsMobileMenuOpen(false)} 
+                  className="p-2 text-ink-muted hover:text-ink rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
+                >
                   <X size={20} />
                 </button>
               </div>
-              <nav className="flex-grow py-6 px-4 space-y-2 overflow-y-auto">
+
+              {/* Mobile Drawer Scrollable Navigation */}
+              <nav className="flex-grow px-3 py-3 space-y-1 overflow-y-auto custom-scrollbar">
                 {visibleItems.map((item, i) => {
                   const isActive = location.pathname === item.href;
                   return (
@@ -200,19 +212,32 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                       to={item.href}
                       onClick={() => setIsMobileMenuOpen(false)}
                       className={cn(
-                        "flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all group relative overflow-hidden",
-                        isActive ? "text-white shadow-lg shadow-primary/20" : "text-ink-muted hover:text-primary hover:bg-white/50"
+                        "flex items-center gap-3.5 px-4 py-3 rounded-2xl transition-all font-bold text-xs",
+                        isActive 
+                          ? "bg-primary text-white shadow-md shadow-primary/20" 
+                          : "text-slate-600 hover:bg-slate-50 hover:text-ink"
                       )}
                     >
-                      {isActive && (
-                        <div className="absolute inset-0 bg-primary -z-10" />
-                      )}
-                      <item.icon size={22} className={cn("shrink-0", isActive ? "text-white" : "group-hover:text-primary")} />
-                      <span className="text-sm font-bold tracking-tight">{item.label}</span>
+                      <item.icon size={18} className={isActive ? "text-white" : "text-slate-400"} />
+                      <span>{item.label}</span>
                     </Link>
                   );
                 })}
               </nav>
+
+              {/* Mobile Drawer Sticky Logout Footer */}
+              <div className="p-4 border-t border-ink/5 bg-slate-50/80 shrink-0">
+                <button 
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    handleLogout();
+                  }}
+                  className="w-full flex items-center justify-center gap-2.5 px-4 py-3.5 rounded-2xl bg-rose-50 hover:bg-rose-500 text-rose-600 hover:text-white transition-all font-bold text-xs shadow-xs cursor-pointer active:scale-95"
+                >
+                  <LogOut size={16} />
+                  <span>Sign Out</span>
+                </button>
+              </div>
             </motion.aside>
           </>
         )}

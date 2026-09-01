@@ -168,7 +168,7 @@ export default function NotificationBell({ role }: { role?: string }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-            className="fixed top-6 right-6 z-[9999] max-w-sm w-full bg-[#001F3F] text-white p-4 rounded-3xl shadow-2xl border border-white/20 flex items-start gap-3.5 cursor-pointer backdrop-blur-xl ring-2 ring-primary/30"
+            className="fixed top-6 left-4 right-4 sm:left-auto sm:right-6 z-[9999] sm:max-w-sm bg-[#001F3F] text-white p-4 rounded-3xl shadow-2xl border border-white/20 flex items-start gap-3.5 cursor-pointer backdrop-blur-xl ring-2 ring-primary/30"
             onClick={() => {
               handleItemClick(toast);
               setToast(null);
@@ -185,7 +185,7 @@ export default function NotificationBell({ role }: { role?: string }) {
                     e.stopPropagation();
                     setToast(null);
                   }}
-                  className="text-white/60 hover:text-white transition-colors p-1"
+                  className="text-white/60 hover:text-white transition-colors p-1 cursor-pointer"
                 >
                   <X size={15} />
                 </button>
@@ -227,13 +227,13 @@ export default function NotificationBell({ role }: { role?: string }) {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setIsOpen(false)}
-                className="fixed inset-0 z-40"
+                className="fixed inset-0 z-40 bg-black/10 backdrop-blur-xs sm:bg-transparent"
               />
               <motion.div
                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                className="absolute top-full right-0 mt-3 w-[calc(100vw-2rem)] max-w-sm sm:w-96 bg-white/95 backdrop-blur-2xl rounded-[28px] shadow-2xl border border-ink/10 overflow-hidden z-50 origin-top-right"
+                className="fixed left-3 right-3 top-20 sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-3 sm:w-96 bg-white/95 backdrop-blur-2xl rounded-[28px] shadow-2xl border border-ink/10 overflow-hidden z-50 origin-top"
               >
                 {/* Header */}
                 <div className="p-4 sm:p-5 border-b border-ink/5 flex items-center justify-between bg-gray-50/50">

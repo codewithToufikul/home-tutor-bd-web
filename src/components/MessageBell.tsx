@@ -178,13 +178,18 @@ export default function MessageBell({ className }: { className?: string }) {
         {/* 📬 Message Dropdown Popover */}
         <AnimatePresence>
           {isOpen && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              transition={{ duration: 0.15 }}
-              className="absolute right-0 mt-3 w-80 sm:w-96 bg-white rounded-[28px] shadow-2xl border border-ink/10 p-4 z-50 space-y-3 overflow-hidden"
-            >
+            <>
+              <div 
+                className="fixed inset-0 z-40 bg-black/10 backdrop-blur-xs sm:bg-transparent"
+                onClick={() => setIsOpen(false)}
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                transition={{ duration: 0.15 }}
+                className="fixed left-3 right-3 top-20 sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-3 sm:w-96 bg-white rounded-[28px] shadow-2xl border border-ink/10 p-4 z-50 space-y-3 overflow-hidden origin-top"
+              >
               {/* Dropdown Header */}
               <div className="flex items-center justify-between pb-2 border-b border-ink/5">
                 <div className="flex items-center gap-2">
@@ -272,8 +277,9 @@ export default function MessageBell({ className }: { className?: string }) {
                 Go to Messages Portal
               </Link>
             </motion.div>
-          )}
-        </AnimatePresence>
+          </>
+        )}
+      </AnimatePresence>
       </div>
 
       {/* 🚀 Floating Real-Time Message Toast Notification */}
