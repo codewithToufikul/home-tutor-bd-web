@@ -4,8 +4,12 @@ export interface User {
   _id: string;
   name: string;
   email: string;
-  role: 'student' | 'guardian' | 'tutor' | 'admin';
+  username?: string;
+  role: 'student' | 'guardian' | 'tutor' | 'admin' | 'super_admin' | 'moderator' | 'coaching';
+  phone?: string;
   avatar?: string;
+  location?: string;
+  address?: string;
   isEmailVerified: boolean;
   isApproved: boolean;
 }
@@ -20,7 +24,12 @@ interface AuthState {
 const getSavedUser = (): User | null => {
   try {
     const raw = localStorage.getItem('user');
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && parsed.user && typeof parsed.user === 'object') {
+      return parsed.user;
+    }
+    return parsed;
   } catch {
     return null;
   }

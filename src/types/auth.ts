@@ -7,6 +7,13 @@ export interface AppUser {
   isVerified: boolean;
   isApproved: boolean;
   name: string;
+  phone?: string;
+  avatar?: string;
+  address?: string;
+  location?: string;
+  studentClass?: string;
+  institution?: string;
   createdAt?: string;
   updatedAt?: string;
 }
+

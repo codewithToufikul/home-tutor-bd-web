@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { cn } from '@/src/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '@/src/context/AuthContext.tsx';
+import MessageBell from '@/src/components/MessageBell.tsx';
 import logoImage from '@/src/lib/Home.png';
 import { getDashboardPath } from '@/src/shared/authorization.ts';
 
@@ -56,13 +57,16 @@ export default function Navbar() {
             ))}
             <div className="h-6 w-px bg-ink/10 mx-2" />
             {user ? (
-              <Link
-                to={dashboardHref}
-                className="flex items-center gap-2 bg-primary/10 text-primary px-5 py-2.5 rounded-full text-sm font-bold shadow-sm hover:bg-primary hover:text-white transition-all active:scale-95"
-              >
-                <LayoutDashboard size={18} />
-                Dashboard
-              </Link>
+              <div className="flex items-center gap-3">
+                <MessageBell />
+                <Link
+                  to={dashboardHref}
+                  className="flex items-center gap-2 bg-primary/10 text-primary px-5 py-2.5 rounded-full text-sm font-bold shadow-sm hover:bg-primary hover:text-white transition-all active:scale-95"
+                >
+                  <LayoutDashboard size={18} />
+                  Dashboard
+                </Link>
+              </div>
             ) : (
               <>
                 <Link

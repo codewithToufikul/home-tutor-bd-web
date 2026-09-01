@@ -8,11 +8,12 @@ import {
   AlertCircle,
   Info,
   Clock,
-  ChevronRight
+  ChevronRight,
+  Loader2,
+  CheckCheck
 } from 'lucide-react';
 import TutorLayout from '@/src/components/TutorLayout.tsx';
 import { cn } from '@/src/lib/utils';
-import { NoticeService } from '@/src/services/noticeService.ts';
 import { NotificationRepository } from '@/src/repositories/notificationRepository';
 
 interface Notice {
@@ -29,52 +30,51 @@ interface Notice {
 
 export default function TutorNotifications() {
   const [notices, setNotices] = useState<Notice[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
+  const fetchNotices = async () => {
+    try {
+      setLoading(true);
+      // Directly call user's notifications (instant response, no 403 admin route)
+      const userNotifs = await NotificationRepository.getAll();
+
+      const formattedNotifs: Notice[] = (Array.isArray(userNotifs) ? userNotifs : []).map((n: any) => ({
+        id: String(n._id || n.id || ''),
+        title: n.title || 'System Notification',
+        content: n.message || n.content || '',
+        date: n.createdAt || new Date().toISOString(),
+        isRead: Boolean(n.isRead),
+        priority: n.priority || (n.type === 'tutor_request' || n.type === 'hire_request' ? 'high' : 'medium'),
+        category: n.type || 'system',
+      }));
+
+      setNotices(formattedNotifs);
+    } catch (error) {
+      console.error('Failed to load notifications:', error);
+      setNotices([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchNotices = async () => {
-      try {
-        const [items, userNotifs] = await Promise.all([
-          NoticeService.list().catch(() => []),
-          NotificationRepository.getAll().catch(() => [])
-        ]);
-
-        const formattedNotifs: Notice[] = (Array.isArray(userNotifs) ? userNotifs : []).map((n: any) => ({
-          id: String(n._id || n.id || ''),
-          title: n.title || 'Notification',
-          content: n.message || '',
-          date: n.createdAt ? new Date(n.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Recently',
-          isRead: Boolean(n.isRead),
-          priority: 'high',
-          category: n.type || 'system',
-        }));
-
-        const tutorNotices = (Array.isArray(items) ? items : []).filter((notice: any) =>
-          !notice.audience || notice.audience === 'Tutors' || notice.audience === 'All'
-        ).map((n: any) => ({
-          id: String(n.id || n._id || ''),
-          title: n.title || '',
-          content: n.content || '',
-          date: n.date || '',
-          isRead: Boolean(n.isRead),
-          priority: n.priority || 'medium',
-          category: n.category || 'announcement',
-        }));
-
-        setNotices([...formattedNotifs, ...tutorNotices]);
-      } catch (error) {
-        console.error('Failed to load notifications:', error);
-        setNotices([]);
-      }
-    };
-
     fetchNotices();
   }, []);
 
+  const handleMarkAllRead = async () => {
+    try {
+      await NotificationRepository.markAllRead();
+      setNotices((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    } catch (err) {
+      console.error('Failed to mark all as read:', err);
+    }
+  };
+
   const deleteNotice = async (id: string) => {
     try {
-      await NoticeService.remove(id);
+      await NotificationRepository.remove(id);
       setNotices((current) => current.filter((notice) => notice.id !== id));
     } catch (error) {
       console.error('Failed to delete notice:', error);
@@ -109,20 +109,26 @@ export default function TutorNotifications() {
 
   const filteredNotices = notices.filter((notice) => {
     const matchesSearch =
-      notice.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      notice.content.toLowerCase().includes(searchQuery.toLowerCase());
+      (notice.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (notice.content || '').toLowerCase().includes(searchQuery.toLowerCase());
     if (filter === 'all') return matchesSearch;
     return matchesSearch && notice.priority?.toLowerCase() === filter.toLowerCase();
   });
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'Recently';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Recently';
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return 'Recently';
+    }
   };
 
   return (
@@ -138,9 +144,19 @@ export default function TutorNotifications() {
               Notifications
             </h1>
             <p className="text-sm font-medium text-ink-muted">
-              Stay updated with the latest updates and announcements from the admin.
+              Stay updated with your applications, tuition offers, and admin messages.
             </p>
           </div>
+
+          {notices.some(n => !n.isRead) && (
+            <button
+              onClick={handleMarkAllRead}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-xl border border-ink/10 text-xs font-bold text-ink hover:text-primary hover:border-primary transition-all shadow-sm cursor-pointer"
+            >
+              <CheckCheck size={16} className="text-primary" />
+              Mark all as read
+            </button>
+          )}
         </div>
 
         {/* Filters & Search */}
@@ -151,7 +167,7 @@ export default function TutorNotifications() {
                 key={f}
                 onClick={() => setFilter(f)}
                 className={cn(
-                  'px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap',
+                  'px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap cursor-pointer',
                   filter === f
                     ? 'bg-primary text-white shadow-lg shadow-primary/20'
                     : 'text-ink-muted hover:bg-white/60 hover:text-ink'
@@ -176,87 +192,104 @@ export default function TutorNotifications() {
 
         {/* Notifications List */}
         <div className="space-y-4">
-          <AnimatePresence mode="popLayout">
-            {filteredNotices.map((notice, index) => (
-              <motion.div
-                key={notice.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ delay: index * 0.05 }}
-                className="bg-white/60 backdrop-blur-xl border border-white/40 rounded-[32px] p-6 lg:p-8 shadow-xl shadow-ink/5 group hover:bg-white transition-all overflow-hidden relative"
-              >
-                {notice.priority?.toLowerCase() === 'high' && (
-                  <div className="absolute top-0 left-0 w-1.5 h-full bg-rose-500" />
-                )}
+          {loading ? (
+            <div className="py-24 text-center space-y-4 bg-white/40 backdrop-blur-xl border border-white/40 rounded-[32px] shadow-sm">
+              <Loader2 className="animate-spin text-primary mx-auto" size={32} />
+              <p className="text-xs font-bold text-ink-muted">Loading notifications...</p>
+            </div>
+          ) : (
+            <>
+              <AnimatePresence mode="popLayout">
+                {filteredNotices.map((notice, index) => (
+                  <motion.div
+                    key={notice.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ delay: index * 0.05 }}
+                    className={cn(
+                      "bg-white/60 backdrop-blur-xl border rounded-[32px] p-6 lg:p-8 shadow-xl shadow-ink/5 group hover:bg-white transition-all overflow-hidden relative",
+                      !notice.isRead ? "border-primary/30 bg-primary/[0.02]" : "border-white/40"
+                    )}
+                  >
+                    {notice.priority?.toLowerCase() === 'high' && (
+                      <div className="absolute top-0 left-0 w-1.5 h-full bg-rose-500" />
+                    )}
 
-                <div className="flex flex-col md:flex-row gap-6">
-                  <div className={cn(
-                    'w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:rotate-12',
-                    notice.priority?.toLowerCase() === 'high'
-                      ? 'bg-rose-50 text-rose-500'
-                      : notice.priority?.toLowerCase() === 'medium'
-                      ? 'bg-amber-50 text-amber-500'
-                      : 'bg-primary/5 text-primary'
-                  )}>
-                    {getCategoryIcon(notice.category)}
-                  </div>
-
-                  <div className="flex-grow space-y-4">
-                    <div className="flex flex-wrap items-center justify-between gap-4">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-3">
-                          <h3 className="text-lg font-black text-ink">{notice.title}</h3>
-                          <span className={cn(
-                            'px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter border',
-                            getPriorityStyles(notice.priority)
-                          )}>
-                            {notice.priority}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3 text-[10px] font-bold text-ink-muted/60 uppercase">
-                          <span className="flex items-center gap-1"><Clock size={12} /> {formatDate(notice.date)}</span>
-                          <span className="w-1 h-1 bg-ink/10 rounded-full" />
-                          <span>{notice.category}</span>
-                        </div>
+                    <div className="flex flex-col md:flex-row gap-6">
+                      <div className={cn(
+                        'w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:rotate-12',
+                        notice.priority?.toLowerCase() === 'high'
+                          ? 'bg-rose-50 text-rose-500'
+                          : notice.priority?.toLowerCase() === 'medium'
+                            ? 'bg-amber-50 text-amber-500'
+                            : 'bg-primary/5 text-primary'
+                      )}>
+                        {getCategoryIcon(notice.category)}
                       </div>
 
-                      <button
-                        onClick={() => deleteNotice(notice.id)}
-                        className="p-3 text-rose-500 bg-rose-50 rounded-xl opacity-0 group-hover:opacity-100 transition-all hover:bg-rose-500 hover:text-white"
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                      <div className="flex-grow space-y-4">
+                        <div className="flex flex-wrap items-center justify-between gap-4">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-3">
+                              <h3 className="text-lg font-black text-ink">{notice.title}</h3>
+                              <span className={cn(
+                                'px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter border',
+                                getPriorityStyles(notice.priority)
+                              )}>
+                                {notice.priority}
+                              </span>
+                              {!notice.isRead && (
+                                <span className="w-2 h-2 rounded-full bg-primary animate-ping" />
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3 text-[10px] font-bold text-ink-muted/60 uppercase">
+                              <span className="flex items-center gap-1"><Clock size={12} /> {formatDate(notice.date)}</span>
+                              <span className="w-1 h-1 bg-ink/10 rounded-full" />
+                              <span>{notice.category}</span>
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={() => deleteNotice(notice.id)}
+                            className="p-3 text-rose-500 bg-rose-50 rounded-xl opacity-0 group-hover:opacity-100 transition-all hover:bg-rose-500 hover:text-white cursor-pointer"
+                            title="Remove notification"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+
+                        <p className="text-sm font-medium text-ink-muted leading-relaxed max-w-3xl">
+                          {notice.content}
+                        </p>
+
+                        {notice.link && (
+                          <button className="flex items-center gap-2 text-primary font-black text-[11px] uppercase tracking-wider group/btn cursor-pointer">
+                            Learn More <ChevronRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
+                          </button>
+                        )}
+                      </div>
                     </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
 
-                    <p className="text-sm font-medium text-ink-muted leading-relaxed max-w-3xl">
-                      {notice.content}
-                    </p>
-
-                    {notice.link && (
-                      <button className="flex items-center gap-2 text-primary font-black text-[11px] uppercase tracking-wider group/btn">
-                        Learn More <ChevronRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
-                      </button>
-                    )}
+              {filteredNotices.length === 0 && (
+                <div className="py-24 text-center space-y-4 bg-white/40 backdrop-blur-xl border border-white/40 rounded-[32px] shadow-sm">
+                  <div className="w-16 h-16 bg-ink/5 rounded-full flex items-center justify-center text-ink-muted mx-auto shadow-inner">
+                    <Bell size={32} className="text-ink-muted/20" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-lg font-display font-black text-ink">No notifications</h3>
+                    <p className="text-xs font-medium text-ink-muted">You're all caught up! New notifications will appear here.</p>
                   </div>
                 </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-
-          {filteredNotices.length === 0 && (
-            <div className="py-32 text-center space-y-6 bg-white/40 backdrop-blur-xl border border-white/40 rounded-[48px] shadow-2xl">
-              <div className="w-20 h-20 bg-ink/5 rounded-full flex items-center justify-center text-ink-muted mx-auto shadow-inner">
-                <Bell size={40} className="text-ink-muted/20" />
-              </div>
-              <div className="space-y-1">
-                <h3 className="text-xl font-display font-black text-ink">No notifications yet</h3>
-                <p className="text-sm font-medium text-ink-muted">When admin sends a message, it will appear here.</p>
-              </div>
-            </div>
+              )}
+            </>
           )}
         </div>
       </div>
     </TutorLayout>
   );
 }
+

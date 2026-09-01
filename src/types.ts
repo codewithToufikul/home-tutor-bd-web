@@ -20,6 +20,7 @@ export interface TutorProfile {
   salary: number;
   rating: number;
   reviewCount: number;
+  totalTuitionsCompleted?: number;
   verified: boolean;
   isPremium?: boolean;
   bio: string;
@@ -36,6 +37,8 @@ export interface TutorProfile {
 
 export interface TuitionJob {
   id: string;
+  customId?: string;
+  _id?: string;
   parentId: string;
   studentClass: string;
   subjects: string[];

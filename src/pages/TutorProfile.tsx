@@ -15,7 +15,7 @@ import { RecommendationService } from '@/src/services/recommendationService.ts';
 import { useAuth } from '@/src/context/AuthContext.tsx';
 import { can } from '@/src/shared/authorization.ts';
 import { PERMISSIONS } from '@/src/shared/constants/permissions.ts';
-import { DEFAULT_PROFILE_IMAGE } from '@/src/constants';
+import { DEFAULT_PROFILE_IMAGE, getAvatarUrl } from '@/src/constants';
 
 export default function TutorProfilePage() {
   const { id } = useParams<{ id: string }>();
@@ -50,10 +50,10 @@ export default function TutorProfilePage() {
           return;
         }
 
-        setTutor(profile as TutorProfile);
+        setTutor(profile as unknown as TutorProfile);
 
         const all = await TutorProfileService.getAll();
-        const suggestions = RecommendationService.getSimilarTutors(profile as TutorProfile, (all || []) as TutorProfile[]);
+        const suggestions = RecommendationService.getSimilarTutors(profile as unknown as TutorProfile, (all || []) as unknown as TutorProfile[]);
         const suggested = suggestions.slice(0, 3).map((entry) => entry.item);
 
         setSuggestedTutors(suggested);
@@ -124,64 +124,94 @@ export default function TutorProfilePage() {
     );
   }
 
-  return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="min-h-screen bg-[#F8FAFC] pb-24 pt-4"
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-        <button 
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-ink-muted hover:text-primary font-bold text-sm transition-colors group cursor-pointer"
-        >
-          <div className="w-8 h-8 rounded-full bg-white shadow-sm border border-ink/5 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
-            <ArrowLeft size={18} />
-          </div>
-          Back to Tutors
-        </button>
-      </div>
+  const locationStr = typeof tutor?.location === 'string'
+    ? tutor.location
+    : (tutor?.location ? [(tutor.location as any).area, (tutor.location as any).district].filter(Boolean).join(', ') : 'Dhaka');
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+  const displayName = (tutor as any).userId?.name || tutor.name || (tutor as any).fullName || 'Verified Tutor';
+  const avatarUrl = getAvatarUrl(displayName || tutor.id, tutor.photoUrl || (tutor as any).userId?.avatar);
+
+  const formattedSalary = (() => {
+    const expSal = (tutor as any).expectedSalary;
+    if (expSal && expSal !== 'Select One') return `${expSal} ৳`;
+    if (!tutor.salary) return 'Negotiable';
+    const str = String(tutor.salary).trim();
+    if (str.length === 8 && str.startsWith('3000') && str.endsWith('5000')) return '3,000 - 5,000 ৳';
+    if (str.length === 8 && str.startsWith('5000') && str.endsWith('8000')) return '5,000 - 8,000 ৳';
+    if (str.length === 9 && str.startsWith('8000') && str.endsWith('12000')) return '8,000 - 12,000 ৳';
+    if (str.includes('-')) return `${str} ৳`;
+    const num = Number(tutor.salary);
+    if (!isNaN(num) && num > 0) return `${num.toLocaleString()} ৳`;
+    return str || 'Negotiable';
+  })();
+
+  return (
+    <div className="min-h-screen bg-background pb-20 pt-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+        
+        {/* Navigation / Back Button */}
+        <Link 
+          to="/tutors" 
+          className="inline-flex items-center gap-2 text-xs font-bold text-ink-muted hover:text-primary transition-colors bg-white px-4 py-2 rounded-xl border border-ink/5 shadow-sm"
+        >
+          <ArrowLeft size={16} />
+          Back to Tutors List
+        </Link>
+
+        {/* Hero Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
-          {/* Left Sidebar: Profile Summary */}
-          <div className="lg:col-span-3 space-y-6">
-            <div className="bg-white rounded-3xl shadow-sm border border-ink/5 overflow-hidden">
-              <div className="p-6 flex flex-col items-center text-center">
-                <div className="relative mb-4">
-                  <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-full p-1.5 bg-[linear-gradient(45deg,#ff0000,#ff7300,#fffb00,#48ff00,#00ffd5,#002bff,#7a00ff,#ff00c8,#ff0000)] bg-[length:400%_400%] animate-rainbow-ring shadow-xl">
-                    <div className="w-full h-full rounded-full overflow-hidden bg-white border-2 border-white flex items-center justify-center">
-                      {safePhotoUrl ? (
-                        <img src={safePhotoUrl} alt={tutor.name || 'Tutor'} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                      ) : (
-                        <div className="w-full h-full bg-ink/5 flex items-center justify-center">
-                          <div className="text-3xl font-black text-ink-muted">{(tutor.name || '').split(' ').map(n => n[0]).slice(0,2).join('')}</div>
-                        </div>
-                      )}
+          {/* Left Column: Fixed / Sticky Profile Summary Card */}
+          <div className="lg:col-span-6 space-y-6">
+            <div className="bg-white rounded-3xl shadow-sm border border-ink/5 overflow-hidden sticky top-24">
+              <div className="p-6 md:p-8 flex flex-col items-center text-center">
+                
+                {/* Photo with Badge */}
+                <div className="relative mb-6">
+                  <div className="w-32 h-32 md:w-40 md:h-40 rounded-full p-1 bg-gradient-to-tr from-primary to-accent shadow-xl">
+                    <div className="w-full h-full rounded-full overflow-hidden bg-white">
+                      <img 
+                        src={avatarUrl} 
+                        alt={displayName}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                   </div>
                   {tutor.isPremium && (
-                    <div className="absolute -top-2 -right-2 bg-primary text-white p-1.5 rounded-lg shadow-lg z-10">
+                    <div className="absolute bottom-2 right-2 bg-primary text-white p-2 rounded-full shadow-lg border-2 border-white">
                       <ShieldCheck size={20} />
                     </div>
                   )}
                 </div>
-                
-                <h1 className="text-xl font-display font-bold text-[#001F3F] mb-1">{tutor.name}</h1>
-                <div className="flex items-center gap-1 text-accent mb-1">
-                  <Star size={16} className="fill-accent" />
-                  <span className="text-sm font-bold">{(tutor.rating || 5.0).toFixed(2)} ({tutor.reviewCount || 0} Review)</span>
-                </div>
-                <p className="text-xs text-ink-muted mb-6 flex items-center gap-1 justify-center">
-                  <Eye size={14} />
-                  Total views: {tutor.totalViews || 120}
+
+                <h1 className="text-2xl md:text-3xl font-display font-bold text-[#001F3F] mb-1">
+                  {displayName}
+                </h1>
+                <p className="text-xs md:text-sm font-bold text-primary mb-4">
+                  {tutor.department || 'Tutor'} ({tutor.university || 'University'})
                 </p>
+
+                {/* Badges */}
+                <div className="flex flex-wrap justify-center gap-2 mb-6">
+                  {tutor.isPremium && (
+                    <span className="px-3 py-1 bg-amber-500/10 text-amber-600 rounded-full text-xs font-bold border border-amber-500/20">
+                      Premium Tutor
+                    </span>
+                  )}
+                  <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-primary/20">
+                    Experienced
+                  </span>
+                  <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-xs font-bold border border-emerald-200">
+                    {formattedSalary}/month
+                  </span>
+                </div>
+
+                <div className="w-full h-px bg-ink/5 my-2" />
 
                 <div className="w-full space-y-3 text-left">
                   <div className="flex justify-between text-xs">
                     <span className="text-ink-muted">Location:</span>
-                    <span className="font-bold text-ink text-right">{tutor.location || 'Dhaka'}</span>
+                    <span className="font-bold text-ink text-right">{locationStr}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-ink-muted">ID#:</span>
@@ -198,7 +228,7 @@ export default function TutorProfilePage() {
                   <div className="space-y-1">
                     <span className="text-ink-muted text-xs">Area Covered:</span>
                     <p className="text-[10px] font-medium text-ink leading-relaxed">
-                      {tutor.preferredAreas?.join(', ') || tutor.location}
+                      {tutor.preferredAreas?.join(', ') || locationStr}
                     </p>
                   </div>
                 </div>
@@ -229,7 +259,7 @@ export default function TutorProfilePage() {
                   <div className="bg-background/50 p-3 md:p-4 rounded-2xl border border-ink/5 flex items-start gap-3">
                     <MapPin className="text-primary shrink-0" size={18} />
                     <p className="text-xs font-bold text-ink leading-relaxed">
-                      {tutor.preferredAreas?.join(', ') || tutor.location}
+                      {tutor.preferredAreas?.join(', ') || locationStr}
                     </p>
                   </div>
                   <div className="bg-background/50 p-3 md:p-4 rounded-2xl border border-ink/5 flex items-center gap-3 w-fit">
@@ -500,7 +530,7 @@ export default function TutorProfilePage() {
                     <div className="space-y-2 text-xs">
                       <div className="flex items-center gap-2.5 text-ink-muted">
                         <MapPin size={13} className="text-primary shrink-0" />
-                        <span className="font-bold truncate">{suggestedTutor.location}</span>
+                        <span className="font-bold truncate">{typeof suggestedTutor.location === 'string' ? suggestedTutor.location : (suggestedTutor.location as any)?.district || 'Dhaka'}</span>
                       </div>
                       <div className="flex items-center gap-2.5 text-ink-muted">
                         <GraduationCap size={13} className="text-primary shrink-0" />
@@ -526,6 +556,6 @@ export default function TutorProfilePage() {
           </div>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 }

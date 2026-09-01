@@ -2,7 +2,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/src/context/AuthContext.tsx';
 import { can } from '@/src/shared/authorization.ts';
 
-export type AppRole = 'admin' | 'tutor' | 'student' | 'guardian' | 'coaching';
+export type AppRole = 'super_admin' | 'admin' | 'moderator' | 'tutor' | 'student' | 'guardian' | 'coaching';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -12,7 +12,9 @@ interface AuthGuardProps {
 }
 
 const roleHomeMap: Record<AppRole, string> = {
-  admin: '/admin/dashboard',
+  super_admin: '/admin',
+  admin: '/admin',
+  moderator: '/admin',
   tutor: '/tutor/dashboard',
   student: '/student/dashboard',
   guardian: '/guardian/dashboard',
@@ -60,9 +62,9 @@ export function RequireRole({
     return <Navigate to="/" replace />;
   }
 
-  // Pending Approval Check: Tutors, Guardians, Coaching must be approved by Admin
-  // Only tutor & coaching require admin approval. Student & Guardian are auto-approved.
-  if (user && !user.isApproved && (user.role === 'tutor' || user.role === 'coaching')) {
+  // Pending Approval Check: ONLY Coaching Center accounts require Admin Approval.
+  // Tutors, Students, and Guardians are auto-approved.
+  if (user && !user.isApproved && user.role === 'coaching') {
     return <Navigate to="/pending-approval" replace />;
   }
 

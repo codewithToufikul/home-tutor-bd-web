@@ -4,16 +4,21 @@ import type { RouteObject } from 'react-router-dom';
 
 import AuthGuard from '@/src/components/AuthGuard.tsx';
 import StudentDashboard from '@/src/pages/StudentDashboard.tsx';
+import StudentActiveTuitions from '@/src/pages/StudentActiveTuitions.tsx';
 import StudentMessages from '@/src/pages/StudentMessages.tsx';
 import StudentProfileDashboard from '@/src/pages/StudentProfileDashboard.tsx';
 import StudentRequests from '@/src/pages/StudentRequests.tsx';
 import StudentSavedTutors from '@/src/pages/StudentSavedTutors.tsx';
 import StudentSettings from '@/src/pages/StudentSettings.tsx';
 
+import StudentJobApplications from '@/src/pages/StudentJobApplications.tsx';
+
 export const studentRoutes: RouteObject[] = [
   { path: 'student/dashboard', element: <AuthGuard allowedRoles={['student']}><StudentDashboard /></AuthGuard> },
+  { path: 'student/active-tuitions', element: <AuthGuard allowedRoles={['student', 'guardian']}><StudentActiveTuitions /></AuthGuard> },
   { path: 'student/profile', element: <AuthGuard allowedRoles={['student']}><StudentProfileDashboard /></AuthGuard> },
   { path: 'student/requests', element: <AuthGuard allowedRoles={['student']}><StudentRequests /></AuthGuard> },
+  { path: 'student/requests/:jobId/applications', element: <AuthGuard allowedRoles={['student', 'guardian']}><StudentJobApplications /></AuthGuard> },
   { path: 'student/saved', element: <AuthGuard allowedRoles={['student']}><StudentSavedTutors /></AuthGuard> },
   { path: 'student/messages', element: <AuthGuard allowedRoles={['student']}><StudentMessages /></AuthGuard> },
   { path: 'student/settings', element: <AuthGuard allowedRoles={['student']}><StudentSettings /></AuthGuard> },

@@ -53,7 +53,8 @@ export const CoachingRepository = {
 // Public fetch - no auth token required (for public coaching explorer page)
 export const CoachingPublicRepository = {
   async getAll(): Promise<CoachingProfileRecord[]> {
-    const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api/v1';
+    const metaEnv = (import.meta as unknown as { env?: Record<string, string> }).env;
+    const BASE_URL = metaEnv?.VITE_API_URL || 'http://localhost:5001/api/v1';
     const res = await fetch(`${BASE_URL}/coaching/all`);
     if (!res.ok) throw new Error('Failed to fetch coaching centers');
     const json = await res.json();

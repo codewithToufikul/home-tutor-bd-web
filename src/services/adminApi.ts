@@ -33,10 +33,10 @@ export const adminApi = baseApi.injectEndpoints({
       providesTags: ['User', 'Tutor'],
     }),
     approveTutor: builder.mutation({
-      query: ({ id, isApproved = true }: { id: string; isApproved?: boolean }) => ({
+      query: ({ id, isApproved = true, rejectionReason }: { id: string; isApproved?: boolean; rejectionReason?: string }) => ({
         url: `/admin/tutors/${id}/approve`,
         method: 'PATCH',
-        body: { isApproved },
+        body: { isApproved, rejectionReason },
       }),
       invalidatesTags: ['User', 'Tutor', 'AdminStats'],
     }),
@@ -59,6 +59,14 @@ export const adminApi = baseApi.injectEndpoints({
       query: (id: string) => ({
         url: `/tuition-jobs/${id}`,
         method: 'DELETE',
+      }),
+      invalidatesTags: ['TuitionJob', 'AdminStats'],
+    }),
+    updateJobStatus: builder.mutation({
+      query: ({ id, status }: { id: string; status: string }) => ({
+        url: `/tuition-jobs/${id}`,
+        method: 'PATCH',
+        body: { status },
       }),
       invalidatesTags: ['TuitionJob', 'AdminStats'],
     }),
@@ -94,6 +102,72 @@ export const adminApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['Payment', 'AdminStats'],
     }),
+    // Staff (Super Admin, Admin, Moderator) Management
+    getStaff: builder.query({
+      query: () => '/admin/staff',
+      providesTags: ['User'],
+    }),
+    createStaff: builder.mutation({
+      query: (body: {
+        name: string;
+        email: string;
+        phone?: string;
+        role: 'admin' | 'moderator';
+        password: string;
+        permissions?: string[];
+      }) => ({
+        url: '/admin/staff',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['User', 'AdminStats'],
+    }),
+    updateStaffStatus: builder.mutation({
+      query: ({ id, status }: { id: string; status: 'active' | 'blocked' }) => ({
+        url: `/admin/staff/${id}/status`,
+        method: 'PATCH',
+        body: { status },
+      }),
+      invalidatesTags: ['User'],
+    }),
+    updateStaffPermissions: builder.mutation({
+      query: ({ id, permissions }: { id: string; permissions: string[] }) => ({
+        url: `/admin/staff/${id}/permissions`,
+        method: 'PATCH',
+        body: { permissions },
+      }),
+      invalidatesTags: ['User'],
+    }),
+    deleteStaff: builder.mutation({
+      query: (id: string) => ({
+        url: `/admin/staff/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['User', 'AdminStats'],
+    }),
+    // Admin create tuition job (bypasses student requirement)
+    createTuitionJob: builder.mutation({
+      query: (body: Record<string, unknown>) => ({
+        url: '/tuition-jobs',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['TuitionJob', 'AdminStats'],
+    }),
+    acceptAdminApplication: builder.mutation({
+      query: (id: string) => ({
+        url: `/applications/${id}/accept`,
+        method: 'PATCH',
+      }),
+      invalidatesTags: ['Application', 'TuitionJob', 'AdminStats'],
+    }),
+    rejectAdminApplication: builder.mutation({
+      query: (id: string) => ({
+        url: `/applications/${id}/reject`,
+        method: 'PATCH',
+      }),
+      invalidatesTags: ['Application', 'TuitionJob', 'AdminStats'],
+    }),
   }),
 });
 
@@ -108,9 +182,18 @@ export const {
   useGetAdminApplicationsQuery,
   useGetPendingJobsQuery,
   useApproveJobMutation,
+  useUpdateJobStatusMutation,
   useDeleteJobMutation,
   useGetAdminVerificationsQuery,
   useUpdateVerificationStatusMutation,
   useGetAdminPaymentsQuery,
   useUpdatePaymentStatusMutation,
+  useGetStaffQuery,
+  useCreateStaffMutation,
+  useUpdateStaffStatusMutation,
+  useUpdateStaffPermissionsMutation,
+  useDeleteStaffMutation,
+  useCreateTuitionJobMutation,
+  useAcceptAdminApplicationMutation,
+  useRejectAdminApplicationMutation,
 } = adminApi;

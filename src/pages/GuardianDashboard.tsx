@@ -72,7 +72,7 @@ export default function GuardianDashboard() {
 
         setStats([
           { label: 'Total Requests', value: String(totalRequests), icon: History, color: 'bg-purple-500', trend: 'Active', path: '/guardian/requests' },
-          { label: 'Hired Tutors', value: String(hired), icon: Users, color: 'bg-emerald-500', trend: 'Ongoing', path: '/guardian/requests' },
+          { label: 'Active Tuitions', value: String(hired), icon: BookOpen, color: 'bg-emerald-500', trend: 'Ongoing', path: '/guardian/active-tuitions' },
           { label: 'Saved Tutors', value: String((saved || []).length), icon: Heart, color: 'bg-rose-500', trend: '+0', path: '/guardian/saved' },
           { label: 'Messages', value: String((guardianNotices || []).length), icon: MessageSquare, color: 'bg-blue-500', trend: '0 unread', path: '/guardian/messages' },
         ]);

@@ -47,9 +47,10 @@ export default function AdminCreateNotice() {
           isRead: false,
         };
 
-        const noticeId = await NoticeService.create(payload as any);
+        const createdNotice: any = await NoticeService.create(payload as any);
+        const noticeId = createdNotice?._id || createdNotice?.id || '';
 
-        if (attachmentFile && user?.uid) {
+        if (attachmentFile && user?.uid && noticeId) {
           const attachment = await StorageService.upload({
             folder: 'notice-attachments',
             uid: user.uid,

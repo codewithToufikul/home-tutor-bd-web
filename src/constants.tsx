@@ -1,6 +1,64 @@
 import { Globe, Palette, Heart, BookOpen, GraduationCap, Award, Trophy, Code, Briefcase, UserCheck, Microscope } from 'lucide-react';
 
-export const DEFAULT_PROFILE_IMAGE = 'https://api.dicebear.com/7.x/avataaars/svg?seed=default-tutor';
+// Male cartoon/anime tutor avatar seeds (DiceBear Notionists - clearly illustrated male educator look)
+const MALE_AVATAR_SEEDS = [
+  'Tutor-Rahim', 'Tutor-Kamal', 'Tutor-Sabbir', 'Tutor-Imran',
+  'Tutor-Tanvir', 'Tutor-Raihan', 'Tutor-Nahid', 'Tutor-Arif'
+];
+
+// Female cartoon/anime tutor avatar seeds (DiceBear Notionists - clearly illustrated female educator look)
+const FEMALE_AVATAR_SEEDS = [
+  'Tutor-Fatima', 'Tutor-Nusrat', 'Tutor-Sadia', 'Tutor-Tania',
+  'Tutor-Riya', 'Tutor-Aisha', 'Tutor-Mitu', 'Tutor-Poly'
+];
+
+export const DEFAULT_PROFILE_IMAGE = `https://api.dicebear.com/9.x/notionists/svg?seed=Tutor-Rahim&backgroundColor=b6e3f4`;
+
+export function getAvatarUrl(seed?: string, photoUrl?: string, gender?: string): string {
+  // Only use real photoUrl if it's clearly a user-uploaded image (not a dicebear/placeholder)
+  if (
+    photoUrl &&
+    photoUrl.trim() &&
+    !photoUrl.includes('dicebear.com') &&
+    !photoUrl.includes('avataaars') &&
+    !photoUrl.includes('unsplash.com') &&
+    !photoUrl.includes('placeholder')
+  ) {
+    return photoUrl.trim();
+  }
+
+  const cleanSeed = (seed || 'Tutor').trim();
+  let hash = 0;
+  for (let i = 0; i < cleanSeed.length; i++) {
+    hash = (hash << 5) - hash + cleanSeed.charCodeAt(i);
+    hash |= 0;
+  }
+
+  const isFemale =
+    gender === 'Female' ||
+    cleanSeed.toLowerCase().includes('fatima') ||
+    cleanSeed.toLowerCase().includes('aisha') ||
+    cleanSeed.toLowerCase().includes('nusrat') ||
+    cleanSeed.toLowerCase().includes('tania') ||
+    cleanSeed.toLowerCase().includes('sadia') ||
+    cleanSeed.toLowerCase().includes('poly') ||
+    cleanSeed.toLowerCase().includes('riya') ||
+    cleanSeed.toLowerCase().includes('mitu') ||
+    cleanSeed.toLowerCase().includes('lima') ||
+    cleanSeed.toLowerCase().includes('puja');
+
+  const pool = isFemale ? FEMALE_AVATAR_SEEDS : MALE_AVATAR_SEEDS;
+  const index = Math.abs(hash) % pool.length;
+  const avatarSeed = pool[index];
+
+  // Use DiceBear Notionists style — clean anime/cartoon illustrated educator avatars
+  const bgColors = isFemale
+    ? ['fde68a', 'fbcfe8', 'e9d5ff', 'bfdbfe', 'a7f3d0']
+    : ['b6e3f4', 'c0aede', 'd1fae5', 'fef3c7', 'dbeafe'];
+  const bg = bgColors[Math.abs(hash) % bgColors.length];
+
+  return `https://api.dicebear.com/9.x/notionists/svg?seed=${encodeURIComponent(avatarSeed)}&backgroundColor=${bg}`;
+}
 
 // 📍 ডিফল্ট বা ফলব্যাক এরিয়া
 export const AREAS = [

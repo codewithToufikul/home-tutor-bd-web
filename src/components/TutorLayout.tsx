@@ -15,22 +15,29 @@ import {
   GraduationCap,
   CheckCircle2,
   Camera,
-  Home} from 'lucide-react';
+  Home,
+  BookOpen,
+  MessageSquare,
+  ShieldCheck
+} from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/src/context/AuthContext.tsx';
 import NotificationBell from '@/src/components/NotificationBell.tsx';
+import MessageBell from '@/src/components/MessageBell.tsx';
 import logoImage from '@/src/lib/Home.png';
 
 const SIDEBAR_ITEMS = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/tutor/dashboard' },
+  { icon: BookOpen, label: 'Active Tuitions', href: '/tutor/active-tuitions' },
+  { icon: MessageSquare, label: 'Messages & Support', href: '/tutor/messages' },
   { icon: Briefcase, label: 'Job Board', href: '/jobs' },
   { icon: Bell, label: 'Notification', href: '/tutor/notifications' },
   { icon: User, label: 'Update Profile', href: '/tutor/profile' },
+  { icon: ShieldCheck, label: 'Profile Verification', href: '/tutor/profile?tab=verification' },
   { icon: CreditCard, label: 'Payment Section', href: '/tutor/payments' },
   { icon: CreditCard, label: 'My Balance', href: '/tutor/balance' },
   { icon: CheckCircle2, label: 'My Apply Status', href: '/tutor/applied' },
-  { icon: CheckCircle2, label: 'Profile Verification Request', href: '/tutor/verification' },
   { icon: Settings, label: 'Settings', href: '/tutor/settings' },
   { icon: Settings, label: 'Security', href: '/tutor/security' },
   { icon: Home, label: 'Home', href: '/' },
@@ -62,7 +69,7 @@ export default function TutorLayout({ children }: { children: React.ReactNode })
             <div className="w-28 h-28 rounded-full border-2 border-[#6B21A8] p-1">
               <div className="w-full h-full rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
                 <img 
-                  src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.email}`} 
+                  src={`https://api.dicebear.com/7.x/personas/svg?seed=${encodeURIComponent(user?.name || user?.email || 'tutor')}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`} 
                   alt="Avatar"
                   className="w-full h-full object-cover"
                 />
@@ -74,15 +81,19 @@ export default function TutorLayout({ children }: { children: React.ReactNode })
           </div>
           {isSidebarOpen && (
             <div className="space-y-1">
-              <h2 className="text-base font-black text-[#001F3F]">{user?.name || 'Md Shakil Hosen'}</h2>
-              <p className="text-xs font-bold text-ink-muted">(TS-150785)</p>
+              <h2 className="text-base font-black text-[#001F3F]">{user?.name || 'Tutor'}</h2>
+              <p className="text-xs font-bold text-ink-muted">{user?.uid ? `(TS-${user.uid.slice(-6).toUpperCase()})` : ''}</p>
             </div>
           )}
         </div>
 
         <nav className="flex-grow px-0 space-y-0.5 overflow-y-auto scrollbar-hide border-t border-ink/5">
           {SIDEBAR_ITEMS.map((item) => {
-            const isActive = location.pathname === item.href;
+            const currentFull = location.pathname + location.search;
+            const isActive = item.href.includes('?')
+              ? currentFull === item.href
+              : location.pathname === item.href && !location.search;
+
             return (
               <Link
                 key={item.label}
@@ -138,6 +149,7 @@ export default function TutorLayout({ children }: { children: React.ReactNode })
           </div>
 
           <div className="flex items-center gap-3 lg:gap-6">
+            <MessageBell />
             <NotificationBell role="tutor" />
             
             <div className="h-10 w-[1px] bg-ink/5 hidden sm:block" />
@@ -149,7 +161,7 @@ export default function TutorLayout({ children }: { children: React.ReactNode })
               </div>
               <div className="w-12 h-12 rounded-2xl bg-primary/10 border-2 border-white shadow-lg overflow-hidden group-hover:border-primary/20 transition-all">
                 <img 
-                  src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.email}`} 
+                  src={`https://api.dicebear.com/7.x/personas/svg?seed=${encodeURIComponent(user?.name || user?.email || 'tutor')}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`} 
                   alt="Avatar"
                   className="w-full h-full object-cover"
                 />

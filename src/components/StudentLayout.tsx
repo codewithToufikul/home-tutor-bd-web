@@ -1,4 +1,5 @@
 import NotificationBell from '@/src/components/NotificationBell.tsx';
+import MessageBell from '@/src/components/MessageBell.tsx';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -17,7 +18,8 @@ import {
   MessageSquare,
   Heart,
   Building2,
-  Home
+  Home,
+  BookOpen
 } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -26,6 +28,7 @@ import logoImage from '@/src/lib/Home.png';
 
 const SIDEBAR_ITEMS = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/student/dashboard' },
+  { icon: BookOpen, label: 'Active Tuitions', href: '/student/active-tuitions' },
   { icon: Building2, label: 'Coaching Centers', href: '/student/coaching-centers' },
   { icon: PlusCircle, label: 'Post a Job', href: '/request-tutor' },
   { icon: History, label: 'My Requests', href: '/student/requests' },
@@ -135,6 +138,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
           </div>
 
           <div className="flex items-center gap-3 lg:gap-6">
+            <MessageBell />
             <NotificationBell role="student" />
             
             <div className="h-10 w-[1px] bg-ink/5 hidden sm:block" />
@@ -146,7 +150,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
               </div>
               <div className="w-12 h-12 rounded-2xl bg-secondary/10 border-2 border-white shadow-lg overflow-hidden group-hover:border-secondary/20 transition-all">
                 <img 
-                  src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.email}`} 
+                  src={`https://api.dicebear.com/7.x/personas/svg?seed=${encodeURIComponent(user?.name || user?.email || 'student')}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`} 
                   alt="Avatar"
                   className="w-full h-full object-cover"
                 />

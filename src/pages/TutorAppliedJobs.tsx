@@ -1,8 +1,8 @@
 import { motion } from 'motion/react';
-import { 
-  Briefcase, 
-  Clock, 
-  MapPin, 
+import {
+  Briefcase,
+  Clock,
+  MapPin,
   ChevronRight,
   Search,
   Filter,
@@ -19,6 +19,7 @@ import { useAuth } from '@/src/context/AuthContext.tsx';
 import { ApplicationService } from '@/src/services/applicationService.ts';
 import { TuitionService } from '@/src/services/tuitionService.ts';
 import { TuitionJob } from '@/src/types';
+import { Link } from 'react-router-dom';
 
 export default function TutorAppliedJobs() {
   const { user } = useAuth();
@@ -77,8 +78,8 @@ export default function TutorAppliedJobs() {
 
   const filteredJobs = appliedJobs.filter(job => {
     const matchesFilter = activeFilter === 'All' || job.status.toLowerCase() === activeFilter.toLowerCase();
-    const matchesSearch = job.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                         job.id.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      job.id.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesFilter && matchesSearch;
   });
 
@@ -133,9 +134,9 @@ export default function TutorAppliedJobs() {
         <div className="flex flex-col lg:flex-row gap-4">
           <div className="flex-grow relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-muted" size={20} />
-            <input 
-              type="text" 
-              placeholder="Search by job title or ID..." 
+            <input
+              type="text"
+              placeholder="Search by job title or ID..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-12 pr-4 py-4 bg-white rounded-2xl border border-ink/5 shadow-sm focus:ring-2 focus:ring-primary/20 outline-none font-medium transition-all"
@@ -148,8 +149,8 @@ export default function TutorAppliedJobs() {
                 onClick={() => setActiveFilter(filter)}
                 className={cn(
                   "px-6 py-4 rounded-2xl font-black text-xs uppercase transition-all whitespace-nowrap",
-                  activeFilter === filter 
-                    ? "bg-primary text-white shadow-lg shadow-primary/20" 
+                  activeFilter === filter
+                    ? "bg-primary text-white shadow-lg shadow-primary/20"
                     : "bg-white text-ink-muted border border-ink/5 hover:bg-primary/5 hover:text-primary"
                 )}
               >
@@ -200,15 +201,12 @@ export default function TutorAppliedJobs() {
                   <div className="flex items-center justify-between lg:justify-end gap-8 pt-4 lg:pt-0 border-t lg:border-t-0 border-ink/5">
                     <div className="text-left lg:text-right">
                       <p className="text-lg font-black text-primary">{job.salary}</p>
-                      <p className="text-[10px] font-bold text-ink-muted uppercase">Job ID: {job.id}</p>
+                      <p className="text-[10px] font-bold text-ink-muted uppercase">Job ID: {job.customId || job.id}</p>
                     </div>
                     <div className="flex items-center gap-3">
-                      <button className="px-6 py-3 bg-ink/5 text-ink font-black text-xs uppercase rounded-xl hover:bg-ink hover:text-white transition-all">
+                      <Link to={`/job/${job.id}`} className="px-6 py-3 bg-ink/5 text-ink font-black text-xs uppercase rounded-xl hover:bg-ink hover:text-white transition-all">
                         Details
-                      </button>
-                      <button className="p-3 text-ink-muted hover:text-primary hover:bg-primary/5 rounded-xl transition-all">
-                        <ChevronRight size={20} />
-                      </button>
+                      </Link>
                     </div>
                   </div>
                 </div>
@@ -223,7 +221,7 @@ export default function TutorAppliedJobs() {
                 <h3 className="text-xl font-display font-black text-ink">No applications found</h3>
                 <p className="text-ink-muted font-medium">Try adjusting your search or filters to find what you're looking for.</p>
               </div>
-              <button 
+              <button
                 onClick={() => { setActiveFilter('All'); setSearchQuery(''); }}
                 className="text-primary font-black text-sm hover:underline"
               >

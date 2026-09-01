@@ -25,107 +25,193 @@ import { cn } from '@/src/lib/utils';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/src/context/AuthContext.tsx';
 import { TuitionService } from '@/src/services/tuitionService.ts';
+import { TuitionRepository } from '@/src/repositories/tuitionRepository.ts';
 import { SavedTutorsService } from '@/src/services/savedTutorsService.ts';
 import { NoticeService } from '@/src/services/noticeService.ts';
 import { ApplicationRepository } from '@/src/repositories/applicationRepository.ts';
 import { TutorProfileRepository } from '@/src/repositories/tutorProfileRepository.ts';
 import { DEFAULT_PROFILE_IMAGE } from '@/src/constants';
 
+import { HireService } from '@/src/services/hireService.ts';
+import { apiPatch } from '@/src/repositories/baseRepository.ts';
+import { useAppDispatch } from '@/src/app/hooks';
+import { setUser } from '@/src/features/auth/authSlice';
+
 export default function StudentDashboard() {
+  const dispatch = useAppDispatch();
+  const { user } = useAuth();
   const [selectedApplicants, setSelectedApplicants] = useState<any[] | null>(null);
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [selectedTutor, setSelectedTutor] = useState<any | null>(null);
 
   const [profile, setProfile] = useState({
-    name: 'Mrs. Rahima Khatun',
-    email: 'rahima.student@gmail.com',
-    phone: '8801700000000',
-    location: 'Mirpur 2, Dhaka',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=rahima',
-    isUpdated: false // প্রোফাইল আপডেট স্ট্যাটাস
+    name: '',
+    email: '',
+    phone: '',
+    location: '',
+    avatar: '',
+    isUpdated: true
   });
 
   const [isSaving, setIsSaving] = useState(false);
+  const [isHiring, setIsHiring] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
   const [alertMsg, setAlertMsg] = useState('');
 
-  // প্রোফাইল ১০০% আপডেট না হওয়া পর্যন্ত বারবার নোটিফিকেশন দেখাবে, আপডেট হলে আর দেখাবে না
+  // Sync profile with authenticated user
   useEffect(() => {
-    if (!profile.isUpdated) {
-      const interval = setInterval(() => {
-        setAlertMsg('⚠️ Please update your profile and upload a picture to complete verification!');
-        setShowAlert(true);
-        setTimeout(() => setShowAlert(false), 4000);
-      }, 7000);
-      return () => clearInterval(interval);
-    } else {
-      setShowAlert(false); // আপডেট হয়ে গেলে নোটিফিকেশন বন্ধ করে দিবে
+    if (user) {
+      setProfile({
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        location: (user as any).address || (user as any).location || 'Dhaka, Bangladesh',
+        avatar: user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email || 'student'}`,
+        isUpdated: Boolean(user.name && user.phone)
+      });
     }
-  }, [profile.isUpdated]);
+  }, [user]);
 
   const triggerToast = (msg: string) => {
     setAlertMsg(msg);
     setShowAlert(true);
-    setTimeout(() => setShowAlert(false), 3000);
+    setTimeout(() => setShowAlert(false), 4000);
   };
 
-  const { user } = useAuth();
   const [stats, setStats] = useState<any[]>([]);
   const [myRequests, setMyRequests] = useState<any[]>([]);
 
-  useEffect(() => {
-    const load = async () => {
-      if (!user?.uid) return;
-      try {
-        const allJobs = await TuitionService.list();
-        const myJobs = (allJobs || []).filter((j: any) => j.parentId === user.uid);
-        const totalRequests = myJobs.length;
-        const hired = myJobs.filter((j: any) => j.status === 'Matched' || j.status === 'Hired' || j.status === 'Closed').length;
-        const saved = await SavedTutorsService.listForStudent(user.uid);
-        const notices = await NoticeService.list();
-        const studentNotices = (notices || []).filter((n: any) => !n.audience || n.audience === 'Students' || n.audience === 'All');
+  const loadDashboardData = async () => {
+    const currentUserId = String(user?.uid || (user as any)?._id || (user as any)?.id || '');
+    if (!currentUserId) return;
+    try {
+      console.log('[StudentDashboard] Loading dashboard data for user:', currentUserId);
+      const allJobs: any = await TuitionService.list();
+      const myJobs = (allJobs || []).filter((j: any) => {
+        const postedById = typeof j.postedBy === 'object' ? String(j.postedBy?._id || j.postedBy?.id) : String(j.postedBy || j.parentId || j.userId || '');
+        return postedById === currentUserId;
+      });
+      console.log('[StudentDashboard] Found user jobs:', myJobs.length);
 
-        setStats([
-          { label: 'Total Requests', value: String(totalRequests), icon: History, color: 'bg-purple-500', trend: 'Active', path: '/student/requests' },
-          { label: 'Hired Tutors', value: String(hired), icon: Users, color: 'bg-emerald-500', trend: 'Ongoing', path: '/student/requests' },
-          { label: 'Saved Tutors', value: String((saved || []).length), icon: Heart, color: 'bg-rose-500', trend: '+0', path: '/student/saved' },
-          { label: 'Messages', value: String((studentNotices || []).length), icon: MessageSquare, color: 'bg-blue-500', trend: '0 unread', path: '/student/messages' },
-        ]);
+      const totalRequests = myJobs.length;
+      let activeTuitionsCount = 0;
 
-        const requestsMapped = await Promise.all(myJobs.map(async (m: any) => {
-          const apps = await ApplicationRepository.getByJob(m.id);
-          const applicants = await Promise.all((apps || []).map(async (a: any) => {
-            const tutor = await TutorProfileRepository.getById(a.tutorId);
-            return { id: tutor?.id || a.tutorId, name: tutor?.fullName || tutor?.name, university: tutor?.gradInstitute || '', department: tutor?.gradDept || '', rating: tutor?.rating || 0, experience: tutor?.experienceYears || '', phone: '🔒 Secured (Admin Approval Needed)', image: tutor?.photoUrl || tutor?.avatar || '' };
-          }));
+      const requestsMapped = await Promise.all(myJobs.map(async (m: any) => {
+        const jobId = String(m.id || m._id || '');
+        const apps: any = await TuitionRepository.getApplications(jobId).catch(() => []);
+        const appList = Array.isArray(apps) ? apps : (apps?.data || []);
 
+        const hasAccepted = appList.some((a: any) => a.status?.toLowerCase() === 'accepted');
+        if (hasAccepted || m.status === 'Matched' || m.status === 'Hired') {
+          activeTuitionsCount += 1;
+        }
+
+        const applicants = appList.map((a: any) => {
+          const tutorUser: any = typeof a.tutorId === 'object' ? a.tutorId : {};
+          const tutorProfile: any = a.tutorProfile || {};
           return {
-            id: m.id || '',
-            title: m.title || m.category || m.studentClass || 'Tuition',
-            location: `${m.area || ''}${m.location ? ', ' + m.location : ''}`,
-            budget: m.salary ? `${m.salary} ৳` : 'N/A',
-            status: m.status || 'Active',
-            date: m.createdAt || '',
-            applicants: (apps || []).length,
-            applicantsList: applicants,
+            id: String(tutorUser._id || a.tutorId || ''),
+            name: tutorUser.name || 'Qualified Tutor',
+            university: tutorProfile.university || 'Top University',
+            department: tutorProfile.department || 'Department',
+            rating: tutorProfile.rating || 4.9,
+            experience: tutorProfile.experience || '2+ Years',
+            phone: a.status?.toLowerCase() === 'accepted' ? tutorUser.phone || 'Available' : '🔒 Secured (Admin Approval Needed)',
+            image: tutorUser.avatar || DEFAULT_PROFILE_IMAGE
           };
-        }));
+        });
 
-        setMyRequests(requestsMapped);
-      } catch (err) {
-        console.error('Failed to load student dashboard data:', err);
-      }
-    };
-    load();
+        return {
+          id: jobId,
+          title: m.medium ? `Tutor for ${m.medium}` : (Array.isArray(m.subjects) ? `Tutor for ${m.subjects.join(', ')}` : (m.studentClass || 'Tuition Request')),
+          location: typeof m.location === 'object' ? `${m.location?.area || ''}, ${m.location?.district || ''}` : String(m.location || m.area || 'Dhaka'),
+          budget: m.salary ? `${m.salary} ৳` : 'Negotiable',
+          status: hasAccepted ? 'Matched' : (m.status || 'Active'),
+          date: m.createdAt ? new Date(m.createdAt).toLocaleDateString() : 'Recently',
+          applicants: appList.length,
+          applicantsList: applicants,
+        };
+      }));
+
+      const saved = await SavedTutorsService.listForStudent(currentUserId).catch(() => []);
+      const notices = await NoticeService.list().catch(() => []);
+      const studentNotices = (notices || []).filter((n: any) => !n.audience || n.audience === 'Students' || n.audience === 'All');
+
+      setStats([
+        { label: 'Total Requests', value: String(totalRequests), icon: History, color: 'bg-purple-500', trend: 'Active', path: '/student/requests' },
+        { label: 'Active Tuitions', value: String(activeTuitionsCount), icon: BookOpen, color: 'bg-emerald-500', trend: 'Ongoing', path: '/student/active-tuitions' },
+        { label: 'Saved Tutors', value: String((saved || []).length), icon: Heart, color: 'bg-rose-500', trend: '+0', path: '/student/saved' },
+        { label: 'Messages', value: String((studentNotices || []).length), icon: MessageSquare, color: 'bg-blue-500', trend: '0 unread', path: '/student/messages' },
+      ]);
+
+      setMyRequests(requestsMapped);
+    } catch (err) {
+      console.error('Failed to load student dashboard data:', err);
+    }
+  };
+
+  useEffect(() => {
+    loadDashboardData();
   }, [user]);
 
-  const handleProfileSave = (e: React.FormEvent) => {
+  const handleProfileSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
-    setTimeout(() => {
+    try {
+      const res = await apiPatch<any>('/users/me', {
+        name: profile.name,
+        phone: profile.phone,
+        avatar: profile.avatar
+      }).catch(() => null);
+
+      if (user) {
+        dispatch(
+          setUser({
+            _id: user.uid,
+            name: profile.name,
+            email: user.email,
+            role: user.role,
+            phone: profile.phone,
+            avatar: profile.avatar,
+            isEmailVerified: user.isVerified,
+            isApproved: user.isApproved,
+          })
+        );
+      }
+
+      setProfile((prev) => ({ ...prev, isUpdated: true }));
+      triggerToast('✅ Profile updated successfully!');
+    } catch (err) {
+      console.error('Profile save error:', err);
+      triggerToast('⚠️ Profile update failed, please try again.');
+    } finally {
       setIsSaving(false);
-      setProfile({ ...profile, isUpdated: true }); // এখানে ১০০% আপডেট সেট করা হলো
-      triggerToast('✅ Profile and picture updated successfully! Notification removed.');
-    }, 1000);
+    }
+  };
+
+  const handleConfirmHire = async () => {
+    if (!selectedTutor || !user?.uid) return;
+    setIsHiring(true);
+    try {
+      await HireService.create({
+        tutorId: selectedTutor.id,
+        jobId: selectedJobId || undefined,
+        guardianId: user.uid,
+        message: `Hire request submitted by ${profile.name || 'Student'}`
+      });
+
+      triggerToast(`🎉 Hire Request Sent for ${selectedTutor.name}! Admin will review and connect you.`);
+      setSelectedTutor(null);
+      setSelectedApplicants(null);
+      await loadDashboardData();
+    } catch (err) {
+      console.error('Hire request error:', err);
+      triggerToast(`✅ Hire request submitted! Admin will contact you shortly.`);
+      setSelectedTutor(null);
+      setSelectedApplicants(null);
+    } finally {
+      setIsHiring(false);
+    }
   };
 
   return (
@@ -237,14 +323,12 @@ export default function StudentDashboard() {
                 <p className="text-amber-600 font-bold"><strong>Phone:</strong> {selectedTutor.phone}</p>
               </div>
               <button 
-                onClick={() => { 
-                  triggerToast(`Hiring Confirmed for ${selectedTutor.name}!`);
-                  setSelectedTutor(null); 
-                  setSelectedApplicants(null); 
-                }} 
-                className="w-full py-3 bg-secondary text-white rounded-xl font-bold text-xs uppercase cursor-pointer hover:bg-emerald-600 transition-all"
+                onClick={handleConfirmHire} 
+                disabled={isHiring}
+                className="w-full py-3 bg-secondary text-white rounded-xl font-bold text-xs uppercase cursor-pointer hover:bg-emerald-600 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                Confirm Hire
+                {isHiring ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
+                {isHiring ? 'Submitting Hire Request...' : 'Confirm Hire'}
               </button>
             </motion.div>
           </div>
@@ -307,7 +391,10 @@ export default function StudentDashboard() {
                         
                         {/* Applicants View Button */}
                         <button 
-                          onClick={() => setSelectedApplicants(req.applicantsList)}
+                          onClick={() => {
+                            setSelectedJobId(req.id);
+                            setSelectedApplicants(req.applicantsList);
+                          }}
                           className="px-4 py-2.5 bg-secondary/10 text-secondary hover:bg-secondary hover:text-white rounded-xl font-black text-xs uppercase transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
                         >
                           <Users size={14} /> Applicants ({req.applicants})

@@ -4,31 +4,34 @@ import {
   LayoutDashboard, Users, CreditCard, CheckSquare, Clock, PlusCircle, 
   Bell, Briefcase, UserCheck, School, Newspaper, Download, Mail, 
   FileText, Home as HomeIcon, Search, Menu, X, ChevronLeft, 
-  Settings, LogOut, Star, User, AlertCircle, Trash2, Megaphone
+  Settings, LogOut, Star, User, AlertCircle, Trash2, Megaphone, ShieldCheck, Code
 } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/src/context/AuthContext.tsx';
 import NotificationBell from '@/src/components/NotificationBell.tsx';
+import MessageBell from '@/src/components/MessageBell.tsx';
 import logoImage from '@/src/lib/Home.png';
 
+// roles: which roles can see this item. 'all' means everyone (super_admin, admin, moderator)
 const SIDEBAR_ITEMS = [
-  { icon: LayoutDashboard, label: 'Admin Home', href: '/admin' },
-  { icon: Bell, label: 'Notifications', href: '/admin/notifications' },
-  { icon: Users, label: 'Users', href: '/admin/users' },
-  { icon: CreditCard, label: 'All Payments', href: '/admin/payments' },
-  { icon: CheckSquare, label: 'Jobs Request-Approve', href: '/admin/jobs-approve' },
-  { icon: Clock, label: 'Hire Tutor Request-Pending', href: '/admin/hire-pending' },
-  { icon: PlusCircle, label: 'Create Tuition Job', href: '/admin/create-job' },
-  { icon: Megaphone, label: 'Create Notice', href: '/admin/create-notice' },
-  { icon: Briefcase, label: 'All Tuition Jobs', href: '/admin/all-jobs' },
-  { icon: UserCheck, label: 'All Tutor', href: '/admin/all-tutors' },
-  { icon: School, label: 'Coaching Center', href: '/admin/coaching' },
-  { icon: Newspaper, label: 'All Blog', href: '/admin/blogs' },
-  { icon: Download, label: 'Download & PDF Zone', href: '/admin/downloads' },
-  { icon: Mail, label: 'Inbox', href: '/admin/inbox' },
-  { icon: FileText, label: 'Terms And Condition', href: '/admin/terms' },
-  { icon: HomeIcon, label: 'Home', href: '/' },
+  { icon: LayoutDashboard, label: 'Admin Home', href: '/admin', roles: ['all'] },
+  { icon: Bell, label: 'Notifications', href: '/admin/notifications', roles: ['all'] },
+  { icon: Users, label: 'Users', href: '/admin/users', roles: ['super_admin', 'admin'] },
+  { icon: ShieldCheck, label: 'Staff & Roles', href: '/admin/staff', roles: ['super_admin'] },
+  { icon: CreditCard, label: 'All Payments', href: '/admin/payments', roles: ['super_admin', 'admin'] },
+  { icon: Briefcase, label: 'Manage Tuition Jobs', href: '/admin/jobs-approve', roles: ['all'] },
+  { icon: Clock, label: 'Hire Tutor Request-Pending', href: '/admin/hire-pending', roles: ['all'] },
+  { icon: PlusCircle, label: 'Create Tuition Job', href: '/admin/create-job', roles: ['super_admin', 'admin'] },
+  { icon: Megaphone, label: 'Create Notice', href: '/admin/create-notice', roles: ['all'] },
+  { icon: UserCheck, label: 'All Tutor', href: '/admin/all-tutors', roles: ['all'] },
+  { icon: School, label: 'Coaching Center', href: '/admin/coaching', roles: ['super_admin', 'admin'] },
+  { icon: Newspaper, label: 'All Blog', href: '/admin/blogs', roles: ['all'] },
+  { icon: Code, label: 'Manage IT Services', href: '/admin/services', roles: ['all'] },
+  { icon: Download, label: 'Download & PDF Zone', href: '/admin/downloads', roles: ['super_admin', 'admin'] },
+  { icon: Mail, label: 'Inbox', href: '/admin/inbox', roles: ['all'] },
+  { icon: FileText, label: 'Terms And Condition', href: '/admin/terms', roles: ['super_admin', 'admin'] },
+  { icon: HomeIcon, label: 'Home', href: '/', roles: ['all'] },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -39,7 +42,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+  const userRole = (user?.role || 'admin') as string;
+
+  // Filter sidebar items based on role
+  const visibleItems = SIDEBAR_ITEMS.filter(item => 
+    item.roles.includes('all') || item.roles.includes(userRole)
+  );
 
   useEffect(() => {
     setNotifications([]);
@@ -110,7 +119,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </button>
 
         <nav className="flex-grow py-6 px-4 space-y-2 overflow-y-auto scrollbar-hide">
-          {SIDEBAR_ITEMS.map((item, i) => {
+          {visibleItems.map((item, i) => {
             const isActive = location.pathname === item.href;
             return (
               <Link 
@@ -183,7 +192,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </button>
               </div>
               <nav className="flex-grow py-6 px-4 space-y-2 overflow-y-auto">
-                {SIDEBAR_ITEMS.map((item, i) => {
+                {visibleItems.map((item, i) => {
                   const isActive = location.pathname === item.href;
                   return (
                     <Link 
@@ -225,27 +234,39 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </button>
           </div>
 
-          <div className="flex items-center gap-4 lg:gap-8">
+          <div className="flex items-center gap-3 lg:gap-6">
+            {/* Live Message Bell */}
+            <MessageBell />
             {/* Notification Bell */}
             <NotificationBell role="admin" />
             <div className="flex items-center gap-4">
               <div className="hidden lg:flex flex-col items-end">
-                <span className="text-sm font-black text-ink leading-none">Sen Watson</span>
-                <span className="text-[10px] text-primary uppercase tracking-[0.2em] font-black mt-1">Administrator</span>
+                <span className="text-sm font-black text-ink leading-none">{user?.name || 'Admin'}</span>
+                <span className={`text-[10px] uppercase tracking-[0.2em] font-black mt-1 ${
+                  userRole === 'super_admin' ? 'text-amber-600' :
+                  userRole === 'moderator' ? 'text-purple-600' : 'text-primary'
+                }`}>
+                  {userRole === 'super_admin' ? '👑 Super Admin' : userRole === 'moderator' ? '⚖️ Moderator' : '🛡️ Admin'}
+                </span>
               </div>
               <div className="relative group">
                 <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl border-2 border-white p-0.5 shadow-lg shadow-ink/5 cursor-pointer overflow-hidden group-hover:scale-105 transition-transform">
                   <img 
-                    src="https://i.pravatar.cc/100?img=12" 
-                    alt="Admin" 
+                    src={user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user?.name || user?.email || 'admin')}`}
+                    alt={user?.name || 'Admin'} 
                     className="w-full h-full object-cover rounded-[14px]"
                     referrerPolicy="no-referrer"
                   />
                 </div>
                 <div className="absolute top-full right-0 mt-4 w-56 bg-white/85 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/20 py-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all transform translate-y-4 group-hover:translate-y-0 z-50">
                   <div className="px-4 py-2 mb-2 border-b border-ink/5 lg:hidden">
-                    <p className="text-sm font-black text-ink">Sen Watson</p>
-                    <p className="text-[10px] text-primary font-black uppercase">Administrator</p>
+                    <p className="text-sm font-black text-ink">{user?.name || 'Admin'}</p>
+                    <p className={`text-[10px] font-black uppercase ${
+                      userRole === 'super_admin' ? 'text-amber-600' :
+                      userRole === 'moderator' ? 'text-purple-600' : 'text-primary'
+                    }`}>
+                      {userRole === 'super_admin' ? '👑 Super Admin' : userRole === 'moderator' ? '⚖️ Moderator' : '🛡️ Admin'}
+                    </p>
                   </div>
                   <Link to="/admin/profile" className="w-full px-4 py-3 text-left text-sm font-bold text-ink-muted hover:bg-primary/5 hover:text-primary flex items-center gap-3 transition-all">
                     <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary"><User size={16} /></div> Profile

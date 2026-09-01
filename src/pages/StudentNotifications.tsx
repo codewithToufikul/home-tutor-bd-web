@@ -141,7 +141,14 @@ export default function StudentNotifications() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    className={`p-6 rounded-3xl border transition-all flex items-start gap-4 ${
+                    onClick={() => {
+                      if (notif.referenceId) {
+                        window.location.href = `/student/requests/${notif.referenceId}/applications`;
+                      } else {
+                        window.location.href = '/student/requests';
+                      }
+                    }}
+                    className={`p-6 rounded-3xl border transition-all flex items-start gap-4 cursor-pointer hover:scale-[1.01] ${
                       isUnread
                         ? 'bg-white border-secondary/20 shadow-md ring-1 ring-secondary/10'
                         : 'bg-white/80 border-ink/5 hover:bg-white'
@@ -167,10 +174,22 @@ export default function StudentNotifications() {
                         </span>
                       </div>
                       <p className="text-xs text-ink-muted font-medium leading-relaxed">{notif.message}</p>
+                      
+                      {/* Action button for application / match notifications */}
+                      <div className="pt-2">
+                        <span
+                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-secondary text-white rounded-xl text-[11px] font-black uppercase tracking-wider hover:bg-secondary/90 transition-all shadow-sm"
+                        >
+                          View Applications & Tutors →
+                        </span>
+                      </div>
                     </div>
 
                     <button
-                      onClick={() => deleteNotif(id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteNotif(id);
+                      }}
                       className="p-2 text-gray-400 hover:text-rose-500 rounded-xl hover:bg-rose-50 transition-all shrink-0 cursor-pointer"
                       title="Delete notification"
                     >

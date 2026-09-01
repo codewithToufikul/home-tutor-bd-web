@@ -1,13 +1,17 @@
 import { baseApi } from './baseApi';
 
 export interface TutorQueryParams {
+  search?: string;
   subject?: string;
   district?: string;
   area?: string;
   medium?: string;
+  studentClass?: string;
+  gender?: string;
   minSalary?: number | string;
   maxSalary?: number | string;
   isVerified?: boolean;
+  isPremium?: boolean;
   page?: number;
   limit?: number;
   cursor?: string;
@@ -39,6 +43,14 @@ export const tutorApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['Tutor'],
     }),
+    submitTutorVerification: builder.mutation({
+      query: (body: { nidCard: string; studentIdCard: string; nid?: string }) => ({
+        url: '/tutors/verification',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Tutor', 'User'],
+    }),
     addTutorReview: builder.mutation({
       query: ({ tutorId, rating }: { tutorId: string; rating: number }) => ({
         url: `/tutors/${tutorId}/reviews`,
@@ -58,5 +70,6 @@ export const {
   useGetTutorByIdQuery,
   useGetMyTutorProfileQuery,
   useUpdateTutorProfileMutation,
+  useSubmitTutorVerificationMutation,
   useAddTutorReviewMutation,
 } = tutorApi;

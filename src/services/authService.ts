@@ -10,16 +10,22 @@
 // errors in pages that still reference them during migration.
 // TODO: Remove this file once all pages are updated to use useAuth() / RTK Query.
 
-export type AuthRole = 'admin' | 'tutor' | 'student' | 'guardian' | 'coaching';
+export type AuthRole = 'super_admin' | 'admin' | 'moderator' | 'tutor' | 'student' | 'guardian' | 'coaching';
 
 export interface AppUser {
   uid: string;
   email: string;
+  username?: string;
   role: AuthRole;
   isVerified: boolean;
   isApproved: boolean;
   name: string;
+  phone?: string;
   avatar?: string;
+  address?: string;
+  location?: string;
+  studentClass?: string;
+  institution?: string;
   createdAt?: string;
   updatedAt?: string;
 }

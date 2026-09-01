@@ -13,6 +13,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { TuitionService } from '@/src/services/tuitionService.ts';
 import { TutorProfileService } from '@/src/services/tutorProfileService.ts';
 import { NotificationService } from '@/src/services/notificationService.ts';
+import ITServicesSection from '@/src/components/home/ITServicesSection.tsx';
 import { useAuth } from '@/src/context/AuthContext.tsx';
 import { can } from '@/src/shared/authorization.ts';
 import { PERMISSIONS } from '@/src/shared/constants/permissions.ts';
@@ -124,6 +125,8 @@ function VideoCard({ title, description, thumbnail, link }: any) {
 // ======================== MAIN COMPONENT ========================
 
 export default function Home() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [emblaRef, emblaApi] = useEmblaCarousel({ 
     align: 'start',
     loop: true,
@@ -151,7 +154,7 @@ export default function Home() {
       try {
         const tutors = await TutorProfileService.getAll();
         if (active) {
-          setPopularTutors((tutors || []).slice(0, 8) as TutorProfile[]);
+          setPopularTutors((tutors || []).slice(0, 8) as unknown as TutorProfile[]);
         }
       } catch (error) {
         console.error('Failed to load tutors for homepage:', error);
@@ -169,14 +172,21 @@ export default function Home() {
 
   const [formData, setFormData] = useState({
     classes: [] as string[],
-    district: '',
+    district: 'Dhaka',
     area: '',
     detailedAddress: '',
-    medium: '',
+    medium: 'Bangla Medium',
+    tuitionType: 'Home Tuition',
     subjects: [] as string[],
     customSubject: '',
-    phone: ''
+    genderPreference: 'Any',
+    tutoringDays: '3 Days/Week',
+    salary: '5000',
+    phone: '',
+    name: '',
   });
+  const [submittedData, setSubmittedData] = useState<any>(null);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const toggleClass = (c: string) => {
     if (formData.classes.includes(c)) {
@@ -207,76 +217,100 @@ export default function Home() {
     }
   };
 
+  const addCustomSubject = () => {
+    if (formData.customSubject.trim()) {
+      const upper = formData.customSubject.trim().toUpperCase();
+      if (!formData.subjects.includes(upper)) {
+        setFormData({
+          ...formData,
+          subjects: [...formData.subjects, upper],
+          customSubject: '',
+        });
+      } else {
+        setFormData({ ...formData, customSubject: '' });
+      }
+    }
+  };
+
   const currentDistrictAreas = formData.district && DISTRICT_WISE_AREAS[formData.district] 
     ? DISTRICT_WISE_AREAS[formData.district] 
     : [];
 
   const handleRequestSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.phone) return;
-
-    const decision = can({
-      user,
-      permission: PERMISSIONS.CREATE_TUITION,
-      allowedRoles: ['student', 'guardian'],
-    });
-
-    if (!decision.ok) {
-      if (decision.code === 'UNAUTHORIZED') {
-        navigate('/login', { state: { from: { pathname: '/' } } });
-      } else {
-        alert(decision.message);
-      }
+    if (!formData.phone.trim()) {
+      setErrorMessage('Please provide your active phone number.');
       return;
     }
 
     setIsSubmitting(true);
+    setErrorMessage('');
 
     try {
       const classesStr = formData.classes.length > 0 ? formData.classes.join(', ') : 'Class 10';
-      const subjectsStr = formData.subjects.length > 0 ? formData.subjects.join(', ') : 'GENERAL SUBJECTS';
+      const subjectsList = formData.subjects.length > 0 ? formData.subjects : ['All General Subjects'];
+      const subjectsStr = subjectsList.join(', ');
+      const salaryNum = parseInt(formData.salary, 10) || 5000;
 
-      const newJob: TuitionJob = {
-        id: Math.floor(10000 + Math.random() * 90000).toString(),
-        parentId: 'website_visitor',
+      const payload = {
         studentClass: classesStr,
-        subjects: formData.subjects.length > 0 ? formData.subjects : ['GENERAL SUBJECTS'],
-        location: formData.district || 'Dhaka',
-        area: `${formData.area}${formData.detailedAddress ? `, ${formData.detailedAddress}` : ''}`,
-        salary: 5000,
+        subjects: subjectsList,
+        location: {
+          district: formData.district || 'Dhaka',
+          area: formData.area || 'All Areas',
+        },
+        salary: salaryNum,
         medium: formData.medium || 'Bangla Medium',
-        genderPreference: 'Any',
-        status: 'Pending',
-        createdAt: new Date().toISOString(),
-        tutoringDays: '3 Days/Week',
-        tuitionType: 'Home Tuition',
+        genderPreference: formData.genderPreference || 'Any',
+        tutoringDays: [formData.tutoringDays || '3 Days/Week'],
+        tuitionType: formData.tuitionType || 'Home Tuition',
         studentGender: 'Any',
         duration: '1.5 Hours',
         startTime: 'Evening',
-        schoolName: 'Local School',
-        description: `Tutor requested for Classes: ${classesStr}. Medium: ${formData.medium}. Subjects: ${subjectsStr}. Address: ${formData.area}, ${formData.detailedAddress}. Contact: ${formData.phone}`,
-        category: 'Home Tuition'
+        phone: formData.phone.trim(),
+        name: formData.name.trim() || user?.name || '',
+        description: `Tutor requested for: ${classesStr}. Medium: ${formData.medium}. Subjects: ${subjectsStr}. Location: ${formData.area || 'All Areas'}, ${formData.district || 'Dhaka'}${formData.detailedAddress ? ` (${formData.detailedAddress})` : ''}. Tuition Type: ${formData.tuitionType}. Schedule: ${formData.tutoringDays}. Expected Salary: ৳${salaryNum.toLocaleString()}. Contact: ${formData.phone}`,
+        status: 'Open',
+        approvalStatus: 'Approved',
       };
 
-      await TuitionService.create(newJob);
-      await NotificationService.create({
-        type: 'tutor_request',
-        title: 'New Tutor Request',
-        message: `Classes: ${classesStr} (${formData.medium}) in ${formData.area}, ${formData.district}. Phone: ${formData.phone}`,
-        isRead: false,
-      });
+      await TuitionService.create(payload);
 
+      setSubmittedData({
+        ...payload,
+        classesStr,
+        subjectsStr,
+      });
       setIsSuccess(true);
-      setFormData({ classes: [], district: '', area: '', detailedAddress: '', medium: '', subjects: [], customSubject: '', phone: '' });
-      setStep(1);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to submit tutor request:', error);
+      const msg = error?.response?.data?.message || error?.message || 'Failed to submit request. Please try again.';
+      setErrorMessage(msg);
     } finally {
       setIsSubmitting(false);
-      setTimeout(() => {
-        setIsSuccess(false);
-      }, 2500);
     }
+  };
+
+  const handleResetForm = () => {
+    setFormData({
+      classes: [],
+      district: 'Dhaka',
+      area: '',
+      detailedAddress: '',
+      medium: 'Bangla Medium',
+      tuitionType: 'Home Tuition',
+      subjects: [],
+      customSubject: '',
+      genderPreference: 'Any',
+      tutoringDays: '3 Days/Week',
+      salary: '5000',
+      phone: '',
+      name: '',
+    });
+    setSubmittedData(null);
+    setIsSuccess(false);
+    setStep(1);
+    setErrorMessage('');
   };
 
   const [currentSubjectIndex, setCurrentSubjectIndex] = useState(0);
@@ -371,37 +405,109 @@ export default function Home() {
               transition={{ delay: 0.2 }}
               className="relative mt-4 lg:mt-0"
             >
-              <div className="absolute -inset-4 bg-primary/5 rounded-[2.5rem] blur-3xl" />
-              <div className="relative bg-surface p-8 lg:p-10 rounded-[2rem] border border-ink/5 shadow-2xl shadow-primary/10">
-                <div className="mb-8 pt-1">
-                  <h2 className="text-2xl font-display font-bold text-ink">Request a Tutor</h2>
-                  <p className="text-sm text-ink-muted mt-1">Get matched with top tutors in minutes.</p>
-                  <div className="flex gap-1.5 mt-6">
-                    {[1, 2, 3, 4, 5].map((i) => (
-                      <div key={i} className={cn("h-1.5 flex-1 rounded-full transition-all duration-500", step >= i ? "bg-primary" : "bg-ink/5")} />
-                    ))}
+              <div className="absolute -inset-4 bg-primary/10 rounded-[2.5rem] blur-3xl pointer-events-none" />
+              <div className="relative bg-surface p-7 sm:p-9 lg:p-10 rounded-[2rem] border border-ink/5 shadow-2xl shadow-primary/10">
+                <div className="mb-6 pt-1">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-2xl font-display font-black text-ink">Request a Tutor</h2>
+                    <span className="text-xs font-black uppercase px-3 py-1 bg-primary/10 text-primary rounded-full tracking-wider">
+                      {isSuccess ? 'Matched' : `Step ${step} of 5`}
+                    </span>
                   </div>
+                  <p className="text-xs text-ink-muted mt-1 font-medium">Get matched with top verified tutors in minutes.</p>
+                  
+                  {!isSuccess && (
+                    <div className="flex gap-1.5 mt-5">
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <div 
+                          key={i} 
+                          className={cn(
+                            "h-1.5 flex-1 rounded-full transition-all duration-500", 
+                            step >= i ? "bg-primary shadow-xs shadow-primary/30" : "bg-ink/5"
+                          )} 
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                <div className="min-h-[280px]">
+                <div className="min-h-[300px]">
                   {isSuccess ? (
-                    <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="py-10 text-center space-y-4">
-                      <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.95 }} 
+                      animate={{ opacity: 1, scale: 1 }} 
+                      className="py-4 text-center space-y-5"
+                    >
+                      <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto shadow-inner">
                         <CheckCircle size={36} />
                       </div>
                       <div className="space-y-1">
-                        <h3 className="text-xl font-black text-ink">Request Submitted!</h3>
-                        <p className="text-xs text-ink-muted">Our team has received your requirements.</p>
+                        <h3 className="text-xl font-black text-ink">Request Submitted Successfully!</h3>
+                        <p className="text-xs text-slate-500 font-medium">
+                          Our automated system has received your request. Matching verified tutors will be notified immediately.
+                        </p>
+                      </div>
+
+                      {submittedData && (
+                        <div className="bg-slate-50 rounded-2xl p-4 text-left space-y-2 border border-slate-100 text-xs font-medium text-slate-700">
+                          <div className="flex justify-between border-b border-slate-200/60 pb-1.5">
+                            <span className="text-slate-400 font-bold">Class(es):</span>
+                            <span className="font-bold text-ink truncate max-w-[180px]">{submittedData.studentClass}</span>
+                          </div>
+                          <div className="flex justify-between border-b border-slate-200/60 pb-1.5">
+                            <span className="text-slate-400 font-bold">Location:</span>
+                            <span className="font-bold text-ink">{submittedData.location.area}, {submittedData.location.district}</span>
+                          </div>
+                          <div className="flex justify-between border-b border-slate-200/60 pb-1.5">
+                            <span className="text-slate-400 font-bold">Medium & Mode:</span>
+                            <span className="font-bold text-ink">{submittedData.medium} • {submittedData.tuitionType}</span>
+                          </div>
+                          <div className="flex justify-between border-b border-slate-200/60 pb-1.5">
+                            <span className="text-slate-400 font-bold">Subjects:</span>
+                            <span className="font-bold text-ink truncate max-w-[180px]">{submittedData.subjects.join(', ')}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-400 font-bold">Contact Phone:</span>
+                            <span className="font-black text-primary">{submittedData.phone}</span>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-3 pt-2">
+                        <button
+                          type="button"
+                          onClick={handleResetForm}
+                          className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-ink rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer"
+                        >
+                          Request Another
+                        </button>
+                        <Link
+                          to="/tutors"
+                          className="flex-1 py-3 bg-primary hover:bg-primary-dark text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md shadow-primary/20 transition-all text-center"
+                        >
+                          Browse Tutors
+                        </Link>
                       </div>
                     </motion.div>
                   ) : (
                     <AnimatePresence mode="wait">
+                      {/* Step 1: Classes */}
                       {step === 1 && (
-                        <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-3">
+                        <motion.div 
+                          key="step1" 
+                          initial={{ opacity: 0, x: 20 }} 
+                          animate={{ opacity: 1, x: 0 }} 
+                          exit={{ opacity: 0, x: -20 }} 
+                          className="space-y-3"
+                        >
                           <div className="flex justify-between items-center">
-                            <label className="block text-xs font-bold text-ink uppercase">1. Select Class(es) - Multiple Choice</label>
+                            <label className="block text-xs font-bold text-ink uppercase">1. Select Class(es) (Multiple Choice)</label>
                             {formData.classes.length > 0 && (
-                              <button type="button" onClick={() => setStep(2)} className="text-xs font-bold text-primary hover:underline cursor-pointer">
+                              <button 
+                                type="button" 
+                                onClick={() => setStep(2)} 
+                                className="text-xs font-bold text-primary hover:underline cursor-pointer"
+                              >
                                 Next Step →
                               </button>
                             )}
@@ -418,74 +524,179 @@ export default function Home() {
                                 </span>
                               ))
                             ) : (
-                              <span className="text-[11px] text-ink-muted/50 font-medium">Select one or more classes below...</span>
+                              <span className="text-[11px] text-ink-muted/50 font-medium">Click one or more classes below...</span>
                             )}
                           </div>
 
-                          <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1">
+                          <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1 scrollbar-thin">
                             {CUSTOM_CLASSES.map((c) => {
                               const isSelected = formData.classes.includes(c);
                               return (
-                                <button key={c} type="button" onClick={() => toggleClass(c)} className={cn("px-3 py-2 rounded-xl border text-xs font-medium transition-all text-left cursor-pointer", isSelected ? "border-primary bg-primary/10 text-primary font-bold shadow-sm" : "border-ink/5 hover:border-primary/30 bg-white")}>
-                                  {c} {isSelected && '✓'}
+                                <button 
+                                  key={c} 
+                                  type="button" 
+                                  onClick={() => toggleClass(c)} 
+                                  className={cn(
+                                    "px-3 py-2 rounded-xl border text-xs font-medium transition-all text-left cursor-pointer flex items-center justify-between", 
+                                    isSelected 
+                                      ? "border-primary bg-primary/10 text-primary font-bold shadow-sm" 
+                                      : "border-ink/5 hover:border-primary/30 bg-white"
+                                  )}
+                                >
+                                  <span className="truncate">{c}</span>
+                                  {isSelected && <span className="text-primary font-bold">✓</span>}
                                 </button>
                               );
                             })}
                           </div>
 
-                          {formData.classes.length > 0 && (
-                            <button type="button" onClick={() => setStep(2)} className="w-full bg-primary text-white py-3 rounded-xl font-bold text-xs uppercase shadow-md hover:bg-primary-dark transition-all cursor-pointer mt-1">
-                              Continue to Address →
-                            </button>
-                          )}
+                          <button 
+                            type="button" 
+                            disabled={formData.classes.length === 0}
+                            onClick={() => setStep(2)} 
+                            className="w-full bg-primary text-white py-3.5 rounded-xl font-bold text-xs uppercase shadow-md hover:bg-primary-dark transition-all cursor-pointer mt-1 disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            Continue to Location →
+                          </button>
                         </motion.div>
                       )}
 
+                      {/* Step 2: Location */}
                       {step === 2 && (
-                        <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-3">
+                        <motion.div 
+                          key="step2" 
+                          initial={{ opacity: 0, x: 20 }} 
+                          animate={{ opacity: 1, x: 0 }} 
+                          exit={{ opacity: 0, x: -20 }} 
+                          className="space-y-3"
+                        >
                           <label className="block text-xs font-bold text-ink uppercase">2. Address & Location</label>
                           <div className="space-y-2.5">
-                            <select value={formData.district} onChange={(e) => setFormData({ ...formData, district: e.target.value, area: '' })} className="w-full px-4 py-3 rounded-xl border border-ink/10 bg-background text-xs font-bold text-ink focus:ring-2 focus:ring-primary/20 outline-none cursor-pointer">
+                            <select 
+                              value={formData.district} 
+                              onChange={(e) => setFormData({ ...formData, district: e.target.value, area: '' })} 
+                              className="w-full px-4 py-3 rounded-xl border border-ink/10 bg-background text-xs font-bold text-ink focus:ring-2 focus:ring-primary/20 outline-none cursor-pointer"
+                            >
                               <option value="">Select District</option>
                               {DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
                             </select>
 
-                            <select value={formData.area} onChange={(e) => setFormData({ ...formData, area: e.target.value })} disabled={!formData.district} className="w-full px-4 py-3 rounded-xl border border-ink/10 bg-background text-xs font-bold text-ink focus:ring-2 focus:ring-primary/20 outline-none cursor-pointer disabled:opacity-50">
-                              <option value="">{formData.district ? 'Select Area / Location' : 'First Select District above'}</option>
+                            <select 
+                              value={formData.area} 
+                              onChange={(e) => setFormData({ ...formData, area: e.target.value })} 
+                              disabled={!formData.district} 
+                              className="w-full px-4 py-3 rounded-xl border border-ink/10 bg-background text-xs font-bold text-ink focus:ring-2 focus:ring-primary/20 outline-none cursor-pointer disabled:opacity-50"
+                            >
+                              <option value="">{formData.district ? 'Select Area / Thana' : 'First Select District'}</option>
                               {currentDistrictAreas.map(a => <option key={a} value={a}>{a}</option>)}
                             </select>
 
                             <div className="relative">
                               <HomeIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted" size={15} />
-                              <input type="text" placeholder="House No, Road No, Block / Details..." value={formData.detailedAddress} onChange={(e) => setFormData({ ...formData, detailedAddress: e.target.value })} className="w-full pl-10 pr-3 py-3 rounded-xl border border-ink/10 bg-background text-xs font-medium text-ink focus:ring-2 focus:ring-primary/20 outline-none" />
+                              <input 
+                                type="text" 
+                                placeholder="House No, Road No, Sector / Details..." 
+                                value={formData.detailedAddress} 
+                                onChange={(e) => setFormData({ ...formData, detailedAddress: e.target.value })} 
+                                className="w-full pl-10 pr-3 py-3 rounded-xl border border-ink/10 bg-background text-xs font-medium text-ink focus:ring-2 focus:ring-primary/20 outline-none" 
+                              />
                             </div>
                           </div>
 
-                          <button type="button" disabled={!formData.district || !formData.area} onClick={() => setStep(3)} className="w-full bg-primary text-white py-3 rounded-xl font-bold text-xs uppercase shadow-md hover:bg-primary-dark transition-all cursor-pointer disabled:opacity-40 mt-1">
-                            Continue to Medium →
+                          <button 
+                            type="button" 
+                            disabled={!formData.district || !formData.area} 
+                            onClick={() => setStep(3)} 
+                            className="w-full bg-primary text-white py-3.5 rounded-xl font-bold text-xs uppercase shadow-md hover:bg-primary-dark transition-all cursor-pointer disabled:opacity-40 mt-1"
+                          >
+                            Continue to Medium & Mode →
                           </button>
                         </motion.div>
                       )}
 
+                      {/* Step 3: Medium & Tuition Type */}
                       {step === 3 && (
-                        <motion.div key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-3">
-                          <label className="block text-xs font-bold text-ink uppercase">3. Select Medium / Curriculum</label>
-                          <div className="grid grid-cols-1 gap-2 max-h-52 overflow-y-auto pr-1">
-                            {CUSTOM_MEDIUMS.map((m) => (
-                              <button key={m} type="button" onClick={() => { setFormData({ ...formData, medium: m }); setStep(4); }} className={cn("px-4 py-3 rounded-xl border text-xs font-bold transition-all text-left cursor-pointer", formData.medium === m ? "border-primary bg-primary/10 text-primary shadow-sm" : "border-ink/5 hover:border-primary/30 bg-white")}>
-                                {m} {formData.medium === m && '✓'}
-                              </button>
-                            ))}
+                        <motion.div 
+                          key="step3" 
+                          initial={{ opacity: 0, x: 20 }} 
+                          animate={{ opacity: 1, x: 0 }} 
+                          exit={{ opacity: 0, x: -20 }} 
+                          className="space-y-4"
+                        >
+                          <div className="space-y-2">
+                            <label className="block text-xs font-bold text-ink uppercase">3. Medium / Curriculum</label>
+                            <div className="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-1 scrollbar-thin">
+                              {CUSTOM_MEDIUMS.map((m) => (
+                                <button 
+                                  key={m} 
+                                  type="button" 
+                                  onClick={() => setFormData({ ...formData, medium: m })} 
+                                  className={cn(
+                                    "px-3 py-2.5 rounded-xl border text-xs font-bold transition-all text-left cursor-pointer flex items-center justify-between", 
+                                    formData.medium === m 
+                                      ? "border-primary bg-primary/10 text-primary shadow-sm" 
+                                      : "border-ink/5 hover:border-primary/30 bg-white"
+                                  )}
+                                >
+                                  <span className="truncate">{m}</span>
+                                  {formData.medium === m && <span>✓</span>}
+                                </button>
+                              ))}
+                            </div>
                           </div>
+
+                          <div className="space-y-2 pt-1 border-t border-slate-100">
+                            <label className="block text-xs font-bold text-ink uppercase">Tuition Mode</label>
+                            <div className="grid grid-cols-3 gap-2">
+                              {[
+                                { id: 'Home Tuition', label: '🏠 Home' },
+                                { id: 'Online Tuition', label: '💻 Online' },
+                                { id: 'Both / Flexible', label: '🔄 Flexible' },
+                              ].map((mode) => (
+                                <button
+                                  key={mode.id}
+                                  type="button"
+                                  onClick={() => setFormData({ ...formData, tuitionType: mode.id })}
+                                  className={cn(
+                                    "py-2 px-1 text-center rounded-xl border text-xs font-bold transition-all cursor-pointer",
+                                    formData.tuitionType === mode.id
+                                      ? "border-primary bg-primary/10 text-primary shadow-xs"
+                                      : "border-slate-200 bg-white text-slate-600 hover:border-primary/30"
+                                  )}
+                                >
+                                  {mode.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <button 
+                            type="button" 
+                            onClick={() => setStep(4)} 
+                            className="w-full bg-primary text-white py-3.5 rounded-xl font-bold text-xs uppercase shadow-md hover:bg-primary-dark transition-all cursor-pointer mt-1"
+                          >
+                            Continue to Subjects →
+                          </button>
                         </motion.div>
                       )}
 
+                      {/* Step 4: Subjects */}
                       {step === 4 && (
-                        <motion.div key="step4" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-3">
+                        <motion.div 
+                          key="step4" 
+                          initial={{ opacity: 0, x: 20 }} 
+                          animate={{ opacity: 1, x: 0 }} 
+                          exit={{ opacity: 0, x: -20 }} 
+                          className="space-y-3"
+                        >
                           <div className="flex justify-between items-center">
                             <label className="block text-xs font-bold text-ink uppercase">4. Select Subjects (Multiple)</label>
                             {formData.subjects.length > 0 && (
-                              <button type="button" onClick={() => setStep(5)} className="text-xs font-bold text-primary hover:underline cursor-pointer">
+                              <button 
+                                type="button" 
+                                onClick={() => setStep(5)} 
+                                className="text-xs font-bold text-primary hover:underline cursor-pointer"
+                              >
                                 Next Step →
                               </button>
                             )}
@@ -506,36 +717,172 @@ export default function Home() {
                             )}
                           </div>
 
-                          <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto pr-1">
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-32 overflow-y-auto pr-1 scrollbar-thin">
                             {SUBJECTS.map((s) => {
-                              const isSelected = formData.subjects.includes(s.toUpperCase());
+                              const upper = s.toUpperCase();
+                              const isSelected = formData.subjects.includes(upper);
                               return (
-                                <button key={s} type="button" onClick={() => toggleSubject(s)} className={cn("px-3 py-2 rounded-xl border text-xs font-medium transition-all text-left cursor-pointer", isSelected ? "border-primary bg-primary/10 text-primary font-bold shadow-sm" : "border-ink/5 hover:border-primary/30 bg-white")}>
-                                  {s} {isSelected && '✓'}
+                                <button 
+                                  key={s} 
+                                  type="button" 
+                                  onClick={() => toggleSubject(s)} 
+                                  className={cn(
+                                    "px-2.5 py-1.5 rounded-xl border text-[11px] font-medium transition-all text-left cursor-pointer flex items-center justify-between", 
+                                    isSelected 
+                                      ? "border-primary bg-primary/10 text-primary font-bold shadow-xs" 
+                                      : "border-ink/5 hover:border-primary/30 bg-white"
+                                  )}
+                                >
+                                  <span className="truncate">{s}</span>
+                                  {isSelected && <span className="text-primary text-[10px]">✓</span>}
                                 </button>
                               );
                             })}
                           </div>
 
-                          {formData.subjects.length > 0 && (
-                            <button type="button" onClick={() => setStep(5)} className="w-full bg-primary text-white py-3 rounded-xl font-bold text-xs uppercase shadow-md hover:bg-primary-dark transition-all cursor-pointer mt-1">
-                              Proceed to Phone Number →
+                          {/* Custom Subject Input */}
+                          <div className="flex gap-2 pt-1">
+                            <input
+                              type="text"
+                              placeholder="Other subject..."
+                              value={formData.customSubject}
+                              onChange={(e) => setFormData({ ...formData, customSubject: e.target.value })}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  addCustomSubject();
+                                }
+                              }}
+                              className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium outline-none focus:ring-2 focus:ring-primary/20"
+                            />
+                            <button
+                              type="button"
+                              onClick={addCustomSubject}
+                              className="px-3 py-2 bg-slate-800 text-white rounded-xl text-xs font-bold cursor-pointer hover:bg-slate-900"
+                            >
+                              + Add
                             </button>
-                          )}
+                          </div>
+
+                          <button 
+                            type="button" 
+                            disabled={formData.subjects.length === 0}
+                            onClick={() => setStep(5)} 
+                            className="w-full bg-primary text-white py-3.5 rounded-xl font-bold text-xs uppercase shadow-md hover:bg-primary-dark transition-all cursor-pointer mt-1 disabled:opacity-40"
+                          >
+                            Proceed to Preferences & Contact →
+                          </button>
                         </motion.div>
                       )}
 
+                      {/* Step 5: Preferences & Phone */}
                       {step === 5 && (
-                        <motion.form key="step5" onSubmit={handleRequestSubmit} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
-                          <div className="space-y-2">
-                            <label className="block text-sm font-bold text-ink uppercase">5. Phone Number</label>
-                            <div className="relative">
-                              <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-muted" size={18} />
-                              <input type="tel" placeholder="01XXXXXXXXX" required value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="w-full pl-12 pr-4 py-4 rounded-2xl border border-ink/5 bg-background text-ink focus:ring-2 focus:ring-primary/20 outline-none text-xs font-bold" />
+                        <motion.form 
+                          key="step5" 
+                          onSubmit={handleRequestSubmit} 
+                          initial={{ opacity: 0, x: 20 }} 
+                          animate={{ opacity: 1, x: 0 }} 
+                          exit={{ opacity: 0, x: -20 }} 
+                          className="space-y-4"
+                        >
+                          {/* Tutor Gender & Days */}
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <label className="block text-[11px] font-bold text-ink uppercase">Tutor Gender</label>
+                              <select
+                                value={formData.genderPreference}
+                                onChange={(e) => setFormData({ ...formData, genderPreference: e.target.value })}
+                                className="w-full px-3 py-2.5 rounded-xl border border-ink/10 bg-background text-xs font-bold text-ink outline-none cursor-pointer"
+                              >
+                                <option value="Any">Any Gender</option>
+                                <option value="Male">Male Tutor</option>
+                                <option value="Female">Female Tutor</option>
+                              </select>
+                            </div>
+
+                            <div className="space-y-1">
+                              <label className="block text-[11px] font-bold text-ink uppercase">Days/Week</label>
+                              <select
+                                value={formData.tutoringDays}
+                                onChange={(e) => setFormData({ ...formData, tutoringDays: e.target.value })}
+                                className="w-full px-3 py-2.5 rounded-xl border border-ink/10 bg-background text-xs font-bold text-ink outline-none cursor-pointer"
+                              >
+                                <option value="2 Days/Week">2 Days/Week</option>
+                                <option value="3 Days/Week">3 Days/Week</option>
+                                <option value="4 Days/Week">4 Days/Week</option>
+                                <option value="5 Days/Week">5 Days/Week</option>
+                                <option value="6 Days/Week">6 Days/Week</option>
+                              </select>
                             </div>
                           </div>
-                          <button type="submit" disabled={isSubmitting} className="w-full bg-primary text-white py-4 rounded-2xl font-bold shadow-xl shadow-primary/20 hover:bg-primary-dark transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 text-xs uppercase">
-                            {isSubmitting ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <>Submit Request <ChevronRight size={20} /></>}
+
+                          {/* Budget / Salary */}
+                          <div className="space-y-1.5">
+                            <div className="flex justify-between items-center">
+                              <label className="block text-[11px] font-bold text-ink uppercase">Expected Salary / Budget</label>
+                              <span className="text-xs font-black text-primary">৳{parseInt(formData.salary || '0', 10).toLocaleString()} /mo</span>
+                            </div>
+                            <div className="flex gap-1.5 overflow-x-auto pb-1">
+                              {['3000', '5000', '8000', '10000', '15000'].map((amt) => (
+                                <button
+                                  key={amt}
+                                  type="button"
+                                  onClick={() => setFormData({ ...formData, salary: amt })}
+                                  className={cn(
+                                    "px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap cursor-pointer",
+                                    formData.salary === amt
+                                      ? "bg-primary text-white shadow-xs"
+                                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                                  )}
+                                >
+                                  ৳{parseInt(amt).toLocaleString()}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Name & Phone */}
+                          <div className="space-y-2">
+                            <input
+                              type="text"
+                              placeholder="Your Name (Optional)"
+                              value={formData.name}
+                              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                              className="w-full px-3.5 py-2.5 rounded-xl border border-ink/10 bg-background text-xs font-medium text-ink focus:ring-2 focus:ring-primary/20 outline-none"
+                            />
+
+                            <div className="relative">
+                              <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted" size={16} />
+                              <input 
+                                type="tel" 
+                                placeholder="Phone Number (01XXXXXXXXX) *" 
+                                required 
+                                value={formData.phone} 
+                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })} 
+                                className="w-full pl-10 pr-4 py-3 rounded-xl border border-ink/10 bg-background text-ink focus:ring-2 focus:ring-primary/20 outline-none text-xs font-bold" 
+                              />
+                            </div>
+                          </div>
+
+                          {errorMessage && (
+                            <p className="text-xs font-bold text-rose-500 bg-rose-50 p-2.5 rounded-xl border border-rose-200">
+                              ⚠️ {errorMessage}
+                            </p>
+                          )}
+
+                          <button 
+                            type="submit" 
+                            disabled={isSubmitting || !formData.phone.trim()} 
+                            className="w-full bg-primary text-white py-4 rounded-xl font-bold shadow-xl shadow-primary/20 hover:bg-primary-dark transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 text-xs uppercase tracking-wider"
+                          >
+                            {isSubmitting ? (
+                              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            ) : (
+                              <>
+                                <span>Submit Tutor Request</span>
+                                <ChevronRight size={18} />
+                              </>
+                            )}
                           </button>
                         </motion.form>
                       )}
@@ -544,8 +891,12 @@ export default function Home() {
                 </div>
 
                 {step > 1 && !isSuccess && (
-                  <button type="button" onClick={() => setStep(step - 1)} className="mt-6 text-sm font-bold text-ink-muted hover:text-primary transition-colors cursor-pointer flex items-center gap-1">
-                    ← Back
+                  <button 
+                    type="button" 
+                    onClick={() => setStep(step - 1)} 
+                    className="mt-5 text-xs font-bold text-ink-muted hover:text-primary transition-colors cursor-pointer flex items-center gap-1"
+                  >
+                    ← Back to Step {step - 1}
                   </button>
                 )}
               </div>
@@ -733,6 +1084,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* 🚀 IT & Software Services Section */}
+      <ITServicesSection />
 
       {/* Tutor Connection Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-4 space-y-10">

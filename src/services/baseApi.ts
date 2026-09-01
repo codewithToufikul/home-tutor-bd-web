@@ -52,6 +52,9 @@ const baseQueryWithReauth: BaseQueryFn<
     } else {
       console.error('❌ Refresh Token failed/expired. Logging out user...');
       api.dispatch(logout());
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
     }
   }
 
@@ -72,6 +75,7 @@ export const baseApi = createApi({
     'AdminStats',
     'Verification',
     'Payment',
+    'Services',
   ],
   endpoints: () => ({}),
 });

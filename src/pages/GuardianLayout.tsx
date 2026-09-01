@@ -1,9 +1,10 @@
 import { ReactNode, useEffect, useState } from 'react';
-import { LayoutDashboard, PlusCircle, History, Heart, MessageSquare, Settings, LogOut, Home } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, History, Heart, MessageSquare, Settings, LogOut, Home, BookOpen } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/src/context/AuthContext.tsx';
 import { GuardianProfileService } from '@/src/services/guardianProfileService.ts';
 import NotificationBell from '@/src/components/NotificationBell.tsx';
+import MessageBell from '@/src/components/MessageBell.tsx';
 
 export default function GuardianLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
@@ -40,6 +41,7 @@ export default function GuardianLayout({ children }: { children: ReactNode }) {
 
   const menuItems = [
     { label: 'Dashboard', path: '/guardian/dashboard', icon: LayoutDashboard },
+    { label: 'Active Tuitions', path: '/guardian/active-tuitions', icon: BookOpen },
     { label: 'Post New Job', path: '/request-tutor', icon: PlusCircle },
     { label: 'My Requests', path: '/guardian/requests', icon: History },
     { label: 'Saved Tutors', path: '/guardian/saved', icon: Heart },
@@ -102,7 +104,8 @@ export default function GuardianLayout({ children }: { children: ReactNode }) {
 
       {/* Main Content Area */}
       <main className="flex-grow flex flex-col min-w-0 overflow-y-auto">
-        <header className="h-16 bg-white/60 backdrop-blur-xl border-b border-ink/5 flex items-center justify-end px-6 md:px-10 shrink-0">
+        <header className="h-16 bg-white/60 backdrop-blur-xl border-b border-ink/5 flex items-center justify-end px-6 md:px-10 shrink-0 gap-3">
+          <MessageBell />
           <NotificationBell role="guardian" />
         </header>
         <div className="p-6 md:p-10 flex-grow">

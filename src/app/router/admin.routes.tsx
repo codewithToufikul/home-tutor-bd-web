@@ -22,25 +22,30 @@ import AdminTerms from '@/src/pages/AdminTerms.tsx';
 import AdminUsers from '@/src/pages/AdminUsers.tsx';
 import AdminVerify from '@/src/pages/AdminVerify.tsx';
 
+import AdminStaffManagement from '@/src/pages/AdminStaffManagement.tsx';
+import AdminManageServices from '@/src/pages/AdminManageServices.tsx';
+
 export const adminRoutes: RouteObject[] = [
   { path: 'admin/login', element: <AdminLogin /> },
   { path: 'admin/verify', element: <AdminVerify /> },
-  { path: 'admin', element: <AuthGuard allowedRoles={['admin']}><AdminDashboard /></AuthGuard> },
-  { path: 'admin/users', element: <AuthGuard allowedRoles={['admin']}><AdminUsers /></AuthGuard> },
-  { path: 'admin/payments', element: <AuthGuard allowedRoles={['admin']}><AdminPayments /></AuthGuard> },
-  { path: 'admin/jobs-approve', element: <AuthGuard allowedRoles={['admin']}><AdminJobsApprove /></AuthGuard> },
-  { path: 'admin/hire-pending', element: <AuthGuard allowedRoles={['admin']}><AdminHirePending /></AuthGuard> },
-  { path: 'admin/create-job', element: <AuthGuard allowedRoles={['admin']}><AdminCreateJob /></AuthGuard> },
-  { path: 'admin/create-notice', element: <AuthGuard allowedRoles={['admin']}><AdminCreateNotice /></AuthGuard> },
-  { path: 'admin/all-jobs', element: <AuthGuard allowedRoles={['admin']}><AdminAllJobs /></AuthGuard> },
-  { path: 'admin/all-tutors', element: <AuthGuard allowedRoles={['admin']}><AdminAllTutors /></AuthGuard> },
-  { path: 'admin/coaching', element: <AuthGuard allowedRoles={['admin']}><AdminCoachingCenter /></AuthGuard> },
-  { path: 'admin/blogs', element: <AuthGuard allowedRoles={['admin']}><AdminBlogs /></AuthGuard> },
-  { path: 'admin/downloads', element: <AuthGuard allowedRoles={['admin']}><AdminDownloads /></AuthGuard> },
-  { path: 'admin/inbox', element: <AuthGuard allowedRoles={['admin']}><AdminInbox /></AuthGuard> },
-  { path: 'admin/terms', element: <AuthGuard allowedRoles={['admin']}><AdminTerms /></AuthGuard> },
-  { path: 'admin/profile', element: <AuthGuard allowedRoles={['admin']}><AdminProfile /></AuthGuard> },
-  { path: 'admin/calendar', element: <AuthGuard allowedRoles={['admin']}><AdminCalendar /></AuthGuard> },
-  { path: 'admin/notifications', element: <AuthGuard allowedRoles={['admin']}><AdminNotifications /></AuthGuard> },
-  { path: 'admin/important', element: <AuthGuard allowedRoles={['admin']}><AdminImportant /></AuthGuard> },
+  { path: 'admin', element: <AuthGuard allowedRoles={['super_admin', 'admin', 'moderator']}><AdminDashboard /></AuthGuard> },
+  { path: 'admin/users', element: <AuthGuard allowedRoles={['super_admin', 'admin']}><AdminUsers /></AuthGuard> },
+  { path: 'admin/staff', element: <AuthGuard allowedRoles={['super_admin']}><AdminStaffManagement /></AuthGuard> },
+  { path: 'admin/payments', element: <AuthGuard allowedRoles={['super_admin', 'admin']}><AdminPayments /></AuthGuard> },
+  { path: 'admin/jobs-approve', element: <AuthGuard allowedRoles={['super_admin', 'admin', 'moderator']}><AdminJobsApprove /></AuthGuard> },
+  { path: 'admin/hire-pending', element: <AuthGuard allowedRoles={['super_admin', 'admin', 'moderator']}><AdminHirePending /></AuthGuard> },
+  { path: 'admin/create-job', element: <AuthGuard allowedRoles={['super_admin', 'admin']}><AdminCreateJob /></AuthGuard> },
+  { path: 'admin/create-notice', element: <AuthGuard allowedRoles={['super_admin', 'admin', 'moderator']}><AdminCreateNotice /></AuthGuard> },
+  { path: 'admin/all-jobs', element: <AuthGuard allowedRoles={['super_admin', 'admin', 'moderator']}><AdminAllJobs /></AuthGuard> },
+  { path: 'admin/all-tutors', element: <AuthGuard allowedRoles={['super_admin', 'admin', 'moderator']}><AdminAllTutors /></AuthGuard> },
+  { path: 'admin/coaching', element: <AuthGuard allowedRoles={['super_admin', 'admin']}><AdminCoachingCenter /></AuthGuard> },
+  { path: 'admin/blogs', element: <AuthGuard allowedRoles={['super_admin', 'admin', 'moderator']}><AdminBlogs /></AuthGuard> },
+  { path: 'admin/services', element: <AuthGuard allowedRoles={['super_admin', 'admin', 'moderator']}><AdminManageServices /></AuthGuard> },
+  { path: 'admin/downloads', element: <AuthGuard allowedRoles={['super_admin', 'admin']}><AdminDownloads /></AuthGuard> },
+  { path: 'admin/inbox', element: <AuthGuard allowedRoles={['super_admin', 'admin', 'moderator']}><AdminInbox /></AuthGuard> },
+  { path: 'admin/terms', element: <AuthGuard allowedRoles={['super_admin', 'admin']}><AdminTerms /></AuthGuard> },
+  { path: 'admin/profile', element: <AuthGuard allowedRoles={['super_admin', 'admin', 'moderator']}><AdminProfile /></AuthGuard> },
+  { path: 'admin/calendar', element: <AuthGuard allowedRoles={['super_admin', 'admin', 'moderator']}><AdminCalendar /></AuthGuard> },
+  { path: 'admin/notifications', element: <AuthGuard allowedRoles={['super_admin', 'admin', 'moderator']}><AdminNotifications /></AuthGuard> },
+  { path: 'admin/important', element: <AuthGuard allowedRoles={['super_admin', 'admin']}><AdminImportant /></AuthGuard> },
 ];

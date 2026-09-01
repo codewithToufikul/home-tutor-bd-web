@@ -10,10 +10,24 @@ import ScrollToTop from '@/src/components/ScrollToTop.tsx';
 export default function AppLayout() {
   const location = useLocation();
 
-  // Hide main Navbar/Footer/FloatingActions/MobileNav on all dashboard routes
+  // Dashboard paths have their own dedicated sidebar/layout
+  const tutorDashboardPaths = [
+    '/tutor/dashboard',
+    '/tutor/active-tuitions',
+    '/tutor/messages',
+    '/tutor/profile',
+    '/tutor/applied',
+    '/tutor/payments',
+    '/tutor/notifications',
+    '/tutor/balance',
+    '/tutor/verification',
+    '/tutor/security',
+    '/tutor/settings',
+  ];
+
   const isDashboardRoute =
     location.pathname.startsWith('/admin') ||
-    location.pathname.startsWith('/tutor') ||
+    tutorDashboardPaths.some((p) => location.pathname.startsWith(p)) ||
     location.pathname.startsWith('/guardian') ||
     location.pathname.startsWith('/student') ||
     location.pathname.startsWith('/coaching');

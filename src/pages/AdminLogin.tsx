@@ -6,8 +6,8 @@ import { useAuth } from '@/src/context/AuthContext.tsx';
 import { cn } from '@/src/lib/utils';
 
 export default function AdminLogin() {
-  const [email, setEmail] = useState('shakil.infox@gmail.com');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -49,8 +49,8 @@ export default function AdminLogin() {
             <LayoutDashboard size={40} />
           </div>
           <div className="space-y-1">
-            <h1 className="text-4xl font-display font-black text-ink tracking-tight">Admin Login</h1>
-            <p className="text-sm font-medium text-ink-muted">Welcome back! Please enter your details.</p>
+            <h1 className="text-4xl font-display font-black text-ink tracking-tight">Staff Login</h1>
+            <p className="text-sm font-medium text-ink-muted">Enter your email or username to access the panel.</p>
           </div>
         </div>
 
@@ -68,16 +68,16 @@ export default function AdminLogin() {
 
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2">
-              <label className="block text-[11px] font-black text-ink-muted uppercase ml-1 tracking-widest">Email Address</label>
+              <label className="block text-[11px] font-black text-ink-muted uppercase ml-1 tracking-widest">Email or Username</label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-ink-muted/50 group-focus-within:text-primary transition-colors">
                   <Mail size={18} />
                 </div>
                 <input 
-                  type="email" 
+                  type="text" 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@hometutor.com"
+                  placeholder="admin@hometutor.com or adm_name_1234"
                   required
                   className="w-full bg-white/60 backdrop-blur-xl border border-white/40 rounded-2xl py-4 pl-14 pr-5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all shadow-sm"
                 />

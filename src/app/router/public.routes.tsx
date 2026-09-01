@@ -19,11 +19,15 @@ import SafetyTips from '@/src/pages/SafetyTips.tsx';
 import TermsOfService from '@/src/pages/TermsOfService.tsx';
 import TutorProfilePage from '@/src/pages/TutorProfile.tsx';
 import Tutors from '@/src/pages/Tutors.tsx';
+import ITServices from '@/src/pages/ITServices.tsx';
+import ITServiceDetails from '@/src/pages/ITServiceDetails.tsx';
 
 export const publicRoutes: RouteObject[] = [
   { index: true, element: <Home /> },
   { path: 'tutors', element: <Tutors /> },
   { path: 'categories', element: <Categories /> },
+  { path: 'services', element: <ITServices /> },
+  { path: 'services/:id', element: <ITServiceDetails /> },
   { path: 'help-center', element: <HelpCenter /> },
   { path: 'terms-of-service', element: <TermsOfService /> },
   { path: 'privacy-policy', element: <PrivacyPolicy /> },

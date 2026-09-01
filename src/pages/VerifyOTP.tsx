@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Mail, CheckCircle2, AlertCircle, ArrowLeft, RefreshCw, KeyRound, ChevronRight } from 'lucide-react';
+import { CheckCircle2, AlertCircle, ArrowLeft, RefreshCw, KeyRound, ChevronRight } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useVerifyEmailMutation, useForgotPasswordMutation } from '../services/authApi';
 import { useAppDispatch } from '../app/hooks';
@@ -26,6 +26,11 @@ export default function VerifyOTP() {
   const [verifyEmail, { isLoading: isVerifying }] = useVerifyEmailMutation();
   const [resendOtp, { isLoading: isResending }] = useForgotPasswordMutation();
 
+  // Auto focus first input on mount
+  useEffect(() => {
+    inputRefs.current[0]?.focus();
+  }, []);
+
   // Countdown timer for Resend OTP
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -38,35 +43,76 @@ export default function VerifyOTP() {
   }, [resendTimer]);
 
   // Handle OTP Digit Input Change
-  const handleChange = (index: number, value: string) => {
-    if (!/^\d*$/.test(value)) return;
+  const handleChange = (index: number, rawVal: string) => {
+    const cleanDigits = rawVal.replace(/\D/g, '');
+    
+    if (!cleanDigits) {
+      const newOtp = [...otpDigits];
+      newOtp[index] = '';
+      setOtpDigits(newOtp);
+      return;
+    }
 
+    if (cleanDigits.length > 1) {
+      // User pasted or typed multiple digits
+      const newOtp = [...otpDigits];
+      const chars = cleanDigits.split('');
+      for (let i = 0; i < 6 && index + i < 6; i++) {
+        if (chars[i]) {
+          newOtp[index + i] = chars[i];
+        }
+      }
+      setOtpDigits(newOtp);
+      const nextFocus = Math.min(index + cleanDigits.length, 5);
+      inputRefs.current[nextFocus]?.focus();
+      return;
+    }
+
+    // Single digit input
     const newOtp = [...otpDigits];
-    newOtp[index] = value.slice(-1); // Only keep last typed digit
+    newOtp[index] = cleanDigits;
     setOtpDigits(newOtp);
     setError(null);
 
     // Auto-focus next input field
-    if (value && index < 5) {
+    if (index < 5) {
       inputRefs.current[index + 1]?.focus();
     }
   };
 
-  // Handle KeyDown for Backspace navigation
+  // Handle KeyDown for Backspace & Arrow navigation
   const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
+    if (e.key === 'Backspace') {
+      if (!otpDigits[index] && index > 0) {
+        const newOtp = [...otpDigits];
+        newOtp[index - 1] = '';
+        setOtpDigits(newOtp);
+        inputRefs.current[index - 1]?.focus();
+      } else {
+        const newOtp = [...otpDigits];
+        newOtp[index] = '';
+        setOtpDigits(newOtp);
+      }
+    } else if (e.key === 'ArrowLeft' && index > 0) {
       inputRefs.current[index - 1]?.focus();
+    } else if (e.key === 'ArrowRight' && index < 5) {
+      inputRefs.current[index + 1]?.focus();
     }
   };
 
   // Handle Paste OTP
   const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault();
-    const pastedData = e.clipboardData.getData('text').trim();
-    if (/^\d{6}$/.test(pastedData)) {
-      const digits = pastedData.split('');
-      setOtpDigits(digits);
-      inputRefs.current[5]?.focus();
+    const pastedData = e.clipboardData.getData('text').trim().replace(/\D/g, '');
+    if (pastedData) {
+      const digits = pastedData.slice(0, 6).split('');
+      const newOtp = [...otpDigits];
+      digits.forEach((d, i) => {
+        if (i < 6) newOtp[i] = d;
+      });
+      setOtpDigits(newOtp);
+      const focusIndex = Math.min(digits.length, 5);
+      inputRefs.current[focusIndex]?.focus();
     }
   };
 
@@ -196,14 +242,16 @@ export default function VerifyOTP() {
                   ref={(el) => { inputRefs.current[idx] = el; }}
                   type="text"
                   inputMode="numeric"
-                  maxLength={1}
+                  autoComplete="one-time-code"
+                  pattern="[0-9]*"
                   value={digit}
+                  onFocus={(e) => e.target.select()}
                   onChange={(e) => handleChange(idx, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(idx, e)}
                   onPaste={handlePaste}
                   className={cn(
-                    "w-12 h-14 sm:w-14 sm:h-16 text-center text-2xl font-bold rounded-2xl border bg-background text-ink transition-all outline-none",
-                    digit ? "border-primary ring-2 ring-primary/20 shadow-md shadow-primary/5" : "border-ink/10 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    "w-12 h-14 sm:w-14 sm:h-16 text-center text-2xl font-black rounded-2xl border bg-background text-ink transition-all outline-none cursor-text",
+                    digit ? "border-primary ring-2 ring-primary/20 shadow-md shadow-primary/5 bg-primary/5" : "border-ink/10 focus:border-primary focus:ring-2 focus:ring-primary/20"
                   )}
                 />
               ))}
@@ -250,7 +298,7 @@ export default function VerifyOTP() {
         <div className="mt-8 text-center">
           <Link
             to="/register"
-            className="inline-flex items-center gap-2 text-sm font-bold text-ink-muted hover:text-primary transition-colors"
+            className="inline-flex items-center gap-2 text-sm font-bold text-ink-muted hover:text-ink transition-colors"
           >
             <ArrowLeft size={16} />
             Back to Registration

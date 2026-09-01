@@ -13,12 +13,12 @@ const routeTree: RouteObject[] = [
     path: '/',
     element: <AppLayout />,
     children: [
-      ...publicRoutes,
       ...adminRoutes,
       ...tutorRoutes,
       ...studentRoutes,
       ...guardianRoutes,
       ...coachingRoutes,
+      ...publicRoutes,
       { path: '*', element: <Navigate to="/" replace /> },
     ],
   },

@@ -29,7 +29,7 @@ export const hasRole = (user: AppUser | null | undefined, role: AppRole | AppRol
 
 export const hasPermission = (user: AppUser | null | undefined, permission: AppPermission) => {
   if (!user) return false;
-  if (user.role === 'admin') return true;
+  if (user.role === 'super_admin' || user.role === 'admin') return true;
   return ROLE_PERMISSIONS[user.role]?.includes(permission) ?? false;
 };
 
@@ -107,7 +107,9 @@ export const requirePermission = (args: Parameters<typeof can>[0]) => {
 
 export const getDashboardPath = (role?: AppRole | null) => {
   switch (role) {
+    case 'super_admin':
     case 'admin':
+    case 'moderator':
       return '/admin';
     case 'tutor':
       return '/tutor/dashboard';

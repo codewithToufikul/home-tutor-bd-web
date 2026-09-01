@@ -1,11 +1,17 @@
 import { baseApi } from './baseApi';
 
 export interface TuitionQueryParams {
+  search?: string;
+  jobId?: string;
   district?: string;
   area?: string;
   subject?: string;
+  category?: string;
   medium?: string;
   studentClass?: string;
+  tuitionType?: string;
+  gender?: string;
+  genderPreference?: string;
   minSalary?: number | string;
   maxSalary?: number | string;
   page?: number;

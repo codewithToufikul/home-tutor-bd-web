@@ -28,6 +28,7 @@ export default function AdminAllJobs() {
     return items.map((j: any) => ({
       ...j,
       id: String(j._id || j.id || ''),
+      customId: j.customId || '',
       address: typeof j.location === 'object' ? `${j.location?.area || ''}, ${j.location?.district || ''}` : (j.location || j.address || ''),
       salary: j.salary || 0,
       perWeek: Array.isArray(j.tutoringDays) ? j.tutoringDays.join(', ') : (j.perWeek || 'N/A'),
@@ -44,6 +45,7 @@ export default function AdminAllJobs() {
   const filteredJobs = useMemo(() => {
     return rawJobs.filter(job => {
       const matchesSearch =
+        (job.customId || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
         (job._id || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
         (job.location?.district || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
         (job.location?.area || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -175,7 +177,7 @@ export default function AdminAllJobs() {
                           {job.subject}
                         </span>
                       </td>
-                      <td className="px-4 py-4 text-xs font-mono font-bold text-ink-muted">{job.id}</td>
+                      <td className="px-4 py-4 text-xs font-mono font-black text-primary">{job.customId || job.id.slice(-6)}</td>
                       <td className="px-4 py-4 text-xs font-bold text-ink-muted">{job.gender}</td>
                       <td className="px-4 py-4 text-[10px] font-bold text-ink-muted leading-tight max-w-[120px]">
                         {job.medium}

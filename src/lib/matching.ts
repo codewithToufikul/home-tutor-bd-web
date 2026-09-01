@@ -15,7 +15,7 @@ export function getMatchedJobsForTutor(tutor: TutorProfile, allJobs: TuitionJob[
     const matchesMedium = tutor.mediums?.includes(job.medium as any);
 
     // ৩. জেন্ডার প্রিফারেন্স ম্যাচিং
-    const matchesGender = !job.genderPreference || job.genderPreference === 'All' || job.genderPreference === tutor.gender;
+    const matchesGender = !job.genderPreference || job.genderPreference === 'Any' || (job.genderPreference as string) === 'All' || job.genderPreference === tutor.gender;
 
     return matchesArea && matchesMedium && matchesGender;
   });
@@ -38,7 +38,7 @@ export function getMatchedTutorsForJob(job: TuitionJob, allTutors: TutorProfile[
     );
 
     // ৩. জেন্ডার প্রিফারেন্স
-    const matchesGender = job.genderPreference === 'All' || tutor.gender === job.genderPreference;
+    const matchesGender = !job.genderPreference || job.genderPreference === 'Any' || (job.genderPreference as string) === 'All' || tutor.gender === job.genderPreference;
 
     return matchesArea && (matchesSubject || matchesGender);
   });

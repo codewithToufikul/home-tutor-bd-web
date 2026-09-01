@@ -1,4 +1,4 @@
-export const APP_ROLES = ['admin', 'tutor', 'student', 'guardian', 'coaching'] as const;
+export const APP_ROLES = ['super_admin', 'admin', 'moderator', 'tutor', 'student', 'guardian', 'coaching'] as const;
 
 export type AppRole = (typeof APP_ROLES)[number];
 
@@ -31,7 +31,18 @@ export const PERMISSIONS = {
 export type AppPermission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
 
 export const ROLE_PERMISSIONS: Record<AppRole, AppPermission[]> = {
+  super_admin: Object.values(PERMISSIONS),
   admin: Object.values(PERMISSIONS),
+  moderator: [
+    PERMISSIONS.VIEW_PUBLIC,
+    PERMISSIONS.VIEW_ADMIN,
+    PERMISSIONS.MANAGE_JOBS,
+    PERMISSIONS.MANAGE_BLOGS,
+    PERMISSIONS.MANAGE_NOTICES,
+    PERMISSIONS.MANAGE_NOTIFICATIONS,
+    PERMISSIONS.REVIEW_RESOURCE,
+    PERMISSIONS.APPROVE_RESOURCE,
+  ],
   tutor: [
     PERMISSIONS.VIEW_PUBLIC,
     PERMISSIONS.APPLY_TUITION,

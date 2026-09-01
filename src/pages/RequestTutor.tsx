@@ -147,7 +147,12 @@ export default function RequestTutor() {
       medium: formData.medium,
       genderPreference: formData.preferredTutor || 'Any',
       tutoringDays: formData.daysPerWeek || [],
+      tuitionType: formData.tuitionType || 'Home Tuition',
+      phone: formData.phone,
+      name: formData.studentName,
+      description: `Tutor requested for: ${formData.studentClass}. Medium: ${formData.medium}. Subjects: ${formData.subjects.join(', ')}. Location: ${formData.areas.join(', ')}, ${formData.district}. Phone: ${formData.phone}`,
       status: 'Open',
+      approvalStatus: 'Approved',
     };
 
     try {
@@ -554,7 +559,7 @@ export default function RequestTutor() {
                       {formData.agreedToTerms && <CheckCircle2 size={14} />}
                     </div>
                     <p className="text-xs text-ink-muted leading-relaxed">
-                      By clicking contact us button, you agree our <span className="text-primary font-bold">terms and policy</span>.
+                      By clicking submit tuition button, you agree our <span className="text-primary font-bold">terms and policy</span>.
                     </p>
                   </button>
                 </div>
@@ -573,9 +578,9 @@ export default function RequestTutor() {
                   <div className="w-16 h-16 bg-emerald-500 text-white rounded-full flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/30">
                     <CheckCircle2 size={36} />
                   </div>
-                  <h2 className="text-2xl font-bold text-emerald-900">Request Submitted Successfully!</h2>
+                  <h2 className="text-2xl font-bold text-emerald-900">Tuition Posted Successfully!</h2>
                   <p className="text-emerald-700 text-sm max-w-lg mx-auto">
-                    Thank you, <span className="font-bold">{formData.studentName}</span>! Your tuition request is posted. We will contact you at <span className="font-bold">{formData.phone}</span>.
+                    Thank you, <span className="font-bold">{formData.studentName}</span>! Your tuition job is now live and public. Interested tutors can apply directly.
                   </p>
                   <div className="pt-2 flex justify-center gap-4">
                     <a
@@ -677,7 +682,7 @@ export default function RequestTutor() {
                     : "bg-primary text-white shadow-primary/20 hover:bg-primary-dark"
                 )}
               >
-                {step === 4 ? 'Contact Us' : 'Continue'}
+                {step === 4 ? 'Submit Tuition' : 'Continue'}
                 <ChevronRight size={20} />
               </button>
             </div>
