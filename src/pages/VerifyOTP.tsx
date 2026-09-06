@@ -150,8 +150,8 @@ export default function VerifyOTP() {
         );
 
         setTimeout(() => {
-          // Only tutor & coaching need admin approval. Student & Guardian are auto-approved.
-          if (!u.isApproved && (u.role === 'tutor' || u.role === 'coaching')) {
+          // Only coaching centers need admin approval. Tutors, Students & Guardians are auto-approved.
+          if (!u.isApproved && u.role === 'coaching') {
             navigate('/pending-approval', { replace: true });
           } else if (u.role === 'guardian') navigate('/guardian/dashboard', { replace: true });
           else if (u.role === 'coaching') navigate('/coaching/dashboard', { replace: true });
