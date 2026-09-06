@@ -191,34 +191,40 @@ export default function VerifyOTP() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
+    <div className="min-h-screen bg-slate-50/60 flex flex-col justify-center py-6 sm:py-12 px-3.5 sm:px-6 lg:px-8 relative overflow-hidden">
       {/* Background Glow Blobs */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 sm:w-96 h-80 sm:h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-72 sm:w-80 h-72 sm:h-80 bg-teal-400/10 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10 text-center">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-3xl bg-primary/10 text-primary mb-4 shadow-inner">
-          <KeyRound size={32} />
+      <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10 text-center px-2">
+        {/* Animated App Key Icon */}
+        <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-2xl sm:rounded-3xl bg-primary/10 text-primary mb-3 sm:mb-4 shadow-sm border border-primary/20">
+          <KeyRound size={28} className="sm:w-8 sm:h-8 animate-pulse" />
         </div>
-        <h2 className="text-3xl font-display font-extrabold text-ink">
+        <h2 className="text-2xl sm:text-3xl font-display font-black text-ink tracking-tight">
           Verify Your Email
         </h2>
-        <p className="mt-2 text-sm text-ink-muted px-4">
-          We have sent a 6-digit verification code to{' '}
-          <span className="font-bold text-ink">{email || 'your email'}</span>
+        <p className="mt-1.5 text-xs sm:text-sm text-ink-muted max-w-xs mx-auto">
+          We have sent a 6-digit verification code to
         </p>
+        <div className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-white border border-slate-200/80 rounded-full text-xs font-bold text-slate-800 mt-2 shadow-xs">
+          <span className="truncate max-w-[200px] sm:max-w-xs">{email || 'your email'}</span>
+          <Link to="/register" className="text-primary hover:underline text-[11px] font-black shrink-0 ml-1">
+            Change
+          </Link>
+        </div>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
-        <div className="bg-surface py-10 px-6 shadow-2xl shadow-ink/5 sm:rounded-[2.5rem] border border-ink/5 sm:px-10">
+      <div className="mt-6 sm:mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
+        <div className="bg-white py-6 px-4 sm:py-10 sm:px-10 shadow-xl sm:shadow-2xl shadow-ink/5 rounded-3xl sm:rounded-[2.5rem] border border-ink/5">
           {error && (
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="mb-6 p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 text-rose-500 text-sm font-bold"
+              className="mb-5 p-3.5 sm:p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 text-rose-600 text-xs sm:text-sm font-bold shadow-xs"
             >
-              <AlertCircle size={18} className="shrink-0" />
-              {error}
+              <AlertCircle size={18} className="shrink-0 text-rose-500" />
+              <span>{error}</span>
             </motion.div>
           )}
 
@@ -226,16 +232,16 @@ export default function VerifyOTP() {
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="mb-6 p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center gap-3 text-emerald-600 text-sm font-bold"
+              className="mb-5 p-3.5 sm:p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center gap-3 text-emerald-600 text-xs sm:text-sm font-bold shadow-xs"
             >
-              <CheckCircle2 size={18} className="shrink-0" />
-              {successMsg}
+              <CheckCircle2 size={18} className="shrink-0 text-emerald-500" />
+              <span>{successMsg}</span>
             </motion.div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-8">
-            {/* 6 Digit Input Boxes */}
-            <div className="flex justify-between items-center gap-2">
+          <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
+            {/* 6 Digit Input Boxes - Responsive Touch Friendly Grid */}
+            <div className="flex justify-between items-center gap-1.5 sm:gap-2.5">
               {otpDigits.map((digit, idx) => (
                 <input
                   key={idx}
@@ -244,14 +250,17 @@ export default function VerifyOTP() {
                   inputMode="numeric"
                   autoComplete="one-time-code"
                   pattern="[0-9]*"
+                  maxLength={1}
                   value={digit}
                   onFocus={(e) => e.target.select()}
                   onChange={(e) => handleChange(idx, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(idx, e)}
                   onPaste={handlePaste}
                   className={cn(
-                    "w-12 h-14 sm:w-14 sm:h-16 text-center text-2xl font-black rounded-2xl border bg-background text-ink transition-all outline-none cursor-text",
-                    digit ? "border-primary ring-2 ring-primary/20 shadow-md shadow-primary/5 bg-primary/5" : "border-ink/10 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    "w-11 h-13 sm:w-14 sm:h-16 text-center text-xl sm:text-2xl font-black rounded-xl sm:rounded-2xl border transition-all outline-none cursor-text",
+                    digit 
+                      ? "border-primary ring-2 ring-primary/25 bg-primary/5 text-primary shadow-sm" 
+                      : "border-slate-200 bg-slate-50/80 text-ink focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white"
                   )}
                 />
               ))}
@@ -260,34 +269,34 @@ export default function VerifyOTP() {
             <button
               type="submit"
               disabled={isVerifying || otpDigits.join('').length !== 6}
-              className="w-full flex justify-center items-center gap-2 py-4 px-4 bg-primary hover:bg-primary-dark text-white font-bold rounded-2xl shadow-xl shadow-primary/20 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+              className="w-full flex justify-center items-center gap-2 py-3.5 sm:py-4 px-4 bg-primary hover:bg-primary-dark text-white font-bold text-sm sm:text-base rounded-xl sm:rounded-2xl shadow-lg shadow-primary/25 transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer"
             >
               {isVerifying ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
-                  Verify Code
-                  <ChevronRight size={20} />
+                  <span>Verify & Proceed</span>
+                  <ChevronRight size={18} />
                 </>
               )}
             </button>
           </form>
 
-          <div className="mt-8 pt-6 border-t border-ink/5 text-center">
-            <p className="text-sm text-ink-muted">
+          <div className="mt-6 sm:mt-8 pt-5 sm:pt-6 border-t border-slate-100 text-center">
+            <p className="text-xs sm:text-sm text-ink-muted">
               Didn't receive the code?{' '}
               {resendTimer > 0 ? (
-                <span className="font-bold text-ink-muted">
-                  Resend in <span className="text-primary">{resendTimer}s</span>
+                <span className="font-bold text-slate-700 ml-1">
+                  Resend in <span className="text-primary font-black">{resendTimer}s</span>
                 </span>
               ) : (
                 <button
                   type="button"
                   onClick={handleResend}
                   disabled={isResending}
-                  className="font-bold text-primary hover:underline inline-flex items-center gap-1 cursor-pointer"
+                  className="font-bold text-primary hover:underline inline-flex items-center gap-1 cursor-pointer ml-1"
                 >
-                  <RefreshCw size={14} className={isResending ? 'animate-spin' : ''} />
+                  <RefreshCw size={13} className={isResending ? 'animate-spin' : ''} />
                   Resend Code
                 </button>
               )}
@@ -295,12 +304,12 @@ export default function VerifyOTP() {
           </div>
         </div>
 
-        <div className="mt-8 text-center">
+        <div className="mt-6 sm:mt-8 text-center">
           <Link
             to="/register"
-            className="inline-flex items-center gap-2 text-sm font-bold text-ink-muted hover:text-ink transition-colors"
+            className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-ink-muted hover:text-ink transition-colors"
           >
-            <ArrowLeft size={16} />
+            <ArrowLeft size={15} />
             Back to Registration
           </Link>
         </div>

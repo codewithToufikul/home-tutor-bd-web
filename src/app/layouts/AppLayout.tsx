@@ -33,6 +33,17 @@ export default function AppLayout() {
     location.pathname.startsWith('/student') ||
     location.pathname.startsWith('/coaching');
 
+  const authRoutes = [
+    '/login',
+    '/register',
+    '/verify-otp',
+    '/forgot-password',
+    '/reset-password',
+    '/pending-approval',
+  ];
+
+  const isAuthRoute = authRoutes.some((p) => location.pathname === p || location.pathname.startsWith(p + '/'));
+
   return (
     <div className="min-h-screen flex flex-col bg-background selection:bg-primary/20 selection:text-primary">
       <NotificationPermissionBanner />
@@ -45,9 +56,9 @@ export default function AppLayout() {
         </AnimatePresence>
       </main>
 
-      {!isDashboardRoute && <Footer />}
-      {!isDashboardRoute && <FloatingActions />}
-      {!isDashboardRoute && <MobileNav />}
+      {!isDashboardRoute && !isAuthRoute && <Footer />}
+      {!isDashboardRoute && !isAuthRoute && <FloatingActions />}
+      {!isDashboardRoute && !isAuthRoute && <MobileNav />}
     </div>
   );
 }

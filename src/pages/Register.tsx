@@ -94,18 +94,18 @@ export default function Register() {
     }
   };
 
-  const inputClasses = "block w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-ink/10 rounded-2xl text-ink placeholder:text-ink-muted/50 focus:ring-2 focus:ring-primary/20 focus:border-primary/40 focus:bg-white outline-none transition-all text-sm font-medium";
+  const inputClasses = "block w-full pl-11 pr-4 py-3 sm:py-3.5 bg-slate-50/80 border border-ink/10 rounded-xl sm:rounded-2xl text-ink placeholder:text-ink-muted/50 focus:ring-2 focus:ring-primary/20 focus:border-primary/50 focus:bg-white outline-none transition-all text-sm font-medium";
   const labelClasses = "text-xs font-bold text-slate-800 tracking-wide mb-1.5 block";
 
   return (
-    <div className="min-h-screen bg-slate-50/50 flex flex-col justify-center pt-4 sm:pt-8 pb-36 sm:pb-16 px-3.5 sm:px-6 lg:px-8 relative overflow-hidden">
+    <div className="min-h-screen bg-slate-50/60 flex flex-col justify-center py-4 sm:py-10 px-3 sm:px-6 lg:px-8 relative overflow-hidden">
       {/* Background Decorative Blur Orbs */}
-      <div className="absolute top-0 right-0 w-[350px] sm:w-[500px] h-[350px] sm:h-[500px] bg-primary/10 blur-[100px] sm:blur-[140px] rounded-full pointer-events-none -translate-y-1/3 translate-x-1/3" />
-      <div className="absolute bottom-0 left-0 w-[350px] sm:w-[500px] h-[350px] sm:h-[500px] bg-teal-400/10 blur-[100px] sm:blur-[140px] rounded-full pointer-events-none translate-y-1/3 -translate-x-1/3" />
+      <div className="absolute top-0 right-0 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-primary/10 blur-[80px] sm:blur-[140px] rounded-full pointer-events-none -translate-y-1/3 translate-x-1/3" />
+      <div className="absolute bottom-0 left-0 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-teal-400/10 blur-[80px] sm:blur-[140px] rounded-full pointer-events-none translate-y-1/3 -translate-x-1/3" />
 
       <div className="max-w-7xl w-full mx-auto relative z-10 px-0 sm:px-4">
         {/* Main 2-Column Split Container */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-center">
           
           {/* ─── LEFT SIDE: Illustration (Desktop Only) ─────────────────────── */}
           <div className="lg:col-span-6 hidden lg:flex flex-col items-center justify-center p-0 lg:pr-4 sticky top-24">
@@ -121,11 +121,11 @@ export default function Register() {
 
           {/* ─── RIGHT SIDE: Registration Form ──────────────────────────────────── */}
           <div className="lg:col-span-6 w-full max-w-xl mx-auto lg:mx-0">
-            <div className="bg-white py-8 px-6 sm:px-10 shadow-2xl shadow-ink/5 rounded-[2.5rem] border border-ink/10 relative">
+            <div className="bg-white py-6 px-4 sm:py-8 sm:px-10 shadow-xl sm:shadow-2xl shadow-ink/5 rounded-3xl sm:rounded-[2.5rem] border border-ink/5 relative">
               
               {/* Header Title */}
-              <div className="text-center sm:text-left mb-6">
-                <h2 className="text-2xl sm:text-3xl font-display font-black text-ink">
+              <div className="text-center sm:text-left mb-5 sm:mb-6">
+                <h2 className="text-2xl sm:text-3xl font-display font-black text-ink tracking-tight">
                   Create an account
                 </h2>
                 <p className="mt-1 text-xs sm:text-sm text-ink-muted">
@@ -141,21 +141,23 @@ export default function Register() {
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="mb-6 p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 text-rose-600 text-xs sm:text-sm font-bold"
+                  className="mb-5 p-3.5 sm:p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 text-rose-600 text-xs sm:text-sm font-bold shadow-xs"
                 >
-                  <AlertCircle size={18} className="shrink-0" />
+                  <AlertCircle size={18} className="shrink-0 text-rose-500" />
                   <span>{error}</span>
                 </motion.div>
               )}
 
-              {/* Role Toggle Bar */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-slate-100/80 p-1.5 rounded-2xl mb-6 border border-ink/5">
+              {/* Role Toggle Bar - Native Segmented Control */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-slate-100/90 p-1.5 rounded-2xl mb-5 sm:mb-6 border border-slate-200/60 shadow-inner">
                 <button
                   type="button"
                   onClick={() => setUserType('tutor')}
                   className={cn(
-                    "flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer",
-                    userType === 'tutor' ? "bg-white text-primary shadow-md shadow-primary/10 border border-primary/20" : "text-ink-muted hover:text-ink"
+                    "flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95",
+                    userType === 'tutor' 
+                      ? "bg-white text-primary shadow-sm shadow-primary/10 border border-primary/20" 
+                      : "text-ink-muted hover:text-ink"
                   )}
                 >
                   <GraduationCap size={15} />
@@ -165,8 +167,10 @@ export default function Register() {
                   type="button"
                   onClick={() => setUserType('student')}
                   className={cn(
-                    "flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer",
-                    userType === 'student' ? "bg-white text-blue-600 shadow-md shadow-blue-600/10 border border-blue-200" : "text-ink-muted hover:text-ink"
+                    "flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95",
+                    userType === 'student' 
+                      ? "bg-white text-blue-600 shadow-sm shadow-blue-600/10 border border-blue-200" 
+                      : "text-ink-muted hover:text-ink"
                   )}
                 >
                   <User size={15} />
@@ -176,8 +180,10 @@ export default function Register() {
                   type="button"
                   onClick={() => setUserType('guardian')}
                   className={cn(
-                    "flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer",
-                    userType === 'guardian' ? "bg-white text-emerald-600 shadow-md shadow-emerald-600/10 border border-emerald-200" : "text-ink-muted hover:text-ink"
+                    "flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95",
+                    userType === 'guardian' 
+                      ? "bg-white text-emerald-600 shadow-sm shadow-emerald-600/10 border border-emerald-200" 
+                      : "text-ink-muted hover:text-ink"
                   )}
                 >
                   <UserCircle size={15} />
@@ -187,8 +193,10 @@ export default function Register() {
                   type="button"
                   onClick={() => setUserType('coaching')}
                   className={cn(
-                    "flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer",
-                    userType === 'coaching' ? "bg-white text-purple-600 shadow-md shadow-purple-600/10 border border-purple-200" : "text-ink-muted hover:text-ink"
+                    "flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95",
+                    userType === 'coaching' 
+                      ? "bg-white text-purple-600 shadow-sm shadow-purple-600/10 border border-purple-200" 
+                      : "text-ink-muted hover:text-ink"
                   )}
                 >
                   <Building2 size={15} />
@@ -198,12 +206,12 @@ export default function Register() {
 
               {/* Form Section */}
               <form className="space-y-4 sm:space-y-5" onSubmit={handleSubmit}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-5">
                   
                   {/* Full Name */}
                   <div className="md:col-span-2">
                     <label className={labelClasses}>
-                      {userType === 'coaching' ? 'Institute Name *' : userType === 'guardian' ? 'Guardian Full Name *' : 'Full Name *'}
+                      {userType === 'coaching' ? 'Institute Name' : userType === 'guardian' ? 'Guardian Full Name' : 'Full Name'} <span className="text-rose-500 font-black">*</span>
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
@@ -212,6 +220,8 @@ export default function Register() {
                       <input
                         type="text"
                         required
+                        inputMode="text"
+                        autoComplete="name"
                         className={inputClasses}
                         placeholder={userType === 'coaching' ? "e.g. Master Coaching Center" : "e.g. Toufik Hasan"}
                         value={formData.name}
@@ -220,19 +230,19 @@ export default function Register() {
                     </div>
                   </div>
 
-                  {/* ─── GENDER SELECTION (Exact match to screenshot) ───────────── */}
+                  {/* ─── GENDER SELECTION ───────────── */}
                   <div className="md:col-span-2">
                     <label className={labelClasses}>
                       Gender <span className="text-rose-500 font-black">*</span>
                     </label>
-                    <div className="grid grid-cols-2 gap-3.5 sm:gap-4">
+                    <div className="grid grid-cols-2 gap-2.5 sm:gap-4">
                       
                       {/* Male Option Card */}
                       <button
                         type="button"
                         onClick={() => setFormData({ ...formData, gender: 'Male' })}
                         className={cn(
-                          "relative flex items-center justify-between p-3 sm:p-3.5 rounded-2xl border-2 transition-all cursor-pointer text-left bg-white shadow-sm",
+                          "relative flex items-center justify-between p-2.5 sm:p-3.5 rounded-2xl border-2 transition-all cursor-pointer text-left bg-white shadow-xs active:scale-[0.98]",
                           formData.gender === 'Male'
                             ? "border-teal-600 bg-teal-50/20 ring-2 ring-teal-500/20"
                             : "border-slate-200 hover:border-slate-300"
@@ -297,7 +307,7 @@ export default function Register() {
                         type="button"
                         onClick={() => setFormData({ ...formData, gender: 'Female' })}
                         className={cn(
-                          "relative flex items-center justify-between p-3 sm:p-3.5 rounded-2xl border-2 transition-all cursor-pointer text-left bg-white shadow-sm",
+                          "relative flex items-center justify-between p-2.5 sm:p-3.5 rounded-2xl border-2 transition-all cursor-pointer text-left bg-white shadow-xs active:scale-[0.98]",
                           formData.gender === 'Female'
                             ? "border-teal-600 bg-teal-50/20 ring-2 ring-teal-500/20"
                             : "border-slate-200 hover:border-slate-300"
@@ -360,7 +370,7 @@ export default function Register() {
 
                   {/* Email */}
                   <div>
-                    <label className={labelClasses}>Email Address *</label>
+                    <label className={labelClasses}>Email Address <span className="text-rose-500 font-black">*</span></label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                         <Mail size={18} />
@@ -368,6 +378,9 @@ export default function Register() {
                       <input
                         type="email"
                         required
+                        inputMode="email"
+                        autoCapitalize="none"
+                        autoComplete="email"
                         className={inputClasses}
                         placeholder="email@example.com"
                         value={formData.email}
@@ -378,7 +391,7 @@ export default function Register() {
 
                   {/* Phone */}
                   <div>
-                    <label className={labelClasses}>Phone Number *</label>
+                    <label className={labelClasses}>Phone Number <span className="text-rose-500 font-black">*</span></label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                         <Phone size={18} />
@@ -386,6 +399,8 @@ export default function Register() {
                       <input
                         type="tel"
                         required
+                        inputMode="tel"
+                        autoComplete="tel"
                         className={inputClasses}
                         placeholder="017XXXXXXXX"
                         value={formData.phone}
@@ -397,7 +412,7 @@ export default function Register() {
                   {/* Coaching Specific Field */}
                   {userType === 'coaching' && (
                     <div className="md:col-span-2">
-                      <label className={labelClasses}>Trade License / Registration Number *</label>
+                      <label className={labelClasses}>Trade License / Registration Number <span className="text-rose-500 font-black">*</span></label>
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-purple-600">
                           <FileText size={18} />
@@ -405,6 +420,7 @@ export default function Register() {
                         <input
                           type="text"
                           required
+                          inputMode="text"
                           className={inputClasses}
                           placeholder="e.g. TRAD/SYL/1234/2026"
                           value={formData.tradeLicense}
@@ -419,7 +435,7 @@ export default function Register() {
                   {(userType === 'tutor' || userType === 'guardian' || userType === 'student') && (
                     <>
                       <div>
-                        <label className={labelClasses}>District *</label>
+                        <label className={labelClasses}>District <span className="text-rose-500 font-black">*</span></label>
                         <div className="relative">
                           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                             <MapPin size={18} />
@@ -438,7 +454,7 @@ export default function Register() {
                       </div>
 
                       <div>
-                        <label className={labelClasses}>Your Area / Location *</label>
+                        <label className={labelClasses}>Your Area / Location <span className="text-rose-500 font-black">*</span></label>
                         <div className="relative">
                           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                             <MapPin size={18} />
@@ -446,6 +462,7 @@ export default function Register() {
                           <input
                             type="text"
                             required
+                            inputMode="text"
                             list="area-suggestions"
                             className={inputClasses}
                             placeholder="e.g. Dhanmondi / Uttara"
@@ -465,7 +482,7 @@ export default function Register() {
                   {/* Preferred Tuition Area for Tutors */}
                   {userType === 'tutor' && (
                     <div className="md:col-span-2">
-                      <label className={labelClasses}>Preferred Tuition Areas (Comma separated) *</label>
+                      <label className={labelClasses}>Preferred Tuition Areas (Comma separated) <span className="text-rose-500 font-black">*</span></label>
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                           <MapPin size={18} />
@@ -473,6 +490,7 @@ export default function Register() {
                         <input
                           type="text"
                           required
+                          inputMode="text"
                           className={inputClasses}
                           placeholder="e.g. Dhanmondi, Mohammadpur, Lalmatia"
                           value={formData.preferredArea}
@@ -484,7 +502,7 @@ export default function Register() {
 
                   {/* Password */}
                   <div>
-                    <label className={labelClasses}>Password *</label>
+                    <label className={labelClasses}>Password <span className="text-rose-500 font-black">*</span></label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                         <Lock size={18} />
@@ -492,6 +510,7 @@ export default function Register() {
                       <input
                         type={showPassword ? "text" : "password"}
                         required
+                        autoComplete="new-password"
                         className={cn(inputClasses, "pr-11")}
                         placeholder="••••••••"
                         value={formData.password}
@@ -501,6 +520,7 @@ export default function Register() {
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
                         className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
+                        aria-label="Toggle password visibility"
                       >
                         {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                       </button>
@@ -509,7 +529,7 @@ export default function Register() {
 
                   {/* Confirm Password */}
                   <div>
-                    <label className={labelClasses}>Confirm Password *</label>
+                    <label className={labelClasses}>Confirm Password <span className="text-rose-500 font-black">*</span></label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                         <Lock size={18} />
@@ -517,6 +537,7 @@ export default function Register() {
                       <input
                         type={showConfirmPassword ? "text" : "password"}
                         required
+                        autoComplete="new-password"
                         className={cn(inputClasses, "pr-11")}
                         placeholder="••••••••"
                         value={formData.confirmPassword}
@@ -526,6 +547,7 @@ export default function Register() {
                         type="button"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                         className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
+                        aria-label="Toggle confirm password visibility"
                       >
                         {showConfirmPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                       </button>
@@ -540,7 +562,7 @@ export default function Register() {
                     type="submit"
                     disabled={isSubmitting}
                     className={cn(
-                      "w-full flex justify-center items-center gap-2 py-4 px-4 rounded-2xl shadow-xl font-bold text-white text-sm transition-all active:scale-[0.99] disabled:opacity-50 cursor-pointer",
+                      "w-full flex justify-center items-center gap-2 py-3.5 sm:py-4 px-4 rounded-xl sm:rounded-2xl shadow-lg font-bold text-white text-sm sm:text-base transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer",
                       userType === 'tutor' ? "bg-primary hover:bg-primary-dark shadow-primary/25" :
                       userType === 'student' ? "bg-blue-600 hover:bg-blue-700 shadow-blue-600/25" :
                       userType === 'guardian' ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/25" :
@@ -559,7 +581,7 @@ export default function Register() {
                 </div>
 
                 {/* Terms Notice */}
-                <p className="text-center text-[11px] text-ink-muted">
+                <p className="text-center text-[11px] text-ink-muted px-2">
                   By clicking Register, you agree to our{' '}
                   <Link to="/terms" className="text-primary hover:underline font-medium">Terms of Service</Link>{' '}
                   and{' '}
