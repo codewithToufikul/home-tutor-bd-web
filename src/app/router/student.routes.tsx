@@ -12,6 +12,7 @@ import StudentSavedTutors from '@/src/pages/StudentSavedTutors.tsx';
 import StudentSettings from '@/src/pages/StudentSettings.tsx';
 
 import StudentJobApplications from '@/src/pages/StudentJobApplications.tsx';
+import StudentDownloads from '@/src/pages/StudentDownloads.tsx';
 
 export const studentRoutes: RouteObject[] = [
   { path: 'student/dashboard', element: <AuthGuard allowedRoles={['student']}><StudentDashboard /></AuthGuard> },
@@ -24,4 +25,5 @@ export const studentRoutes: RouteObject[] = [
   { path: 'student/settings', element: <AuthGuard allowedRoles={['student']}><StudentSettings /></AuthGuard> },
   { path: 'student/notifications', element: <AuthGuard allowedRoles={['student', 'guardian']}><StudentNotifications /></AuthGuard> },
   { path: 'student/coaching-centers', element: <AuthGuard allowedRoles={['student', 'guardian']}><PublicCoachingExplorer isDashboard={true} /></AuthGuard> },
+  { path: 'student/downloads', element: <AuthGuard allowedRoles={['student', 'guardian']}><StudentDownloads /></AuthGuard> },
 ];

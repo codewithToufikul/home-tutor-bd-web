@@ -13,14 +13,10 @@ import {
   Search,
   MessageSquare,
   ShieldCheck,
-  User,
   Star,
-  FileText,
-  TrendingUp,
-  AlertCircle,
   Loader2,
   PlusCircle,
-  Award
+  X
 } from 'lucide-react';
 import StudentLayout from '@/src/components/StudentLayout.tsx';
 import GuardianLayout from '@/src/pages/GuardianLayout.tsx';
@@ -30,7 +26,6 @@ import { useAuth } from '@/src/context/AuthContext.tsx';
 import { TuitionService } from '@/src/services/tuitionService.ts';
 import { TuitionRepository } from '@/src/repositories/tuitionRepository.ts';
 import { useStartConversationMutation } from '@/src/services/chatApi';
-import { DEFAULT_PROFILE_IMAGE } from '@/src/constants';
 
 export default function StudentActiveTuitions() {
   const { user } = useAuth();
@@ -77,7 +72,6 @@ export default function StudentActiveTuitions() {
           const postedById = typeof j.postedBy === 'object' ? String(j.postedBy?._id || j.postedBy?.id) : String(j.postedBy || j.parentId || j.userId || '');
           return postedById === currentUserId;
         });
-        console.log('[StudentActiveTuitions] Found myJobs:', myJobs.length);
 
         // Fetch applications for each job and find accepted ones
         const activeList: any[] = [];
@@ -88,13 +82,10 @@ export default function StudentActiveTuitions() {
             try {
               const apps: any = await TuitionRepository.getApplications(jobId);
               const appList = Array.isArray(apps) ? apps : (apps?.data || []);
-              console.log(`[StudentActiveTuitions] Job ${jobId} applications:`, appList.length);
 
               const acceptedApp = appList.find((a: any) => a.status?.toLowerCase() === 'accepted');
 
               if (acceptedApp) {
-                console.log(`[StudentActiveTuitions] Found accepted application for job ${jobId}:`, acceptedApp);
-                // Populate tutor details
                 const tutorUser: any = typeof acceptedApp.tutorId === 'object' ? acceptedApp.tutorId : {};
                 const tutorProfile: any = acceptedApp.tutorProfile || {};
 
@@ -142,7 +133,6 @@ export default function StudentActiveTuitions() {
           })
         );
 
-        console.log('[StudentActiveTuitions] Total Active Tuitions found:', activeList.length);
         setActiveTuitions(activeList);
       } catch (err) {
         console.error('[StudentActiveTuitions] Failed to load active tuitions:', err);
@@ -180,280 +170,244 @@ export default function StudentActiveTuitions() {
 
   return (
     <Layout>
-      <div className="space-y-8 max-w-6xl mx-auto pb-20">
+      <div className="space-y-4 sm:space-y-6 max-w-6xl mx-auto pb-10">
 
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-1">
-            <h1 className="text-3xl font-display font-black text-ink flex items-center gap-3">
-              <div className="w-12 h-12 bg-emerald-500/10 text-emerald-600 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/5">
-                <BookOpen size={24} />
-              </div>
-              Active Tuitions (চলতি টিউশন)
-            </h1>
-            <p className="text-sm font-medium text-ink-muted">
-              আপনার কনফার্ম করা টিউটরদের সম্পূর্ণ প্রোফাইল, যোগাযোগ ও ক্লাস মনিটরিং।
-            </p>
+        {/* ── Compact Header ── */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/90 backdrop-blur-md p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-2xs">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-emerald-500/10 text-emerald-600 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 shadow-2xs">
+              <BookOpen size={20} strokeWidth={2.5} />
+            </div>
+            <div className="space-y-0.5">
+              <h1 className="text-lg sm:text-2xl font-display font-black text-[#001F3F] tracking-tight">
+                Active Tuitions (চলতি টিউশন)
+              </h1>
+              <p className="text-xs sm:text-sm font-medium text-slate-500">
+                কনফার্ম করা টিউটরদের সম্পূর্ণ প্রোফাইল, যোগাযোগ ও ক্লাস মনিটরিং।
+              </p>
+            </div>
           </div>
 
           <Link
             to="/request-tutor"
-            className="bg-primary text-white px-6 py-3.5 rounded-2xl font-black text-xs uppercase shadow-xl shadow-primary/20 hover:bg-primary-dark transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer self-start md:self-auto"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 sm:px-6 py-2.5 sm:py-3 bg-secondary hover:bg-emerald-600 text-white rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider shadow-md shadow-secondary/20 transition-all active:scale-95 shrink-0"
           >
-            <PlusCircle size={16} />
-            Post New Tuition Job
+            <PlusCircle size={15} strokeWidth={2.5} />
+            <span>Post New Job</span>
           </Link>
         </div>
 
-        {/* 🛡️ 0% Platform Fee Banner (১০০% ফ্রি) 🛡️ */}
-        <div className="bg-gradient-to-r from-emerald-500 via-teal-600 to-emerald-600 p-6 rounded-[28px] text-white shadow-xl shadow-emerald-500/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-inner">
-              <ShieldCheck size={26} />
+        {/* ── 🛡️ Compact 0% Platform Fee Banner ── */}
+        <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl text-white shadow-md flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-white/20 rounded-xl flex items-center justify-center text-white shrink-0 shadow-inner">
+              <ShieldCheck size={20} />
             </div>
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
-                <span className="px-2.5 py-0.5 bg-white/20 text-white rounded-full text-[10px] font-black uppercase tracking-wider">
+                <span className="px-2 py-0.2 bg-white/25 text-white rounded-md text-[9px] font-black uppercase tracking-wider">
                   ১০০% ফ্রি সার্ভিস
                 </span>
-                <span className="text-xs font-bold text-emerald-100">Zero Commission</span>
+                <span className="text-[11px] font-bold text-emerald-100 hidden sm:inline">Zero Commission</span>
               </div>
-              <h3 className="text-base font-black text-white">অভিভাবক ও শিক্ষার্থীদের জন্য কোনো প্ল্যাটফর্ম ফি নেই</h3>
-              <p className="text-xs text-emerald-100 font-medium">
-                Home Tutor BD সম্পূর্ণ বিনামূল্যে আপনাকে সেরা টিউটরের সাথে যুক্ত করে।
-              </p>
+              <h3 className="text-xs sm:text-sm font-black text-white leading-tight">
+                অভিভাবক ও শিক্ষার্থীদের জন্য কোনো প্ল্যাটফর্ম ফি নেই
+              </h3>
             </div>
           </div>
         </div>
 
-        {/* Stats Summary Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          <div className="bg-white/70 backdrop-blur-xl p-6 rounded-[28px] border border-white/60 shadow-xl shadow-ink/5 flex items-center gap-5">
-            <div className="w-14 h-14 bg-emerald-500 text-white rounded-2xl flex items-center justify-center font-black shadow-lg shadow-emerald-500/20">
-              <CheckCircle2 size={28} />
+        {/* ── 📊 2-Column App-Style Stats Row on Mobile ── */}
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-4">
+          <div className="bg-white/95 backdrop-blur-md p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3">
+            <div className="w-9 h-9 sm:w-11 sm:h-11 bg-emerald-500 text-white rounded-xl sm:rounded-2xl flex items-center justify-center font-black shadow-xs shrink-0">
+              <CheckCircle2 size={18} />
             </div>
             <div>
-              <p className="text-xs font-bold text-ink-muted uppercase">চলতি টিউশন</p>
-              <p className="text-2xl font-black text-ink">{activeTuitions.length} টি</p>
+              <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">চলতি টিউশন</p>
+              <p className="text-lg sm:text-2xl font-black text-[#001F3F]">{activeTuitions.length} টি</p>
             </div>
           </div>
 
-          <div className="bg-white/70 backdrop-blur-xl p-6 rounded-[28px] border border-white/60 shadow-xl shadow-ink/5 flex items-center gap-5">
-            <div className="w-14 h-14 bg-purple-500 text-white rounded-2xl flex items-center justify-center font-black shadow-lg shadow-purple-500/20">
-              <DollarSign size={28} />
+          <div className="bg-white/95 backdrop-blur-md p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3">
+            <div className="w-9 h-9 sm:w-11 sm:h-11 bg-purple-500 text-white rounded-xl sm:rounded-2xl flex items-center justify-center font-black shadow-xs shrink-0">
+              <DollarSign size={18} />
             </div>
             <div>
-              <p className="text-xs font-bold text-ink-muted uppercase">মাসিক মোট টিউটর ফি</p>
-              <p className="text-2xl font-black text-purple-600">৳{totalMonthlySpend.toLocaleString()}</p>
+              <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">মাসিক মোট বেতন</p>
+              <p className="text-lg sm:text-2xl font-black text-purple-600 truncate">৳{totalMonthlySpend.toLocaleString()}</p>
             </div>
           </div>
         </div>
 
-        {/* Search Bar */}
+        {/* ── Search Bar ── */}
         <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-muted" size={20} />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
           <input
             type="text"
-            placeholder="Search by tutor name, subject, class, or location..."
+            placeholder="Search by tutor, subject, class, or area..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-4 bg-white rounded-2xl border border-ink/5 shadow-sm focus:ring-2 focus:ring-emerald-500/20 outline-none font-medium transition-all text-sm"
+            className="w-full pl-10 pr-4 py-2.5 sm:py-3 bg-white rounded-xl sm:rounded-2xl border border-slate-200/90 shadow-2xs focus:ring-2 focus:ring-emerald-500/20 outline-none font-medium transition-all text-xs sm:text-sm text-[#001F3F]"
           />
         </div>
 
-        {/* Active Tuitions List */}
+        {/* ── Active Tuitions List ── */}
         {loading ? (
-          <div className="py-24 text-center space-y-4 bg-white/40 backdrop-blur-xl border border-white/40 rounded-[32px] shadow-sm">
-            <Loader2 className="animate-spin text-emerald-600 mx-auto" size={36} />
-            <p className="text-xs font-bold text-ink-muted">Loading active tuitions...</p>
+          <div className="py-16 text-center space-y-3 bg-white/70 backdrop-blur-md border border-slate-200 rounded-3xl shadow-xs">
+            <Loader2 className="animate-spin text-emerald-600 mx-auto" size={30} />
+            <p className="text-xs font-bold text-slate-500">Loading active tuitions...</p>
           </div>
         ) : filteredTuitions.length > 0 ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {filteredTuitions.map((tuition, index) => (
               <motion.div
                 key={tuition.id}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.08 }}
-                className="bg-white/80 backdrop-blur-xl p-8 rounded-[36px] border-2 border-emerald-500/20 shadow-xl shadow-emerald-500/5 hover:border-emerald-500/40 transition-all space-y-6 flex flex-col justify-between"
+                transition={{ delay: index * 0.06 }}
+                className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-emerald-500/30 transition-all p-4 sm:p-6 space-y-4 flex flex-col justify-between"
               >
                 {/* Top Header */}
-                <div className="space-y-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="space-y-1.5">
-                      <div className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-emerald-500 text-white text-[10px] font-black uppercase tracking-wider rounded-full shadow-sm">
-                        <CheckCircle2 size={13} />
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-black uppercase tracking-wider rounded-full shadow-2xs">
+                        <CheckCircle2 size={11} />
                         Active & Confirmed
                       </div>
-                      <h3 className="text-xl font-display font-black text-ink">{tuition.title}</h3>
+                      <h3 className="text-base sm:text-lg font-display font-black text-[#001F3F] leading-tight">{tuition.title}</h3>
                       <p className="text-xs font-bold text-emerald-700">বিষয়: {tuition.subjects}</p>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-2xl font-black text-emerald-600">{tuition.salaryFormatted}</p>
-                      <span className="text-[10px] font-bold text-ink-muted uppercase">টিউটর বেতন</span>
+                      <p className="text-lg sm:text-xl font-black text-emerald-600">{tuition.salaryFormatted}</p>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">টিউটর বেতন</span>
                     </div>
                   </div>
 
                   {/* Schedule & Info Grid */}
-                  <div className="grid grid-cols-2 gap-3 p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100/60 text-xs font-bold text-ink">
-                    <div className="flex items-center gap-2">
-                      <BookOpen size={15} className="text-emerald-600 shrink-0" />
-                      <span>শ্রেণী: <span className="font-black text-emerald-700">{tuition.studentClass}</span></span>
+                  <div className="grid grid-cols-2 gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200/60 text-xs font-bold text-slate-700">
+                    <div className="flex items-center gap-1.5 truncate">
+                      <BookOpen size={13} className="text-emerald-600 shrink-0" />
+                      <span className="truncate">শ্রেণী: <span className="text-[#001F3F]">{tuition.studentClass}</span></span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Calendar size={15} className="text-emerald-600 shrink-0" />
-                      <span>{tuition.daysPerWeek}</span>
+                    <div className="flex items-center gap-1.5 truncate">
+                      <Calendar size={13} className="text-emerald-600 shrink-0" />
+                      <span className="truncate">{tuition.daysPerWeek}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Clock size={15} className="text-emerald-600 shrink-0" />
-                      <span>ক্লাস সংখ্যা: {tuition.monthlyTargetClasses} টি/মাস</span>
+                    <div className="flex items-center gap-1.5 truncate">
+                      <Clock size={13} className="text-emerald-600 shrink-0" />
+                      <span className="truncate">{tuition.monthlyTargetClasses} টি/মাস</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <ShieldCheck size={15} className="text-emerald-600 shrink-0" />
-                      <span>শুরু: {tuition.confirmedDate}</span>
+                    <div className="flex items-center gap-1.5 truncate">
+                      <ShieldCheck size={13} className="text-emerald-600 shrink-0" />
+                      <span className="truncate">শুরু: {tuition.confirmedDate}</span>
                     </div>
-                    <div className="flex items-center gap-2 col-span-2 pt-1 border-t border-emerald-100/60">
-                      <MapPin size={15} className="text-emerald-600 shrink-0" />
+                    <div className="flex items-center gap-1.5 col-span-2 pt-1 border-t border-slate-200/60 text-slate-500">
+                      <MapPin size={13} className="text-emerald-600 shrink-0" />
                       <span className="truncate">{tuition.location}</span>
                     </div>
                   </div>
 
-                  {/* 👨‍🏫 Confirmed Tutor Contact Details Card 👨‍🏫 */}
-                  <div className="p-5 bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/40 rounded-[28px] border-2 border-emerald-500/20 shadow-sm space-y-4">
+                  {/* 👨‍🏫 Confirmed Tutor Contact Card 👨‍🏫 */}
+                  <div className="p-3.5 sm:p-4 bg-gradient-to-br from-emerald-50/50 via-white to-teal-50/30 rounded-2xl border border-emerald-500/20 shadow-2xs space-y-3">
                     <div className="flex items-center justify-between">
-                      <p className="text-[10px] font-black text-ink-muted uppercase tracking-wider">
-                        নিযুক্ত টিউটরের তথ্য ও যোগাযোগ (Tutor Contact Details)
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                        নিযুক্ত টিউটরের তথ্য
                       </p>
-                      <span className="inline-flex items-center gap-1 text-[11px] font-black text-emerald-600 bg-emerald-100/70 px-3 py-0.5 rounded-full border border-emerald-300 shadow-xs">
-                        <CheckCircle2 size={12} /> ভেরিফাইড টিউটর
+                      <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-full">
+                        <CheckCircle2 size={11} /> ভেরিফাইড
                       </span>
                     </div>
 
                     {/* Tutor Profile Row */}
-                    <div className="flex items-center justify-between gap-4 pt-1">
-                      <div className="flex items-center gap-4 min-w-0">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
                         <img
                           src={tuition.tutorAvatar}
                           alt={tuition.tutorName}
-                          className="w-16 h-16 rounded-2xl object-cover border-2 border-emerald-500/30 shadow-md shadow-emerald-500/10 shrink-0"
+                          className="w-11 h-11 sm:w-13 sm:h-13 rounded-xl object-cover border border-emerald-500/30 shadow-2xs shrink-0"
                         />
                         <div className="space-y-0.5 min-w-0">
-                          <h4 className="text-lg font-black text-ink truncate">{tuition.tutorName}</h4>
-                          <p className="text-xs font-bold text-ink-muted truncate">{tuition.university}</p>
-                          <p className="text-[11px] font-bold text-emerald-700 truncate">{tuition.department}</p>
+                          <h4 className="text-xs sm:text-sm font-black text-[#001F3F] truncate">{tuition.tutorName}</h4>
+                          <p className="text-[11px] font-bold text-slate-500 truncate">{tuition.university}</p>
+                          <p className="text-[10px] font-bold text-emerald-700 truncate">{tuition.department}</p>
                         </div>
                       </div>
 
                       <button
                         onClick={() => handleStartChatWithTutor(tuition.tutorId)}
-                        className="px-4 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-2xl font-black text-xs uppercase flex items-center gap-2 shadow-lg shadow-primary/20 transition-all cursor-pointer shrink-0"
+                        className="px-3 py-1.5 sm:px-4 sm:py-2 bg-primary hover:bg-primary-dark text-white rounded-xl font-bold text-xs uppercase flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer shrink-0 active:scale-95"
                       >
-                        <MessageSquare size={14} />
-                        <span>ইন-অ্যাপ চ্যাট</span>
+                        <MessageSquare size={13} />
+                        <span>Chat</span>
                       </button>
                     </div>
 
-                    {/* Contact Information Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2 border-t border-emerald-100/80 text-xs">
-                      {/* Phone */}
-                      <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-emerald-100/80 shadow-xs">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
-                            <Phone size={14} />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-[10px] font-bold text-ink-muted">ফোন নম্বর</p>
-                            <p className="font-black text-ink truncate">{tuition.tutorPhone || '০১৭০০-০০০০০০'}</p>
-                          </div>
-                        </div>
-                        <a
-                          href={`tel:${(tuition.tutorPhone || '').replace(/[^0-9+]/g, '')}`}
-                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-black text-[11px] uppercase shadow-xs transition-all cursor-pointer shrink-0"
-                        >
-                          Call
-                        </a>
-                      </div>
+                    {/* Contact Actions Grid */}
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-emerald-100/80 text-xs">
+                      {/* Phone Call */}
+                      <a
+                        href={`tel:${(tuition.tutorPhone || '').replace(/[^0-9+]/g, '')}`}
+                        className="flex items-center justify-center gap-1.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl font-bold text-xs border border-emerald-200/80 transition-all cursor-pointer active:scale-95"
+                      >
+                        <Phone size={13} />
+                        <span>Call Tutor</span>
+                      </a>
 
-                      {/* WhatsApp */}
-                      <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-emerald-100/80 shadow-xs">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                            <MessageSquare size={14} />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-[10px] font-bold text-ink-muted">হোয়াটসঅ্যাপ</p>
-                            <p className="font-black text-ink truncate">{tuition.tutorPhone || '০১৭০০-০০০০০০'}</p>
-                          </div>
-                        </div>
-                        <a
-                          href={`https://wa.me/${(tuition.tutorPhone || '').replace(/[^0-9]/g, '')}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="px-3 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded-lg font-black text-[11px] uppercase shadow-xs transition-all cursor-pointer shrink-0"
-                        >
-                          Chat
-                        </a>
-                      </div>
-
-                      {/* Email */}
-                      <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-emerald-100/80 shadow-xs col-span-1 sm:col-span-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
-                            <Mail size={14} />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-[10px] font-bold text-ink-muted">ইমেইল এড্রেস</p>
-                            <p className="font-black text-ink truncate">{tuition.tutorEmail || 'tutor@example.com'}</p>
-                          </div>
-                        </div>
-                        <a
-                          href={`mailto:${tuition.tutorEmail || ''}`}
-                          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-black text-[11px] uppercase shadow-xs transition-all cursor-pointer shrink-0"
-                        >
-                          Email
-                        </a>
-                      </div>
+                      {/* WhatsApp Chat */}
+                      <a
+                        href={`https://wa.me/${(tuition.tutorPhone || '').replace(/[^0-9]/g, '')}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center justify-center gap-1.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs transition-all cursor-pointer active:scale-95"
+                      >
+                        <MessageSquare size={13} />
+                        <span>WhatsApp</span>
+                      </a>
                     </div>
                   </div>
                 </div>
 
                 {/* Actions Footer */}
-                <div className="pt-4 border-t border-ink/5 flex items-center justify-between gap-3">
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
                   <button
                     onClick={() => setSelectedReviewTuition(tuition)}
-                    className="px-4 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-xl font-black text-xs uppercase transition-all flex items-center gap-1.5 cursor-pointer border border-amber-200"
+                    className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-xl font-bold text-xs transition-all flex items-center gap-1 border border-amber-200 cursor-pointer active:scale-95"
                   >
-                    <Star size={14} className="fill-amber-500 text-amber-500" />
-                    রেটিং ও রিভিউ দিন
+                    <Star size={13} className="fill-amber-500 text-amber-500" />
+                    <span>রিভিউ দিন</span>
                   </button>
 
                   <Link
                     to={user?.role === 'guardian' ? `/guardian/requests/${tuition.id}/applications` : `/student/requests/${tuition.id}/applications`}
-                    className="px-5 py-2.5 bg-ink/5 hover:bg-ink hover:text-white text-ink rounded-xl font-black text-xs uppercase transition-all flex items-center gap-2"
+                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs transition-all flex items-center gap-1 active:scale-95"
                   >
-                    View Applications <ArrowRight size={14} />
+                    <span>Applications</span> <ArrowRight size={12} />
                   </Link>
                 </div>
               </motion.div>
             ))}
           </div>
         ) : (
-          <div className="p-16 bg-white/60 backdrop-blur-xl rounded-[36px] border border-white/40 shadow-sm text-center space-y-4">
-            <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
-              <BookOpen size={32} />
+          <div className="p-10 sm:p-14 bg-white rounded-3xl border border-slate-200 text-center space-y-3 shadow-2xs">
+            <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto">
+              <BookOpen size={24} />
             </div>
-            <div className="space-y-1.5">
-              <h3 className="text-xl font-display font-black text-ink">কোনো Active Tuition নেই</h3>
-              <p className="text-xs font-medium text-ink-muted max-w-md mx-auto">
-                আপনি টিউশন পোস্ট করার পর আবেদনকারী টিউটরকে কনফার্ম (Accept) করলে সেই চলতি টিউশনটি এখানে যুক্ত হবে।
+            <div className="space-y-1">
+              <h3 className="text-base sm:text-lg font-display font-black text-[#001F3F]">কোনো Active Tuition নেই</h3>
+              <p className="text-xs font-medium text-slate-500 max-w-sm mx-auto">
+                আপনি টিউশন পোস্ট করার পর আবেদনকারী টিউটরকে Accept করলে সেই চলতি টিউশনটি এখানে পাওয়া যাবে।
               </p>
             </div>
-            <Link
-              to="/request-tutor"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-xs uppercase shadow-lg shadow-emerald-600/20 transition-all"
-            >
-              Post a Tuition Job <ArrowRight size={14} />
-            </Link>
+            <div className="pt-2">
+              <Link
+                to="/request-tutor"
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-secondary hover:bg-emerald-600 text-white rounded-xl font-bold text-xs uppercase shadow-md transition-all active:scale-95"
+              >
+                <span>Post Tuition Job</span> <ArrowRight size={13} />
+              </Link>
+            </div>
           </div>
         )}
       </div>
@@ -465,33 +419,41 @@ export default function StudentActiveTuitions() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/40 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
           >
             <motion.div
-              initial={{ scale: 0.9, y: 20 }}
+              initial={{ scale: 0.9, y: 15 }}
               animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-              className="bg-white rounded-[32px] shadow-2xl max-w-md w-full p-8 space-y-6"
+              exit={{ scale: 0.9, y: 15 }}
+              className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 space-y-4"
             >
-              <div className="space-y-1">
-                <h3 className="text-xl font-display font-black text-ink flex items-center gap-2">
-                  <Star size={22} className="fill-amber-500 text-amber-500" />
-                  টিউটরকে রিভিউ দিন
-                </h3>
-                <p className="text-xs text-ink-muted font-medium">
-                  {selectedReviewTuition.tutorName} • {selectedReviewTuition.title}
-                </p>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <h3 className="text-base font-display font-black text-[#001F3F] flex items-center gap-1.5">
+                    <Star size={16} className="fill-amber-500 text-amber-500" />
+                    <span>টিউটরকে রিভিউ দিন</span>
+                  </h3>
+                  <p className="text-[11px] text-slate-500 font-medium">
+                    {selectedReviewTuition.tutorName} • {selectedReviewTuition.title}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setSelectedReviewTuition(null)}
+                  className="p-1.5 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors cursor-pointer"
+                >
+                  <X size={16} />
+                </button>
               </div>
 
               {reviewSuccess ? (
-                <div className="p-6 bg-emerald-50 border border-emerald-200 rounded-2xl text-center space-y-2">
-                  <CheckCircle2 size={32} className="text-emerald-600 mx-auto" />
-                  <p className="text-sm font-black text-emerald-800">ধন্যবাদ! আপনার মূল্যবান রিভিউ জমা হয়েছে।</p>
+                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-center space-y-1">
+                  <CheckCircle2 size={24} className="text-emerald-600 mx-auto" />
+                  <p className="text-xs font-black text-emerald-800">ধন্যবাদ! আপনার মূল্যবান রিভিউ জমা হয়েছে।</p>
                 </div>
               ) : (
-                <form onSubmit={handleReviewSubmit} className="space-y-4">
+                <form onSubmit={handleReviewSubmit} className="space-y-3">
                   <div>
-                    <label className="text-xs font-black text-ink block mb-2">রেটিং নির্বাচন করুন:</label>
+                    <label className="text-xs font-bold text-slate-700 block mb-1.5">রেটিং নির্বাচন করুন:</label>
                     <div className="flex gap-2">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <button
@@ -501,11 +463,11 @@ export default function StudentActiveTuitions() {
                           className="p-1 cursor-pointer transition-transform hover:scale-125"
                         >
                           <Star
-                            size={28}
+                            size={24}
                             className={cn(
                               star <= reviewRating
                                 ? "fill-amber-400 text-amber-400"
-                                : "text-gray-300"
+                                : "text-slate-200"
                             )}
                           />
                         </button>
@@ -514,27 +476,27 @@ export default function StudentActiveTuitions() {
                   </div>
 
                   <div>
-                    <label className="text-xs font-black text-ink block mb-2">আপনার মন্তব্য / অভিজ্ঞতা:</label>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">আপনার মন্তব্য / অভিজ্ঞতা:</label>
                     <textarea
                       value={reviewComment}
                       onChange={(e) => setReviewComment(e.target.value)}
                       placeholder="পড়ানোর ধরণ, সময়ানুবর্তিতা ও ব্যবহার সম্পর্কে লিখুন..."
                       rows={3}
-                      className="w-full p-3.5 bg-gray-50 border border-ink/10 rounded-2xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all resize-none"
+                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:bg-white transition-all resize-none"
                     />
                   </div>
 
-                  <div className="flex gap-3 pt-2">
+                  <div className="flex gap-2 pt-1">
                     <button
                       type="button"
                       onClick={() => setSelectedReviewTuition(null)}
-                      className="flex-1 py-3 rounded-xl border border-ink/10 text-ink font-bold text-xs hover:bg-ink/5 transition-all cursor-pointer"
+                      className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-bold text-xs hover:bg-slate-50 transition-all cursor-pointer"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
-                      className="flex-1 py-3 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
+                      className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
                     >
                       Submit Review
                     </button>

@@ -13,10 +13,6 @@ import {
   AlertCircle,
   Building2,
   FileText,
-  ShieldCheck,
-  Zap,
-  Users,
-  Star,
   Eye,
   EyeOff,
   CheckCircle
@@ -25,6 +21,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/src/context/AuthContext.tsx';
 import { cn } from '@/src/lib/utils';
 import { DISTRICT_WISE_AREAS } from '@/src/constants';
+import authIllustration from '@/src/lib/auth-illustration.png';
 
 export default function Register() {
   const [userType, setUserType] = useState<'tutor' | 'student' | 'guardian' | 'coaching'>('tutor');
@@ -101,91 +98,29 @@ export default function Register() {
   const labelClasses = "text-xs font-bold text-slate-800 tracking-wide mb-1.5 block";
 
   return (
-    <div className="min-h-screen bg-slate-50/50 flex flex-col justify-center py-8 lg:py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+    <div className="min-h-screen bg-slate-50/50 flex flex-col justify-center pt-4 sm:pt-8 pb-36 sm:pb-16 px-3.5 sm:px-6 lg:px-8 relative overflow-hidden">
       {/* Background Decorative Blur Orbs */}
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/10 blur-[140px] rounded-full pointer-events-none -translate-y-1/3 translate-x-1/3" />
-      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-teal-400/10 blur-[140px] rounded-full pointer-events-none translate-y-1/3 -translate-x-1/3" />
+      <div className="absolute top-0 right-0 w-[350px] sm:w-[500px] h-[350px] sm:h-[500px] bg-primary/10 blur-[100px] sm:blur-[140px] rounded-full pointer-events-none -translate-y-1/3 translate-x-1/3" />
+      <div className="absolute bottom-0 left-0 w-[350px] sm:w-[500px] h-[350px] sm:h-[500px] bg-teal-400/10 blur-[100px] sm:blur-[140px] rounded-full pointer-events-none translate-y-1/3 -translate-x-1/3" />
 
-      <div className="max-w-6xl w-full mx-auto relative z-10">
+      <div className="max-w-7xl w-full mx-auto relative z-10 px-0 sm:px-4">
         {/* Main 2-Column Split Container */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
           
-          {/* ─── LEFT SIDE: Platform Details & Trust Section ──────────────────────── */}
-          <div className="lg:col-span-5 space-y-8 text-center lg:text-left">
-            <div>
-              {/* Mini Brand Badge */}
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold mb-4 shadow-sm">
-                <ShieldCheck size={15} />
-                <span>#1 Verified Tutor Platform in Bangladesh</span>
-              </div>
-
-              <h1 className="text-3xl sm:text-4xl lg:text-4xl font-display font-black text-ink leading-tight">
-                Unlock Your Academic <span className="text-primary bg-gradient-to-r from-primary to-teal-600 bg-clip-text text-transparent">Excellence</span> Today.
-              </h1>
-              
-              <p className="mt-3 text-sm sm:text-base text-ink-muted leading-relaxed max-w-md mx-auto lg:mx-0">
-                Join thousands of verified tutors, students, and guardians across all 64 districts in Bangladesh for seamless home & online tutoring.
-              </p>
-            </div>
-
-            {/* Feature Highlights */}
-            <div className="space-y-4 text-left max-w-md mx-auto lg:mx-0">
-              <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-white/80 border border-ink/5 shadow-sm backdrop-blur-sm">
-                <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 shadow-sm">
-                  <ShieldCheck size={20} />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-ink">100% Background Verified</h4>
-                  <p className="text-[11px] text-ink-muted leading-tight mt-0.5">Every tutor is vetted with academic certificates and NID identification.</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-white/80 border border-ink/5 shadow-sm backdrop-blur-sm">
-                <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 shadow-sm">
-                  <Zap size={20} />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-ink">Instant Auto-Matching</h4>
-                  <p className="text-[11px] text-ink-muted leading-tight mt-0.5">AI-powered algorithm matches the best qualified tutor for your exact syllabus.</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-white/80 border border-ink/5 shadow-sm backdrop-blur-sm">
-                <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0 shadow-sm">
-                  <Users size={20} />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-ink">Zero Registration Fee</h4>
-                  <p className="text-[11px] text-ink-muted leading-tight mt-0.5">Sign up for free and browse verified tuition jobs and tutor profiles instantly.</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Live Social Proof / Testimonial Box */}
-            <div className="bg-gradient-to-br from-ink to-slate-900 text-white p-5 rounded-3xl shadow-xl space-y-3 max-w-md mx-auto lg:mx-0 text-left">
-              <div className="flex items-center gap-1 text-amber-400">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} size={14} fill="currentColor" />
-                ))}
-                <span className="text-xs font-bold text-white ml-2">4.9 / 5.0 Rating</span>
-              </div>
-              <p className="text-xs text-slate-300 italic leading-relaxed">
-                "Found an outstanding Math & Physics teacher for my HSC child in Uttara within hours. The automated verification made us feel completely safe."
-              </p>
-              <div className="flex items-center gap-3 pt-1 border-t border-white/10">
-                <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-xs font-black text-white">
-                  R
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-white">Rehana Sultana</p>
-                  <p className="text-[10px] text-slate-400">Guardian, Sector 7, Uttara, Dhaka</p>
-                </div>
-              </div>
+          {/* ─── LEFT SIDE: Illustration (Desktop Only) ─────────────────────── */}
+          <div className="lg:col-span-6 hidden lg:flex flex-col items-center justify-center p-0 lg:pr-4 sticky top-24">
+            <div className="relative w-full flex items-center justify-center">
+              <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 via-teal-400/15 to-emerald-300/10 rounded-full blur-3xl -z-10 scale-100" />
+              <img 
+                src={authIllustration} 
+                alt="Home Tutor Provider BD - Registration Illustration" 
+                className="w-full max-w-[640px] 2xl:max-w-[720px] h-auto object-contain drop-shadow-md select-none pointer-events-none transition-transform hover:scale-[1.02] duration-500"
+              />
             </div>
           </div>
 
           {/* ─── RIGHT SIDE: Registration Form ──────────────────────────────────── */}
-          <div className="lg:col-span-7">
+          <div className="lg:col-span-6 w-full max-w-xl mx-auto lg:mx-0">
             <div className="bg-white py-8 px-6 sm:px-10 shadow-2xl shadow-ink/5 rounded-[2.5rem] border border-ink/10 relative">
               
               {/* Header Title */}

@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Search, Briefcase, Trash2, ChevronLeft, ChevronRight, 
+import {
+  Search, Briefcase, Trash2, ChevronLeft, ChevronRight,
   MapPin, Clock, BookOpen, GraduationCap,
   Users, Globe, AlertCircle, CheckCircle2, XCircle
 } from 'lucide-react';
@@ -111,7 +111,7 @@ export default function AdminAllJobs() {
                 <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-ink-muted group-focus-within:text-primary transition-colors">
                   <Search size={14} />
                 </div>
-                <input 
+                <input
                   type="text"
                   placeholder="Search Tuition Code..."
                   value={searchQuery}
@@ -154,7 +154,7 @@ export default function AdminAllJobs() {
               <tbody className="divide-y divide-ink/5">
                 <AnimatePresence mode="popLayout">
                   {paginatedJobs.map((job, index) => (
-                    <motion.tr 
+                    <motion.tr
                       key={job.id}
                       layout
                       initial={{ opacity: 0, y: 10 }}
@@ -188,7 +188,7 @@ export default function AdminAllJobs() {
                         </span>
                       </td>
                       <td className="px-4 py-4 text-center">
-                        <button 
+                        <button
                           onClick={() => setJobToDelete(job.id)}
                           className="p-2 rounded-lg bg-[#FB7185] text-white shadow-lg shadow-rose-500/20 hover:bg-rose-600 transition-all active:scale-95"
                         >
@@ -253,7 +253,7 @@ export default function AdminAllJobs() {
                     <p className="text-[9px] font-black text-ink-muted uppercase">Medium: <span className="text-ink">{job.medium}</span></p>
                     <p className="text-[9px] font-black text-ink-muted uppercase">Gender: <span className="text-ink">{job.gender}</span></p>
                   </div>
-                  <button 
+                  <button
                     onClick={() => setJobToDelete(job.id)}
                     className="w-12 h-12 rounded-2xl bg-[#FB7185] text-white shadow-lg shadow-rose-500/20 flex items-center justify-center active:scale-95 transition-all"
                   >
@@ -268,21 +268,21 @@ export default function AdminAllJobs() {
         {/* Pagination Section */}
         {totalPages > 1 && (
           <div className="flex items-center justify-center gap-2 py-8">
-            <button 
+            <button
               onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
               disabled={currentPage === 1}
               className="w-10 h-10 rounded-xl bg-white/60 backdrop-blur-xl border border-white/40 flex items-center justify-center text-ink-muted hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm"
             >
               <ChevronLeft size={20} />
             </button>
-            
+
             <div className="flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur-xl border border-white/40 rounded-xl shadow-sm">
               <span className="text-sm font-bold text-ink-muted">
                 Page <span className="text-primary">{currentPage}</span> of {totalPages}
               </span>
             </div>
 
-            <button 
+            <button
               onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
               disabled={currentPage === totalPages}
               className="w-10 h-10 rounded-xl bg-white/60 backdrop-blur-xl border border-white/40 flex items-center justify-center text-ink-muted hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm"
@@ -312,14 +312,14 @@ export default function AdminAllJobs() {
       <AnimatePresence>
         {jobToDelete && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setJobToDelete(null)}
               className="absolute inset-0 bg-ink/20 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -335,13 +335,13 @@ export default function AdminAllJobs() {
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row gap-3">
-                <button 
+                <button
                   onClick={() => setJobToDelete(null)}
                   className="flex-1 py-4 rounded-2xl bg-ink/5 text-ink font-bold text-sm hover:bg-ink/10 transition-all"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   onClick={confirmDelete}
                   className="flex-1 py-4 rounded-2xl bg-[#EF4444] text-white font-bold text-sm shadow-lg shadow-rose-500/20 hover:bg-rose-600 transition-all"
                 >
@@ -358,8 +358,8 @@ export default function AdminAllJobs() {
 
 function TakaIcon({ size = 16, className = "" }: { size?: number, className?: string }) {
   return (
-    <div 
-      style={{ width: size, height: size, fontSize: size * 0.9 }} 
+    <div
+      style={{ width: size, height: size, fontSize: size * 0.9 }}
       className={cn("flex items-center justify-center font-black leading-none", className)}
     >
       ৳

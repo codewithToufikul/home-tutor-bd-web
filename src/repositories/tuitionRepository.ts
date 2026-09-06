@@ -22,7 +22,13 @@ export const TuitionRepository = {
   async create(data: Partial<TuitionJobRecord>) { return apiPost<TuitionJobRecord>('/tuition-jobs', data); },
   async update(id: string, data: Partial<TuitionJobRecord>) { return apiPatch<TuitionJobRecord>(`/tuition-jobs/${id}`, data); },
   async remove(id: string) { return apiDelete(`/tuition-jobs/${id}`); },
-  async apply(jobId: string, payload?: { expectedSalary?: number; coverLetter?: string; availableTime?: string[] }) {
+  async apply(jobId: string, payload?: { 
+    expectedSalary?: number; 
+    coverLetter?: string; 
+    availableTime?: string[];
+    signatureImage?: string;
+    agreedToTerms?: boolean;
+  }) {
     return apiPost(`/tuition-jobs/${jobId}/apply`, payload || {});
   },
   async getShortlisted(jobId: string) {

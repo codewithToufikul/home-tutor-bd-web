@@ -21,6 +21,9 @@ import TutorProfilePage from '@/src/pages/TutorProfile.tsx';
 import Tutors from '@/src/pages/Tutors.tsx';
 import ITServices from '@/src/pages/ITServices.tsx';
 import ITServiceDetails from '@/src/pages/ITServiceDetails.tsx';
+import Blogs from '@/src/pages/Blogs.tsx';
+import BlogDetail from '@/src/pages/BlogDetail.tsx';
+import ForgotPassword from '@/src/pages/ForgotPassword.tsx';
 
 export const publicRoutes: RouteObject[] = [
   { index: true, element: <Home /> },
@@ -28,6 +31,9 @@ export const publicRoutes: RouteObject[] = [
   { path: 'categories', element: <Categories /> },
   { path: 'services', element: <ITServices /> },
   { path: 'services/:id', element: <ITServiceDetails /> },
+  { path: 'blogs', element: <Blogs /> },
+  { path: 'blog/:id', element: <BlogDetail /> },
+  { path: 'blogs/:id', element: <BlogDetail /> },
   { path: 'help-center', element: <HelpCenter /> },
   { path: 'terms-of-service', element: <TermsOfService /> },
   { path: 'privacy-policy', element: <PrivacyPolicy /> },
@@ -41,6 +47,8 @@ export const publicRoutes: RouteObject[] = [
   { path: 'for-tutors', element: <ForTutors /> },
   { path: 'login', element: <AuthGuard guestOnly><Login /></AuthGuard> },
   { path: 'register', element: <AuthGuard guestOnly><Register /></AuthGuard> },
+  { path: 'forgot-password', element: <AuthGuard guestOnly><ForgotPassword /></AuthGuard> },
+  { path: 'reset-password', element: <AuthGuard guestOnly><ForgotPassword /></AuthGuard> },
   { path: 'verify-otp', element: <VerifyOTP /> },
   { path: 'pending-approval', element: <PendingApproval /> },
 ];

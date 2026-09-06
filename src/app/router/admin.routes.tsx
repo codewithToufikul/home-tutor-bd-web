@@ -11,6 +11,7 @@ import AdminCreateNotice from '@/src/pages/AdminCreateNotice.tsx';
 import AdminDashboard from '@/src/pages/AdminDashboard.tsx';
 import AdminDownloads from '@/src/pages/AdminDownloads.tsx';
 import AdminHirePending from '@/src/pages/AdminHirePending.tsx';
+import AdminHireRequests from '@/src/pages/AdminHireRequests.tsx';
 import AdminImportant from '@/src/pages/AdminImportant.tsx';
 import AdminInbox from '@/src/pages/AdminInbox.tsx';
 import AdminJobsApprove from '@/src/pages/AdminJobsApprove.tsx';
@@ -34,6 +35,8 @@ export const adminRoutes: RouteObject[] = [
   { path: 'admin/payments', element: <AuthGuard allowedRoles={['super_admin', 'admin']}><AdminPayments /></AuthGuard> },
   { path: 'admin/jobs-approve', element: <AuthGuard allowedRoles={['super_admin', 'admin', 'moderator']}><AdminJobsApprove /></AuthGuard> },
   { path: 'admin/hire-pending', element: <AuthGuard allowedRoles={['super_admin', 'admin', 'moderator']}><AdminHirePending /></AuthGuard> },
+  { path: 'admin/hire-requests', element: <AuthGuard allowedRoles={['super_admin', 'admin', 'moderator']}><AdminHireRequests /></AuthGuard> },
+  { path: 'admin/tutor-requests', element: <AuthGuard allowedRoles={['super_admin', 'admin', 'moderator']}><AdminHireRequests /></AuthGuard> },
   { path: 'admin/create-job', element: <AuthGuard allowedRoles={['super_admin', 'admin']}><AdminCreateJob /></AuthGuard> },
   { path: 'admin/create-notice', element: <AuthGuard allowedRoles={['super_admin', 'admin', 'moderator']}><AdminCreateNotice /></AuthGuard> },
   { path: 'admin/all-jobs', element: <AuthGuard allowedRoles={['super_admin', 'admin', 'moderator']}><AdminAllJobs /></AuthGuard> },

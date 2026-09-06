@@ -249,7 +249,7 @@ export default function TutorVerification() {
                 {uploadingNid ? (
                   <div className="space-y-3 py-6 flex flex-col items-center justify-center">
                     <Loader2 className="animate-spin text-primary" size={32} />
-                    <p className="text-xs font-bold text-primary">Uploading to Cloudinary...</p>
+                    <p className="text-xs font-bold text-primary">Uploading to R2...</p>
                   </div>
                 ) : nidCardUrl ? (
                   <div className="space-y-3 w-full flex flex-col items-center">
@@ -316,7 +316,7 @@ export default function TutorVerification() {
                 {uploadingStudentId ? (
                   <div className="space-y-3 py-6 flex flex-col items-center justify-center">
                     <Loader2 className="animate-spin text-primary" size={32} />
-                    <p className="text-xs font-bold text-primary">Uploading to Cloudinary...</p>
+                    <p className="text-xs font-bold text-primary">Uploading to R2...</p>
                   </div>
                 ) : studentIdCardUrl ? (
                   <div className="space-y-3 w-full flex flex-col items-center">

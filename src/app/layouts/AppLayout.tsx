@@ -6,6 +6,7 @@ import Footer from '@/src/components/Footer.tsx';
 import MobileNav from '@/src/components/MobileNav.tsx';
 import Navbar from '@/src/components/Navbar.tsx';
 import ScrollToTop from '@/src/components/ScrollToTop.tsx';
+import NotificationPermissionBanner from '@/src/components/NotificationPermissionBanner.tsx';
 
 export default function AppLayout() {
   const location = useLocation();
@@ -34,6 +35,7 @@ export default function AppLayout() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background selection:bg-primary/20 selection:text-primary">
+      <NotificationPermissionBanner />
       <ScrollToTop />
       {!isDashboardRoute && <Navbar />}
 

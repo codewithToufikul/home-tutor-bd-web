@@ -10,10 +10,14 @@ import AdminLayout from '@/src/components/AdminLayout.tsx';
 import { ContactService } from '@/src/services/contactService';
 import ChatInterface from '@/src/components/chat/ChatInterface';
 import { cn } from '@/src/lib/utils';
+import { useSearchParams } from 'react-router-dom';
 
 const ITEMS_PER_PAGE = 6;
 
 export default function AdminInbox() {
+  const [searchParams] = useSearchParams();
+  const initialUserId = searchParams.get('userId') || undefined;
+  const initialConversationId = searchParams.get('conversationId') || undefined;
   const [mainTab, setMainTab] = useState<'chat' | 'inquiries'>('chat');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
@@ -21,6 +25,13 @@ export default function AdminInbox() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedMessage, setSelectedMessage] = useState<any | null>(null);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+
+  // Switch to live chat tab when a deep-link userId or conversationId is provided in URL
+  useEffect(() => {
+    if (initialUserId || initialConversationId) {
+      setMainTab('chat');
+    }
+  }, [initialUserId, initialConversationId]);
 
   // Load contact inquiries from Firestore
   useEffect(() => {
@@ -89,15 +100,18 @@ export default function AdminInbox() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6 pb-20 max-w-7xl mx-auto">
+      <div className={cn(
+        "w-full h-full flex flex-col",
+        mainTab === 'chat' ? "min-h-0 gap-3" : "space-y-6 pb-20 max-w-7xl mx-auto overflow-y-auto"
+      )}>
 
         {/* 🎛️ Navigation Header Tabs (Live Chat vs Website Inquiries) */}
-        <div className="flex flex-wrap items-center justify-between gap-4 bg-white/80 backdrop-blur-xl p-4 rounded-[28px] border border-white/60 shadow-lg shadow-ink/5">
-          <div className="flex items-center gap-2 p-1.5 bg-gray-100/80 rounded-2xl">
+        <div className="flex flex-wrap items-center justify-between gap-4 bg-white/80 backdrop-blur-xl p-3 sm:p-4 rounded-[24px] border border-white/60 shadow-lg shadow-ink/5 shrink-0">
+          <div className="flex items-center gap-2 p-1 bg-gray-100/80 rounded-2xl">
             <button
               onClick={() => setMainTab('chat')}
               className={cn(
-                "px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer",
+                "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer",
                 mainTab === 'chat'
                   ? "bg-primary text-white shadow-md shadow-primary/20"
                   : "text-ink-muted hover:text-ink"
@@ -110,7 +124,7 @@ export default function AdminInbox() {
             <button
               onClick={() => setMainTab('inquiries')}
               className={cn(
-                "px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer",
+                "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer",
                 mainTab === 'inquiries'
                   ? "bg-primary text-white shadow-md shadow-primary/20"
                   : "text-ink-muted hover:text-ink"
@@ -135,11 +149,15 @@ export default function AdminInbox() {
 
         {/* 💬 TAB 1: Live Chat Interface */}
         {mainTab === 'chat' ? (
-          <ChatInterface
-            headerTitle="Student & Tutor Chat Hub"
-            headerSubtitle="Direct real-time messaging between students, tutors, and admin staff with instant notifications."
-            theme="admin"
-          />
+          <div className="flex-1 min-h-0 w-full">
+            <ChatInterface
+              headerTitle="Student & Tutor Chat Hub"
+              headerSubtitle="Direct real-time messaging between students, tutors, and admin staff with instant notifications."
+              theme="admin"
+              initialUserId={initialUserId}
+              initialConversationId={initialConversationId}
+            />
+          </div>
         ) : (
           /* 📨 TAB 2: Website Inquiries & Contact Forms */
           <div className="space-y-6">

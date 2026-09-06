@@ -11,6 +11,7 @@ import TutorProfileDashboard from '@/src/pages/TutorProfileDashboard.tsx';
 import TutorSecurity from '@/src/pages/TutorSecurity.tsx';
 import TutorVerification from '@/src/pages/TutorVerification.tsx';
 import TutorMessages from '@/src/pages/TutorMessages.tsx';
+import TutorDownloads from '@/src/pages/TutorDownloads.tsx';
 
 import { Navigate } from 'react-router-dom';
 
@@ -26,4 +27,5 @@ export const tutorRoutes: RouteObject[] = [
   { path: 'tutor/verification', element: <Navigate to="/tutor/profile?tab=verification" replace /> },
   { path: 'tutor/security', element: <AuthGuard allowedRoles={['tutor']}><TutorSecurity /></AuthGuard> },
   { path: 'tutor/settings', element: <AuthGuard allowedRoles={['tutor']}><TutorSecurity /></AuthGuard> },
+  { path: 'tutor/downloads', element: <AuthGuard allowedRoles={['tutor']}><TutorDownloads /></AuthGuard> },
 ];

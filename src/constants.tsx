@@ -227,7 +227,7 @@ export const CATEGORIES_DATA = [
     title: 'Admission Help',
     icon: GraduationCap,
     color: 'bg-purple-500',
-    image: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&q=80&w=800',
+    image: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=80&w=800',
     items: [
       'Public University Admission Test', 'Private University Admission Test', 'Medical College Admission Test', 'Engineering University Admission Test', 'School Admission Test', 'IBA Admission Test', 'Cadet Admission Help'
     ]
@@ -237,7 +237,7 @@ export const CATEGORIES_DATA = [
     title: 'Int. Exam Preparation',
     icon: Award,
     color: 'bg-indigo-500',
-    image: 'https://images.unsplash.com/photo-1517673132405-a56a62b18acc?auto=format&fit=crop&q=80&w=800',
+    image: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=800',
     items: [
       'IELTS', 'TOEFL', 'GMAT', 'GRE', 'SAT', 'GED'
     ]

@@ -1,10 +1,10 @@
-import { Star, CheckCircle, MapPin, GraduationCap, Briefcase, BookOpen, Banknote } from 'lucide-react';
+import { Star, CheckCircle, MapPin, GraduationCap, Briefcase, Banknote } from 'lucide-react';
 import { TutorProfile } from '@/src/types';
 import { cn } from '@/src/lib/utils';
 import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
 import { SearchService } from '@/src/services/searchService';
-import { getAvatarUrl } from '@/src/constants';
+import { getAvatarUrl, DEFAULT_PROFILE_IMAGE } from '@/src/constants';
 
 interface TutorCardProps {
   tutor: TutorProfile;
@@ -91,6 +91,12 @@ export default function TutorCard({ tutor, className, highlightQuery }: TutorCar
                   alt={displayName}
                   className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-500"
                   referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    if (target.src !== DEFAULT_PROFILE_IMAGE) {
+                      target.src = DEFAULT_PROFILE_IMAGE;
+                    }
+                  }}
                 />
               </div>
             </div>

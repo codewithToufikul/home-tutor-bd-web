@@ -70,6 +70,14 @@ export const adminApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['TuitionJob', 'AdminStats'],
     }),
+    updateTuitionJob: builder.mutation({
+      query: ({ id, ...data }: { id: string; [key: string]: any }) => ({
+        url: `/tuition-jobs/${id}`,
+        method: 'PATCH',
+        body: data,
+      }),
+      invalidatesTags: ['TuitionJob', 'AdminStats'],
+    }),
     approveJob: builder.mutation({
       query: ({ id, approvalStatus = 'Approved' }: { id: string; approvalStatus?: string }) => ({
         url: `/admin/jobs/${id}/approve`,
@@ -89,18 +97,6 @@ export const adminApi = baseApi.injectEndpoints({
         body: { status, rejectionReason },
       }),
       invalidatesTags: ['Verification', 'Tutor', 'AdminStats'],
-    }),
-    getAdminPayments: builder.query({
-      query: () => '/admin/payments',
-      providesTags: ['Payment'],
-    }),
-    updatePaymentStatus: builder.mutation({
-      query: ({ id, status }: { id: string; status: string }) => ({
-        url: `/admin/payments/${id}`,
-        method: 'PATCH',
-        body: { status },
-      }),
-      invalidatesTags: ['Payment', 'AdminStats'],
     }),
     // Staff (Super Admin, Admin, Moderator) Management
     getStaff: builder.query({
@@ -145,15 +141,6 @@ export const adminApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['User', 'AdminStats'],
     }),
-    // Admin create tuition job (bypasses student requirement)
-    createTuitionJob: builder.mutation({
-      query: (body: Record<string, unknown>) => ({
-        url: '/tuition-jobs',
-        method: 'POST',
-        body,
-      }),
-      invalidatesTags: ['TuitionJob', 'AdminStats'],
-    }),
     acceptAdminApplication: builder.mutation({
       query: (id: string) => ({
         url: `/applications/${id}/accept`,
@@ -167,6 +154,83 @@ export const adminApi = baseApi.injectEndpoints({
         method: 'PATCH',
       }),
       invalidatesTags: ['Application', 'TuitionJob', 'AdminStats'],
+    }),
+    // Notices Management & Display
+    getNotices: builder.query({
+      query: (params?: { audience?: string }) => ({
+        url: '/notices',
+        params,
+      }),
+      providesTags: ['Notice'],
+    }),
+    getAdminNotices: builder.query({
+      query: () => '/notices/admin/all',
+      providesTags: ['Notice'],
+    }),
+    createNotice: builder.mutation({
+      query: (body: Record<string, any>) => ({
+        url: '/notices',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Notice'],
+    }),
+    updateNotice: builder.mutation({
+      query: ({ id, ...body }: { id: string; [key: string]: any }) => ({
+        url: `/notices/${id}`,
+        method: 'PATCH',
+        body,
+      }),
+      invalidatesTags: ['Notice'],
+    }),
+    deleteNotice: builder.mutation({
+      query: (id: string) => ({
+        url: `/notices/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Notice'],
+    }),
+    // Blogs Management & Reading
+    getBlogs: builder.query({
+      query: (params?: Record<string, any>) => ({
+        url: '/blogs',
+        params,
+      }),
+      providesTags: ['Blog'],
+    }),
+    getBlogByIdOrSlug: builder.query({
+      query: (idOrSlug: string) => `/blogs/${idOrSlug}`,
+      providesTags: ['Blog'],
+    }),
+    getAdminBlogs: builder.query({
+      query: (params?: Record<string, any>) => ({
+        url: '/admin/blogs',
+        params: { all: true, ...params },
+      }),
+      providesTags: ['Blog'],
+    }),
+    createBlog: builder.mutation({
+      query: (body: Record<string, any>) => ({
+        url: '/blogs',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Blog'],
+    }),
+    updateBlog: builder.mutation({
+      query: ({ id, ...body }: { id: string; [key: string]: any }) => ({
+        url: `/blogs/${id}`,
+        method: 'PATCH',
+        body,
+      }),
+      invalidatesTags: ['Blog'],
+    }),
+    deleteBlog: builder.mutation({
+      query: (id: string) => ({
+        url: `/blogs/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Blog'],
     }),
   }),
 });
@@ -183,17 +247,26 @@ export const {
   useGetPendingJobsQuery,
   useApproveJobMutation,
   useUpdateJobStatusMutation,
+  useUpdateTuitionJobMutation,
   useDeleteJobMutation,
   useGetAdminVerificationsQuery,
   useUpdateVerificationStatusMutation,
-  useGetAdminPaymentsQuery,
-  useUpdatePaymentStatusMutation,
   useGetStaffQuery,
   useCreateStaffMutation,
   useUpdateStaffStatusMutation,
   useUpdateStaffPermissionsMutation,
   useDeleteStaffMutation,
-  useCreateTuitionJobMutation,
   useAcceptAdminApplicationMutation,
   useRejectAdminApplicationMutation,
+  useGetNoticesQuery,
+  useGetAdminNoticesQuery,
+  useCreateNoticeMutation,
+  useUpdateNoticeMutation,
+  useDeleteNoticeMutation,
+  useGetBlogsQuery,
+  useGetBlogByIdOrSlugQuery,
+  useGetAdminBlogsQuery,
+  useCreateBlogMutation,
+  useUpdateBlogMutation,
+  useDeleteBlogMutation,
 } = adminApi;

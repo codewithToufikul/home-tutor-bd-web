@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useState } from 'react';
-import { LayoutDashboard, PlusCircle, History, Heart, MessageSquare, Settings, LogOut, Home, BookOpen } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, History, Heart, MessageSquare, Settings, LogOut, Home, BookOpen, Megaphone, FileDown } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/src/context/AuthContext.tsx';
 import { GuardianProfileService } from '@/src/services/guardianProfileService.ts';
@@ -45,6 +45,8 @@ export default function GuardianLayout({ children }: { children: ReactNode }) {
     { label: 'Post New Job', path: '/request-tutor', icon: PlusCircle },
     { label: 'My Requests', path: '/guardian/requests', icon: History },
     { label: 'Saved Tutors', path: '/guardian/saved', icon: Heart },
+    { label: 'Notice Board', path: '/guardian/notices', icon: Megaphone },
+    { label: 'Download & PDF Zone', path: '/guardian/downloads', icon: FileDown },
     { label: 'Messages', path: '/guardian/messages', icon: MessageSquare },
     { label: 'Settings', path: '/guardian/profile', icon: Settings },
     { label: 'Home', path: '/', icon: Home },

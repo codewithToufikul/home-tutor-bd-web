@@ -155,70 +155,54 @@ export default function CoachingDashboard() {
 
   return (
     <CoachingLayout title="Coaching Dashboard">
-      <div className="space-y-8">
-        {/* Welcome Banner */}
-        <div className="bg-gradient-to-r from-primary via-purple-600 to-pink-500 rounded-3xl p-6 sm:p-8 text-white shadow-xl shadow-primary/20 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-          <div className="space-y-2">
-            <span className="px-3 py-1 rounded-full bg-white/20 text-white text-[10px] font-black uppercase tracking-wider inline-flex items-center gap-1.5">
-              <Sparkles size={12} /> Verified Coaching Center
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-display font-black">
-              Welcome, {profile?.instituteName || user?.name || 'Institute Admin'}!
-            </h2>
-            <p className="text-white/80 text-xs sm:text-sm max-w-xl">
-              ম্যানেজ করুন আপনার একাডেমিক ব্যাচ, লাইভ টিউটর অ্যাসাইনমেন্ট এবং ইনস্ট্যান্ট স্টুডেন্টদের তালিকা।
-            </p>
+      <div className="space-y-6">
+        {/* Welcome Banner — Premium */}
+        <div className="relative overflow-hidden bg-gradient-to-135deg rounded-2xl text-white shadow-2xl shadow-primary/25"
+          style={{ background: 'linear-gradient(135deg, #0d9488 0%, #7c3aed 55%, #db2777 100%)' }}>
+          {/* Decorative orbs */}
+          <div className="absolute -top-10 -right-10 w-52 h-52 rounded-full bg-white/10 blur-2xl" />
+          <div className="absolute -bottom-8 -left-8 w-40 h-40 rounded-full bg-white/10 blur-2xl" />
+          <div className="absolute top-4 right-32 w-6 h-6 rounded-full bg-white/20" />
+          <div className="absolute bottom-6 right-16 w-3 h-3 rounded-full bg-white/30" />
+
+          <div className="relative p-6 sm:p-7 flex flex-col md:flex-row justify-between items-start md:items-center gap-5">
+            <div className="space-y-2">
+              <span className="px-3 py-1 rounded-full bg-white/15 border border-white/20 text-white text-[10px] font-black uppercase tracking-widest inline-flex items-center gap-1.5 backdrop-blur-sm">
+                <Sparkles size={11} /> Verified Coaching Center
+              </span>
+              <h2 className="text-xl sm:text-2xl font-display font-black leading-snug">
+                Welcome, {profile?.instituteName || user?.name || 'Institute Admin'}!
+              </h2>
+              <p className="text-white/75 text-[11px] sm:text-xs max-w-lg leading-relaxed">
+                ম্যানেজ করুন আপনার একাডেমিক ব্যাচ, লাইভ টিউটর অ্যাসাইনমেন্ট এবং ইনস্ট্যান্ট স্টুডেন্টদের তালিকা।
+              </p>
+            </div>
+            <button 
+              onClick={() => setShowBatchModal(true)}
+              className="bg-white text-primary px-5 py-3 rounded-xl font-black text-xs shadow-xl hover:shadow-2xl hover:scale-[1.03] transition-all active:scale-95 flex items-center gap-2 cursor-pointer shrink-0 border border-white/50"
+            >
+              <Plus size={16} />
+              Create New Batch
+            </button>
           </div>
-          <button 
-            onClick={() => setShowBatchModal(true)}
-            className="bg-white text-primary px-6 py-3.5 rounded-2xl font-bold text-xs shadow-lg hover:bg-background transition-all active:scale-95 flex items-center gap-2 cursor-pointer shrink-0"
-          >
-            <Plus size={18} />
-            Create New Batch
-          </button>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white p-6 rounded-3xl border border-ink/5 shadow-sm space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
-              <BookOpen size={24} />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            { label: 'Total Batches', value: stats.totalBatches, icon: BookOpen, color: 'from-primary/20 to-primary/5', textColor: 'text-primary', border: 'border-l-primary' },
+            { label: 'Active Students', value: stats.activeStudents, icon: Users, color: 'from-blue-500/20 to-blue-500/5', textColor: 'text-blue-600', border: 'border-l-blue-500' },
+            { label: 'Assigned Tutors', value: stats.assignedTutors, icon: Building2, color: 'from-emerald-500/20 to-emerald-500/5', textColor: 'text-emerald-600', border: 'border-l-emerald-500' },
+            { label: 'Active Batches', value: stats.activeBatches, icon: TrendingUp, color: 'from-purple-500/20 to-purple-500/5', textColor: 'text-purple-600', border: 'border-l-purple-500' },
+          ].map(({ label, value, icon: Icon, color, textColor, border }) => (
+            <div key={label} className={`bg-white p-5 rounded-2xl border border-ink/5 border-l-4 ${border} shadow-sm hover:shadow-md transition-shadow`}>
+              <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${color} ${textColor} flex items-center justify-center mb-3`}>
+                <Icon size={20} />
+              </div>
+              <p className="text-[10px] font-black text-ink-muted uppercase tracking-wider">{label}</p>
+              <h3 className="text-3xl font-black text-ink mt-0.5 leading-none">{value}</h3>
             </div>
-            <div>
-              <p className="text-xs font-bold text-ink-muted uppercase">Total Batches</p>
-              <h3 className="text-2xl font-black text-ink mt-1">{stats.totalBatches}</h3>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-3xl border border-ink/5 shadow-sm space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-600 flex items-center justify-center">
-              <Users size={24} />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-ink-muted uppercase">Active Students</p>
-              <h3 className="text-2xl font-black text-ink mt-1">{stats.activeStudents}</h3>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-3xl border border-ink/5 shadow-sm space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
-              <Building2 size={24} />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-ink-muted uppercase">Assigned Tutors</p>
-              <h3 className="text-2xl font-black text-ink mt-1">{stats.assignedTutors}</h3>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-3xl border border-ink/5 shadow-sm space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-600 flex items-center justify-center">
-              <TrendingUp size={24} />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-ink-muted uppercase">Active Batches</p>
-              <h3 className="text-2xl font-black text-ink mt-1">{stats.activeBatches}</h3>
-            </div>
-          </div>
+          ))}
         </div>
 
         {/* Academic Batches Section */}
@@ -438,13 +422,48 @@ export default function CoachingDashboard() {
 
                 <div>
                   <label className="block mb-1 text-ink-muted uppercase">Schedule & Timing</label>
-                  <input 
-                    type="text" 
-                    placeholder="e.g. Sat, Mon, Wed (5:00 PM)"
+                  <select
                     value={batchForm.schedule}
                     onChange={(e) => setBatchForm({ ...batchForm, schedule: e.target.value })}
                     className="w-full px-4 py-3.5 rounded-2xl border border-ink/10 outline-none focus:border-primary font-medium bg-background"
-                  />
+                  >
+                    <option value="">-- Select Schedule --</option>
+                    <optgroup label="Days Per Week">
+                      <option value="1 Day/Week (Friday)">1 Day/Week (Friday)</option>
+                      <option value="1 Day/Week (Saturday)">1 Day/Week (Saturday)</option>
+                      <option value="2 Days/Week (Fri & Sat)">2 Days/Week (Fri & Sat)</option>
+                      <option value="3 Days/Week (Sat, Mon, Wed)">3 Days/Week (Sat, Mon, Wed)</option>
+                      <option value="3 Days/Week (Sun, Tue, Thu)">3 Days/Week (Sun, Tue, Thu)</option>
+                      <option value="4 Days/Week">4 Days/Week</option>
+                      <option value="5 Days/Week (Sun–Thu)">5 Days/Week (Sun–Thu)</option>
+                      <option value="6 Days/Week (Sat–Thu)">6 Days/Week (Sat–Thu)</option>
+                      <option value="Daily (7 Days/Week)">Daily (7 Days/Week)</option>
+                    </optgroup>
+                    <optgroup label="Morning Batches">
+                      <option value="3 Days/Week (7:00 AM)">3 Days/Week (7:00 AM)</option>
+                      <option value="3 Days/Week (8:00 AM)">3 Days/Week (8:00 AM)</option>
+                      <option value="3 Days/Week (9:00 AM)">3 Days/Week (9:00 AM)</option>
+                      <option value="5 Days/Week (8:00 AM)">5 Days/Week (8:00 AM)</option>
+                    </optgroup>
+                    <optgroup label="Afternoon Batches">
+                      <option value="3 Days/Week (12:00 PM)">3 Days/Week (12:00 PM)</option>
+                      <option value="3 Days/Week (2:00 PM)">3 Days/Week (2:00 PM)</option>
+                      <option value="3 Days/Week (3:00 PM)">3 Days/Week (3:00 PM)</option>
+                      <option value="3 Days/Week (4:00 PM)">3 Days/Week (4:00 PM)</option>
+                    </optgroup>
+                    <optgroup label="Evening Batches">
+                      <option value="3 Days/Week (5:00 PM)">3 Days/Week (5:00 PM)</option>
+                      <option value="3 Days/Week (6:00 PM)">3 Days/Week (6:00 PM)</option>
+                      <option value="3 Days/Week (7:00 PM)">3 Days/Week (7:00 PM)</option>
+                      <option value="3 Days/Week (8:00 PM)">3 Days/Week (8:00 PM)</option>
+                      <option value="5 Days/Week (6:00 PM)">5 Days/Week (6:00 PM)</option>
+                    </optgroup>
+                    <optgroup label="Special">
+                      <option value="Weekend Batch (Fri & Sat)">Weekend Batch (Fri & Sat)</option>
+                      <option value="Weekday Batch (Sun–Thu)">Weekday Batch (Sun–Thu)</option>
+                      <option value="Crash Course (Daily)">Crash Course (Daily)</option>
+                    </optgroup>
+                  </select>
                 </div>
               </div>
 

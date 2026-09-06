@@ -1,26 +1,26 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  ShieldCheck, UserPlus, Search, Trash2, Ban, CheckCircle2, 
-  XCircle, Copy, Check, Eye, EyeOff, Key, Shield, User, 
-  Phone, Mail, Calendar, Sparkles, Filter, AlertTriangle, 
+import {
+  ShieldCheck, UserPlus, Search, Trash2, Ban, CheckCircle2,
+  XCircle, Copy, Check, Eye, EyeOff, Key, Shield, User,
+  Phone, Mail, Calendar, Sparkles, Filter, AlertTriangle,
   Loader2, RefreshCw, Lock, Unlock
 } from 'lucide-react';
 import AdminLayout from '@/src/components/AdminLayout.tsx';
 import { cn } from '@/src/lib/utils';
-import { 
-  useGetStaffQuery, 
-  useCreateStaffMutation, 
-  useUpdateStaffStatusMutation, 
-  useUpdateStaffPermissionsMutation, 
-  useDeleteStaffMutation 
+import {
+  useGetStaffQuery,
+  useCreateStaffMutation,
+  useUpdateStaffStatusMutation,
+  useUpdateStaffPermissionsMutation,
+  useDeleteStaffMutation
 } from '@/src/services/adminApi.ts';
 
 const PERMISSION_OPTIONS = [
   { id: 'manage_jobs', label: 'টিউশন জব পরিচালনা (Jobs)', desc: 'জব দেখা, এডিট ও ওপেন/ক্লোজ করা' },
   { id: 'manage_tutors', label: 'টিউটর ভেরিফিকেশন (Tutors)', desc: 'টিউটর প্রোফাইল ও ডকুমেন্টস রিভিউ' },
   { id: 'manage_blogs', label: 'ব্লগ ও নোটিশ (Blogs & Notices)', desc: 'নতুন ব্লগ বা জরুরি নোটিশ পোস্ট করা' },
-  { id: 'support_inbox', label: 'ইনবক্স সাপোর্ট (Inbox Support)', desc: 'ব্যবহারকারীদের মেসেজ ও ইনকোয়ারি উত্তর' },
+  { id: 'support_inbox', label: 'ইনবক্স সাপোর্ট (Inbox Support)', desc: 'ব্যবহারকারীদের মেসেজ ও ইনকোয়ারি উত্তর' },
   { id: 'view_payments', label: 'পেমেন্ট নজরদারি (Payments View)', desc: 'প্ল্যাটফর্ম পেমেন্ট তালিকা দেখা' },
 ];
 
@@ -139,7 +139,7 @@ export default function AdminStaffManagement() {
       return;
     }
     if (!formPassword || formPassword.length < 6) {
-      setFormError('কমপক্ষে ৬ অক্ষরের পাসওয়ার্ড প্রদান করুন।');
+      setFormError('কমপক্ষে ৬ অক্ষরের পাসওয়ার্ড প্রদান করুন।');
       return;
     }
 
@@ -170,7 +170,7 @@ export default function AdminStaffManagement() {
       setIsAddModalOpen(false);
       refetch();
     } catch (err: any) {
-      setFormError(err?.data?.message || 'কর্মী যুক্ত করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।');
+      setFormError(err?.data?.message || 'কর্মী যুক্ত করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।');
     }
   };
 
@@ -217,28 +217,30 @@ export default function AdminStaffManagement() {
 
   return (
     <AdminLayout>
-      <div className="space-y-8 max-w-7xl mx-auto pb-24">
-        
+      <div className="space-y-5 sm:space-y-8 max-w-7xl mx-auto pb-28 px-3 sm:px-0">
+
         {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
           <div className="space-y-1">
-            <h1 className="text-3xl font-display font-black text-ink flex items-center gap-3">
-              <div className="w-12 h-12 bg-amber-500/10 text-amber-600 rounded-2xl flex items-center justify-center shadow-lg shadow-amber-500/5">
-                <ShieldCheck size={26} />
+            <h1 className="text-xl sm:text-3xl font-display font-black text-ink flex items-center gap-2.5 sm:gap-3">
+              <div className="w-9 h-9 sm:w-12 sm:h-12 shrink-0 bg-amber-500/10 text-amber-600 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shadow-amber-500/5">
+                <ShieldCheck size={20} className="sm:hidden" />
+                <ShieldCheck size={26} className="hidden sm:block" />
               </div>
-              Super Admin: Staff & Role Management
+              <span className="leading-tight">Super Admin: Staff & Role Management</span>
             </h1>
-            <p className="text-sm font-medium text-ink-muted">
-              প্ল্যাটফর্মের জন্য নতুন Admin এবং Moderator যুক্ত করুন, তাদের স্বয়ংক্রিয় ইউনিক ইউজারনেম তৈরি করুন ও পারমিশন পরিচালনা করুন।
+            <p className="text-[11px] sm:text-sm font-medium text-ink-muted leading-relaxed">
+              প্ল্যাটফর্মের জন্য নতুন Admin এবং Moderator যুক্ত করুন, তাদের স্বয়ংক্রিয় ইউনিক ইউজারনেম তৈরি করুন ও পারমিশন পরিচালনা করুন।
             </p>
           </div>
 
+          {/* Desktop-only inline button; on mobile it's replaced by the sticky bottom bar */}
           <button
             onClick={() => {
               setIsAddModalOpen(true);
               handleGeneratePassword();
             }}
-            className="px-6 py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-2xl font-black text-xs uppercase shadow-xl shadow-amber-500/20 transition-all flex items-center gap-2 self-start sm:self-auto cursor-pointer"
+            className="hidden sm:flex px-6 py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-2xl font-black text-xs uppercase shadow-xl shadow-amber-500/20 transition-all items-center gap-2 self-start sm:self-auto cursor-pointer active:scale-95"
           >
             <UserPlus size={16} />
             Add Admin / Moderator
@@ -246,58 +248,62 @@ export default function AdminStaffManagement() {
         </div>
 
         {/* 📊 Summary Metrics Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
           {/* Total Staff */}
-          <div className="bg-white/80 backdrop-blur-xl p-5 rounded-[28px] border border-white/60 shadow-xl shadow-ink/5 flex items-center gap-4">
-            <div className="w-13 h-13 bg-indigo-500 text-white rounded-2xl flex items-center justify-center font-black shadow-lg shadow-indigo-500/20">
-              <Shield size={24} />
+          <div className="bg-white/80 backdrop-blur-xl p-3.5 sm:p-5 rounded-2xl sm:rounded-[28px] border border-white/60 shadow-xl shadow-ink/5 flex items-center gap-3 sm:gap-4">
+            <div className="w-10 h-10 sm:w-13 sm:h-13 shrink-0 bg-indigo-500 text-white rounded-xl sm:rounded-2xl flex items-center justify-center font-black shadow-lg shadow-indigo-500/20">
+              <Shield size={18} className="sm:hidden" />
+              <Shield size={24} className="hidden sm:block" />
             </div>
-            <div>
-              <p className="text-[11px] font-bold text-ink-muted uppercase">সর্বমোট কর্মী</p>
-              <p className="text-2xl font-black text-ink">{stats.total} জন</p>
+            <div className="min-w-0">
+              <p className="text-[9px] sm:text-[11px] font-bold text-ink-muted uppercase truncate">সর্বমোট কর্মী</p>
+              <p className="text-lg sm:text-2xl font-black text-ink">{stats.total} জন</p>
             </div>
           </div>
 
           {/* Admins */}
-          <div className="bg-white/80 backdrop-blur-xl p-5 rounded-[28px] border border-white/60 shadow-xl shadow-ink/5 flex items-center gap-4">
-            <div className="w-13 h-13 bg-blue-500 text-white rounded-2xl flex items-center justify-center font-black shadow-lg shadow-blue-500/20">
-              <ShieldCheck size={24} />
+          <div className="bg-white/80 backdrop-blur-xl p-3.5 sm:p-5 rounded-2xl sm:rounded-[28px] border border-white/60 shadow-xl shadow-ink/5 flex items-center gap-3 sm:gap-4">
+            <div className="w-10 h-10 sm:w-13 sm:h-13 shrink-0 bg-blue-500 text-white rounded-xl sm:rounded-2xl flex items-center justify-center font-black shadow-lg shadow-blue-500/20">
+              <ShieldCheck size={18} className="sm:hidden" />
+              <ShieldCheck size={24} className="hidden sm:block" />
             </div>
-            <div>
-              <p className="text-[11px] font-bold text-ink-muted uppercase">এডমিন (Admins)</p>
-              <p className="text-2xl font-black text-blue-600">{stats.admins} জন</p>
+            <div className="min-w-0">
+              <p className="text-[9px] sm:text-[11px] font-bold text-ink-muted uppercase truncate">এডমিন (Admins)</p>
+              <p className="text-lg sm:text-2xl font-black text-blue-600">{stats.admins} জন</p>
             </div>
           </div>
 
           {/* Moderators */}
-          <div className="bg-white/80 backdrop-blur-xl p-5 rounded-[28px] border border-white/60 shadow-xl shadow-ink/5 flex items-center gap-4">
-            <div className="w-13 h-13 bg-purple-500 text-white rounded-2xl flex items-center justify-center font-black shadow-lg shadow-purple-500/20">
-              <User size={24} />
+          <div className="bg-white/80 backdrop-blur-xl p-3.5 sm:p-5 rounded-2xl sm:rounded-[28px] border border-white/60 shadow-xl shadow-ink/5 flex items-center gap-3 sm:gap-4">
+            <div className="w-10 h-10 sm:w-13 sm:h-13 shrink-0 bg-purple-500 text-white rounded-xl sm:rounded-2xl flex items-center justify-center font-black shadow-lg shadow-purple-500/20">
+              <User size={18} className="sm:hidden" />
+              <User size={24} className="hidden sm:block" />
             </div>
-            <div>
-              <p className="text-[11px] font-bold text-ink-muted uppercase">মডারেটর (Moderators)</p>
-              <p className="text-2xl font-black text-purple-600">{stats.moderators} জন</p>
+            <div className="min-w-0">
+              <p className="text-[9px] sm:text-[11px] font-bold text-ink-muted uppercase truncate">মডারেটর (Moderators)</p>
+              <p className="text-lg sm:text-2xl font-black text-purple-600">{stats.moderators} জন</p>
             </div>
           </div>
 
           {/* Banned Staff */}
-          <div className="bg-white/80 backdrop-blur-xl p-5 rounded-[28px] border border-white/60 shadow-xl shadow-ink/5 flex items-center gap-4">
-            <div className="w-13 h-13 bg-rose-500 text-white rounded-2xl flex items-center justify-center font-black shadow-lg shadow-rose-500/20">
-              <Ban size={24} />
+          <div className="bg-white/80 backdrop-blur-xl p-3.5 sm:p-5 rounded-2xl sm:rounded-[28px] border border-white/60 shadow-xl shadow-ink/5 flex items-center gap-3 sm:gap-4">
+            <div className="w-10 h-10 sm:w-13 sm:h-13 shrink-0 bg-rose-500 text-white rounded-xl sm:rounded-2xl flex items-center justify-center font-black shadow-lg shadow-rose-500/20">
+              <Ban size={18} className="sm:hidden" />
+              <Ban size={24} className="hidden sm:block" />
             </div>
-            <div>
-              <p className="text-[11px] font-bold text-ink-muted uppercase">স্থগিত/ব্লকড কর্মী</p>
-              <p className="text-2xl font-black text-rose-600">{stats.banned} জন</p>
+            <div className="min-w-0">
+              <p className="text-[9px] sm:text-[11px] font-bold text-ink-muted uppercase truncate">স্থগিত/ব্লকড কর্মী</p>
+              <p className="text-lg sm:text-2xl font-black text-rose-600">{stats.banned} জন</p>
             </div>
           </div>
         </div>
 
         {/* 🎛️ Search & Filter Bar */}
-        <div className="bg-white/70 backdrop-blur-xl p-4 rounded-[28px] border border-white/60 shadow-xl shadow-ink/5 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="bg-white/70 backdrop-blur-xl p-3 sm:p-4 rounded-2xl sm:rounded-[28px] border border-white/60 shadow-xl shadow-ink/5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 sm:gap-4 sticky top-2 z-10">
           {/* Role Filter Tabs */}
           <div className="flex items-center gap-1.5 p-1.5 bg-gray-100/80 rounded-2xl w-full md:w-auto overflow-x-auto scrollbar-hide">
             {[
-              { label: 'সব স্টাফ (All)', value: 'all', count: stats.total },
+              { label: 'সব স্টাফ', value: 'all', count: stats.total },
               { label: '👑 Super Admin', value: 'super_admin', count: stats.superAdmins },
               { label: '🛡️ Admin', value: 'admin', count: stats.admins },
               { label: '⚖️ Moderator', value: 'moderator', count: stats.moderators },
@@ -306,7 +312,7 @@ export default function AdminStaffManagement() {
                 key={tab.value}
                 onClick={() => setRoleFilter(tab.value as any)}
                 className={cn(
-                  "px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer whitespace-nowrap flex items-center gap-2",
+                  "px-3 sm:px-4 py-2 rounded-xl text-[10px] sm:text-xs font-black transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 sm:gap-2 shrink-0 active:scale-95",
                   roleFilter === tab.value
                     ? "bg-white text-ink shadow-sm"
                     : "text-ink-muted hover:text-ink"
@@ -314,7 +320,7 @@ export default function AdminStaffManagement() {
               >
                 <span>{tab.label}</span>
                 <span className={cn(
-                  "px-2 py-0.5 rounded-full text-[10px]",
+                  "px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px]",
                   roleFilter === tab.value ? "bg-amber-100 text-amber-800 font-black" : "bg-ink/5 text-ink-muted"
                 )}>
                   {tab.count}
@@ -325,214 +331,351 @@ export default function AdminStaffManagement() {
 
           {/* Search Input */}
           <div className="relative w-full md:w-80">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-muted" size={18} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-muted" size={16} />
             <input
               type="text"
-              placeholder="Search by Name, Username, Email..."
+              inputMode="search"
+              placeholder="নাম, ইউজারনেম, ইমেইল দিয়ে খুঁজুন..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-11 pr-4 py-2.5 bg-white rounded-2xl border border-ink/10 text-xs font-medium focus:ring-2 focus:ring-amber-400 outline-none transition-all shadow-xs"
+              className="w-full pl-11 pr-4 py-3 md:py-2.5 bg-white rounded-2xl border border-ink/10 text-xs font-medium focus:ring-2 focus:ring-amber-400 outline-none transition-all shadow-xs"
             />
           </div>
         </div>
 
-        {/* 📋 Staff Table */}
+        {/* 📋 Staff List */}
         {isLoading ? (
-          <div className="py-24 text-center space-y-4 bg-white/40 backdrop-blur-xl border border-white/40 rounded-[32px]">
-            <Loader2 className="animate-spin text-amber-500 mx-auto" size={36} />
+          <div className="py-20 sm:py-24 text-center space-y-4 bg-white/40 backdrop-blur-xl border border-white/40 rounded-[28px] sm:rounded-[32px]">
+            <Loader2 className="animate-spin text-amber-500 mx-auto" size={32} />
             <p className="text-xs font-bold text-ink-muted">স্টাফ তালিকা লোড হচ্ছে...</p>
           </div>
         ) : filteredStaff.length > 0 ? (
-          <div className="bg-white/80 backdrop-blur-xl rounded-[32px] border border-white/60 shadow-xl shadow-ink/5 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-ink/5 bg-gray-50/50 text-[11px] font-black uppercase text-ink-muted tracking-wider">
-                    <th className="py-4 px-6">স্টাফ প্রোফাইল ও নাম</th>
-                    <th className="py-4 px-6">ইউনিক ইউজারনেম (Username)</th>
-                    <th className="py-4 px-6">রোল (Role)</th>
-                    <th className="py-4 px-6">যোগাযোগ (Email & Phone)</th>
-                    <th className="py-4 px-6">স্ট্যাটাস</th>
-                    <th className="py-4 px-6 text-right">অ্যাকশন (Actions)</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-ink/5 text-xs">
-                  {filteredStaff.map((staff) => {
-                    const isSuper = staff.role === 'super_admin';
-                    const isBanned = staff.status === 'blocked';
-
-                    return (
-                      <tr key={staff.id} className="hover:bg-amber-50/20 transition-all">
-                        {/* 1. Profile & Name */}
-                        <td className="py-4 px-6">
-                          <div className="flex items-center gap-3">
-                            <img
-                              src={staff.avatar}
-                              alt={staff.name}
-                              className="w-11 h-11 rounded-2xl object-cover border border-ink/10 shadow-xs"
-                            />
-                            <div>
-                              <p className="font-black text-ink text-sm flex items-center gap-1.5">
-                                {staff.name}
-                                {isSuper && <span title="Platform Owner">👑</span>}
-                              </p>
-                              <span className="text-[10px] text-ink-muted flex items-center gap-1">
-                                <Calendar size={11} /> {staff.createdAtFormatted}
-                              </span>
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* 2. Unique Username Badge with Copy */}
-                        <td className="py-4 px-6">
-                          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-100/90 rounded-xl border border-ink/5">
-                            <span className="font-mono font-bold text-ink text-xs">@{staff.username}</span>
+          <>
+            {/* ---- Mobile: Card List (app-like) ---- */}
+            <div className="md:hidden space-y-3">
+              {filteredStaff.map((staff) => {
+                const isSuper = staff.role === 'super_admin';
+                const isBanned = staff.status === 'blocked';
+                return (
+                  <div
+                    key={staff.id}
+                    className="bg-white/80 backdrop-blur-xl rounded-3xl border border-white/60 shadow-lg shadow-ink/5 p-4 space-y-3 active:scale-[0.99] transition-transform"
+                  >
+                    {/* Top row: avatar, name, status */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <img
+                          src={staff.avatar}
+                          alt={staff.name}
+                          className="w-12 h-12 rounded-2xl object-cover border border-ink/10 shadow-xs shrink-0"
+                        />
+                        <div className="min-w-0">
+                          <p className="font-black text-ink text-sm flex items-center gap-1.5 truncate">
+                            {staff.name}
+                            {isSuper && <span title="Platform Owner">👑</span>}
+                          </p>
+                          <div className="inline-flex items-center gap-1.5 mt-0.5">
+                            <span className="font-mono font-bold text-ink-muted text-[11px]">@{staff.username}</span>
                             <button
                               onClick={() => copyToClipboard(staff.username, `uname-${staff.id}`)}
-                              className="text-ink-muted hover:text-amber-600 transition-all cursor-pointer"
-                              title="Copy Username"
+                              className="text-ink-muted active:text-amber-600 transition-all cursor-pointer"
                             >
                               {copiedField === `uname-${staff.id}` ? (
-                                <Check size={13} className="text-emerald-600" />
+                                <Check size={12} className="text-emerald-600" />
                               ) : (
-                                <Copy size={13} />
+                                <Copy size={12} />
                               )}
                             </button>
                           </div>
-                        </td>
+                        </div>
+                      </div>
+                      <span className={cn(
+                        "px-2.5 py-1 rounded-full text-[9px] font-bold uppercase shrink-0",
+                        isBanned ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-800"
+                      )}>
+                        {isBanned ? '● Banned' : '● Active'}
+                      </span>
+                    </div>
 
-                        {/* 3. Role Badge */}
-                        <td className="py-4 px-6">
-                          <span className={cn(
-                            "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border",
-                            isSuper
-                              ? "bg-amber-100 text-amber-900 border-amber-300"
-                              : staff.role === 'admin'
-                                ? "bg-blue-100 text-blue-800 border-blue-200"
-                                : "bg-purple-100 text-purple-800 border-purple-200"
-                          )}>
-                            {isSuper ? '👑 Super Admin' : staff.role === 'admin' ? '🛡️ Admin' : '⚖️ Moderator'}
-                          </span>
-                        </td>
+                    {/* Role badge + created date */}
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <span className={cn(
+                        "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border",
+                        isSuper
+                          ? "bg-amber-100 text-amber-900 border-amber-300"
+                          : staff.role === 'admin'
+                            ? "bg-blue-100 text-blue-800 border-blue-200"
+                            : "bg-purple-100 text-purple-800 border-purple-200"
+                      )}>
+                        {isSuper ? '👑 Super Admin' : staff.role === 'admin' ? '🛡️ Admin' : '⚖️ Moderator'}
+                      </span>
+                      <span className="text-[10px] text-ink-muted flex items-center gap-1">
+                        <Calendar size={11} /> {staff.createdAtFormatted}
+                      </span>
+                    </div>
 
-                        {/* 4. Contact Details */}
-                        <td className="py-4 px-6 space-y-0.5">
-                          <div className="flex items-center gap-1.5 text-ink font-medium">
-                            <Mail size={12} className="text-blue-600 shrink-0" />
-                            <span className="truncate max-w-[180px]">{staff.email}</span>
-                          </div>
-                          {staff.phone && (
-                            <div className="flex items-center gap-1.5 text-ink-muted">
-                              <Phone size={12} className="text-emerald-600 shrink-0" />
-                              <span>{staff.phone}</span>
-                            </div>
-                          )}
-                        </td>
+                    {/* Contact */}
+                    <div className="space-y-1 pt-1 border-t border-ink/5 text-[11px]">
+                      <div className="flex items-center gap-1.5 text-ink font-medium">
+                        <Mail size={12} className="text-blue-600 shrink-0" />
+                        <span className="truncate">{staff.email}</span>
+                      </div>
+                      {staff.phone && (
+                        <div className="flex items-center gap-1.5 text-ink-muted">
+                          <Phone size={12} className="text-emerald-600 shrink-0" />
+                          <span>{staff.phone}</span>
+                        </div>
+                      )}
+                    </div>
 
-                        {/* 5. Status Badge */}
-                        <td className="py-4 px-6">
-                          <span className={cn(
-                            "px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase",
+                    {/* Actions */}
+                    {isSuper ? (
+                      <p className="text-[11px] font-bold text-ink-muted italic text-center pt-1">Protected (Owner)</p>
+                    ) : (
+                      <div className="flex items-center gap-2 pt-1">
+                        {staff.role === 'moderator' && (
+                          <button
+                            onClick={() => setStaffToEditPermissions(staff)}
+                            className="flex-1 py-2.5 rounded-xl bg-purple-50 text-purple-700 active:bg-purple-100 border border-purple-200 transition-all cursor-pointer flex items-center justify-center gap-1.5 text-[11px] font-bold"
+                          >
+                            <Key size={13} /> পারমিশন
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleToggleBan(staff)}
+                          className={cn(
+                            "flex-1 py-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-center gap-1.5 text-[11px] font-bold",
                             isBanned
-                              ? "bg-rose-100 text-rose-700"
-                              : "bg-emerald-100 text-emerald-800"
-                          )}>
-                            {isBanned ? '● Banned' : '● Active'}
-                          </span>
-                        </td>
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200 active:bg-emerald-100"
+                              : "bg-amber-50 text-amber-700 border-amber-200 active:bg-amber-100"
+                          )}
+                        >
+                          {isBanned ? <Unlock size={13} /> : <Ban size={13} />}
+                          {isBanned ? 'আনব্যান' : 'ব্যান'}
+                        </button>
+                        <button
+                          onClick={() => setStaffToDelete(staff)}
+                          className="w-11 h-11 shrink-0 flex items-center justify-center rounded-xl bg-rose-50 text-rose-600 active:bg-rose-100 border border-rose-200 transition-all cursor-pointer"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
 
-                        {/* 6. Action Buttons */}
-                        <td className="py-4 px-6 text-right">
-                          {isSuper ? (
-                            <span className="text-[11px] font-bold text-ink-muted italic">Protected (Owner)</span>
-                          ) : (
-                            <div className="flex items-center justify-end gap-2">
-                              {/* Edit Permissions for Moderator */}
-                              {staff.role === 'moderator' && (
-                                <button
-                                  onClick={() => setStaffToEditPermissions(staff)}
-                                  className="p-2 rounded-xl bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 transition-all cursor-pointer"
-                                  title="Edit Moderator Permissions"
-                                >
-                                  <Key size={14} />
-                                </button>
-                              )}
+            {/* ---- Desktop: Table ---- */}
+            <div className="hidden md:block bg-white/80 backdrop-blur-xl rounded-[32px] border border-white/60 shadow-xl shadow-ink/5 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-ink/5 bg-gray-50/50 text-[11px] font-black uppercase text-ink-muted tracking-wider">
+                      <th className="py-4 px-6">স্টাফ প্রোফাইল ও নাম</th>
+                      <th className="py-4 px-6">ইউনিক ইউজারনেম (Username)</th>
+                      <th className="py-4 px-6">রোল (Role)</th>
+                      <th className="py-4 px-6">যোগাযোগ (Email & Phone)</th>
+                      <th className="py-4 px-6">স্ট্যাটাস</th>
+                      <th className="py-4 px-6 text-right">অ্যাকশন (Actions)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-ink/5 text-xs">
+                    {filteredStaff.map((staff) => {
+                      const isSuper = staff.role === 'super_admin';
+                      const isBanned = staff.status === 'blocked';
 
-                              {/* Ban / Unban Toggle */}
+                      return (
+                        <tr key={staff.id} className="hover:bg-amber-50/20 transition-all">
+                          {/* 1. Profile & Name */}
+                          <td className="py-4 px-6">
+                            <div className="flex items-center gap-3">
+                              <img
+                                src={staff.avatar}
+                                alt={staff.name}
+                                className="w-11 h-11 rounded-2xl object-cover border border-ink/10 shadow-xs"
+                              />
+                              <div>
+                                <p className="font-black text-ink text-sm flex items-center gap-1.5">
+                                  {staff.name}
+                                  {isSuper && <span title="Platform Owner">👑</span>}
+                                </p>
+                                <span className="text-[10px] text-ink-muted flex items-center gap-1">
+                                  <Calendar size={11} /> {staff.createdAtFormatted}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* 2. Unique Username Badge with Copy */}
+                          <td className="py-4 px-6">
+                            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-100/90 rounded-xl border border-ink/5">
+                              <span className="font-mono font-bold text-ink text-xs">@{staff.username}</span>
                               <button
-                                onClick={() => handleToggleBan(staff)}
-                                className={cn(
-                                  "p-2 rounded-xl border transition-all cursor-pointer",
-                                  isBanned
-                                    ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
-                                    : "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
+                                onClick={() => copyToClipboard(staff.username, `uname-${staff.id}`)}
+                                className="text-ink-muted hover:text-amber-600 transition-all cursor-pointer"
+                                title="Copy Username"
+                              >
+                                {copiedField === `uname-${staff.id}` ? (
+                                  <Check size={13} className="text-emerald-600" />
+                                ) : (
+                                  <Copy size={13} />
                                 )}
-                                title={isBanned ? 'Unban Staff Account' : 'Ban / Suspend Staff'}
-                              >
-                                {isBanned ? <Unlock size={14} /> : <Ban size={14} />}
-                              </button>
-
-                              {/* Delete Staff */}
-                              <button
-                                onClick={() => setStaffToDelete(staff)}
-                                className="p-2 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 transition-all cursor-pointer"
-                                title="Delete Staff Account"
-                              >
-                                <Trash2 size={14} />
                               </button>
                             </div>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                          </td>
+
+                          {/* 3. Role Badge */}
+                          <td className="py-4 px-6">
+                            <span className={cn(
+                              "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border",
+                              isSuper
+                                ? "bg-amber-100 text-amber-900 border-amber-300"
+                                : staff.role === 'admin'
+                                  ? "bg-blue-100 text-blue-800 border-blue-200"
+                                  : "bg-purple-100 text-purple-800 border-purple-200"
+                            )}>
+                              {isSuper ? '👑 Super Admin' : staff.role === 'admin' ? '🛡️ Admin' : '⚖️ Moderator'}
+                            </span>
+                          </td>
+
+                          {/* 4. Contact Details */}
+                          <td className="py-4 px-6 space-y-0.5">
+                            <div className="flex items-center gap-1.5 text-ink font-medium">
+                              <Mail size={12} className="text-blue-600 shrink-0" />
+                              <span className="truncate max-w-[180px]">{staff.email}</span>
+                            </div>
+                            {staff.phone && (
+                              <div className="flex items-center gap-1.5 text-ink-muted">
+                                <Phone size={12} className="text-emerald-600 shrink-0" />
+                                <span>{staff.phone}</span>
+                              </div>
+                            )}
+                          </td>
+
+                          {/* 5. Status Badge */}
+                          <td className="py-4 px-6">
+                            <span className={cn(
+                              "px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase",
+                              isBanned
+                                ? "bg-rose-100 text-rose-700"
+                                : "bg-emerald-100 text-emerald-800"
+                            )}>
+                              {isBanned ? '● Banned' : '● Active'}
+                            </span>
+                          </td>
+
+                          {/* 6. Action Buttons */}
+                          <td className="py-4 px-6 text-right">
+                            {isSuper ? (
+                              <span className="text-[11px] font-bold text-ink-muted italic">Protected (Owner)</span>
+                            ) : (
+                              <div className="flex items-center justify-end gap-2">
+                                {/* Edit Permissions for Moderator */}
+                                {staff.role === 'moderator' && (
+                                  <button
+                                    onClick={() => setStaffToEditPermissions(staff)}
+                                    className="p-2 rounded-xl bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 transition-all cursor-pointer"
+                                    title="Edit Moderator Permissions"
+                                  >
+                                    <Key size={14} />
+                                  </button>
+                                )}
+
+                                {/* Ban / Unban Toggle */}
+                                <button
+                                  onClick={() => handleToggleBan(staff)}
+                                  className={cn(
+                                    "p-2 rounded-xl border transition-all cursor-pointer",
+                                    isBanned
+                                      ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                                      : "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
+                                  )}
+                                  title={isBanned ? 'Unban Staff Account' : 'Ban / Suspend Staff'}
+                                >
+                                  {isBanned ? <Unlock size={14} /> : <Ban size={14} />}
+                                </button>
+
+                                {/* Delete Staff */}
+                                <button
+                                  onClick={() => setStaffToDelete(staff)}
+                                  className="p-2 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 transition-all cursor-pointer"
+                                  title="Delete Staff Account"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+          </>
         ) : (
-          <div className="p-16 bg-white/60 backdrop-blur-xl rounded-[36px] border border-white/40 text-center space-y-4 shadow-sm">
-            <div className="w-16 h-16 bg-amber-500/10 text-amber-600 rounded-2xl flex items-center justify-center mx-auto">
-              <ShieldCheck size={32} />
+          <div className="p-10 sm:p-16 bg-white/60 backdrop-blur-xl rounded-[28px] sm:rounded-[36px] border border-white/40 text-center space-y-4 shadow-sm">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 bg-amber-500/10 text-amber-600 rounded-2xl flex items-center justify-center mx-auto">
+              <ShieldCheck size={28} />
             </div>
             <div className="space-y-1">
-              <h3 className="text-xl font-display font-black text-ink">কোনো স্টাফ পাওয়া যায়নি</h3>
+              <h3 className="text-lg sm:text-xl font-display font-black text-ink">কোনো স্টাফ পাওয়া যায়নি</h3>
               <p className="text-xs font-medium text-ink-muted">
-                আপনার দেওয়া সার্চ বা ফিল্টারের সাথে মিলে এমন কোনো কর্মী নেই।
+                আপনার দেওয়া সার্চ বা ফিল্টারের সাথে মিলে এমন কোনো কর্মী নেই।
               </p>
             </div>
           </div>
         )}
       </div>
 
-      {/* ➕ Modal: Add New Staff Member (Admin / Moderator) */}
+      {/* 📱 Sticky mobile-only "Add Staff" bottom bar — app-like fixed action */}
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 p-3 bg-white/90 backdrop-blur-xl border-t border-ink/5 shadow-[0_-8px_24px_rgba(0,0,0,0.06)]">
+        <button
+          onClick={() => {
+            setIsAddModalOpen(true);
+            handleGeneratePassword();
+          }}
+          className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 active:from-amber-600 active:to-amber-700 text-white rounded-2xl font-black text-xs uppercase shadow-xl shadow-amber-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
+        >
+          <UserPlus size={16} />
+          Add Admin / Moderator
+        </button>
+      </div>
+
+      {/* ➕ Modal: Add New Staff Member (Admin / Moderator) — bottom sheet on mobile */}
       <AnimatePresence>
         {isAddModalOpen && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/50 backdrop-blur-sm overflow-y-auto"
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-ink/50 backdrop-blur-sm overflow-y-auto"
           >
             <motion.div
-              initial={{ scale: 0.95, y: 20 }}
+              initial={{ scale: 1, y: '100%' }}
               animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, y: 20 }}
-              className="bg-white rounded-[36px] shadow-2xl max-w-lg w-full p-7 space-y-5 my-8"
+              exit={{ scale: 1, y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+              className="bg-white rounded-t-[32px] sm:rounded-[36px] shadow-2xl max-w-lg w-full p-5 sm:p-7 space-y-5 max-h-[92vh] sm:max-h-[90vh] overflow-y-auto sm:my-8"
             >
+              {/* Drag handle (mobile only) */}
+              <div className="sm:hidden w-10 h-1.5 bg-ink/10 rounded-full mx-auto -mt-1 mb-1" />
+
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
-                  <h3 className="text-xl font-display font-black text-ink flex items-center gap-2">
+                  <h3 className="text-lg sm:text-xl font-display font-black text-ink flex items-center gap-2">
                     <UserPlus size={20} className="text-amber-600" />
                     নতুন কর্মী যুক্ত করুন (Add Staff)
                   </h3>
                   <p className="text-xs font-medium text-ink-muted">
-                    সিস্টেম স্বয়ংক্রিয়ভাবে একটি ইউনিক ইউজারনেম তৈরি করে দেবে।
+                    সিস্টেম স্বয়ংক্রিয়ভাবে একটি ইউনিক ইউজারনেম তৈরি করে দেবে।
                   </p>
                 </div>
                 <button
                   onClick={() => setIsAddModalOpen(false)}
-                  className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-ink transition-all cursor-pointer"
+                  className="p-2 rounded-xl bg-gray-100 active:bg-gray-200 text-ink transition-all cursor-pointer shrink-0"
                 >
                   ✕
                 </button>
@@ -554,25 +697,25 @@ export default function AdminStaffManagement() {
                       type="button"
                       onClick={() => setFormRole('admin')}
                       className={cn(
-                        "py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2",
+                        "py-3 sm:py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-95",
                         formRole === 'admin'
                           ? "bg-white text-blue-700 shadow-sm"
                           : "text-ink-muted hover:text-ink"
                       )}
                     >
-                      <ShieldCheck size={16} /> 🛡️ Admin (এডমিন)
+                      <ShieldCheck size={16} /> 🛡️ Admin
                     </button>
                     <button
                       type="button"
                       onClick={() => setFormRole('moderator')}
                       className={cn(
-                        "py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2",
+                        "py-3 sm:py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-95",
                         formRole === 'moderator'
                           ? "bg-white text-purple-700 shadow-sm"
                           : "text-ink-muted hover:text-ink"
                       )}
                     >
-                      <User size={16} /> ⚖️ Moderator (মডারেটর)
+                      <User size={16} /> ⚖️ Moderator
                     </button>
                   </div>
                 </div>
@@ -586,25 +729,25 @@ export default function AdminStaffManagement() {
                     placeholder="যেমন: Tanvir Ahmed"
                     value={formName}
                     onChange={(e) => setFormName(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-gray-50 rounded-xl border border-ink/10 text-xs font-bold outline-none focus:ring-2 focus:ring-amber-400"
+                    className="w-full px-4 py-3 sm:py-2.5 bg-gray-50 rounded-xl border border-ink/10 text-sm sm:text-xs font-bold outline-none focus:ring-2 focus:ring-amber-400"
                   />
                 </div>
 
                 {/* 3. Live Auto-Generated Unique Username Preview */}
                 <div className="p-3.5 bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl border border-amber-200/80 space-y-1">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between flex-wrap gap-1">
                     <span className="text-[10px] font-black text-amber-900 uppercase flex items-center gap-1">
-                      <Sparkles size={12} /> Auto Unique Username Preview:
+                      <Sparkles size={12} /> Auto Username Preview:
                     </span>
-                    <span className="text-[10px] font-bold text-amber-700 bg-amber-200/60 px-2 py-0.5 rounded-md">
+                    <span className="text-[9px] sm:text-[10px] font-bold text-amber-700 bg-amber-200/60 px-2 py-0.5 rounded-md">
                       সিস্টেম জেনারেটেড
                     </span>
                   </div>
-                  <p className="font-mono font-black text-amber-900 text-sm">
+                  <p className="font-mono font-black text-amber-900 text-sm break-all">
                     @{previewUsername}
                   </p>
                   <p className="text-[10px] text-amber-800/80">
-                    * ডাটাবেজে সাবমিট হলে র্যান্ডম ডিজিট দিয়ে শতভাগ ইউনিক নিশ্চিত করা হবে।
+                    * ডাটাবেজে সাবমিট হলে র্যান্ডম ডিজিট দিয়ে শতভাগ ইউনিক নিশ্চিত করা হবে।
                   </p>
                 </div>
 
@@ -614,11 +757,12 @@ export default function AdminStaffManagement() {
                     <label className="text-[11px] font-black text-ink-muted uppercase block mb-1">ইমেইল এড্রেস</label>
                     <input
                       type="email"
+                      inputMode="email"
                       required
                       placeholder="admin@hometutor.com"
                       value={formEmail}
                       onChange={(e) => setFormEmail(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-gray-50 rounded-xl border border-ink/10 text-xs font-bold outline-none focus:ring-2 focus:ring-amber-400"
+                      className="w-full px-4 py-3 sm:py-2.5 bg-gray-50 rounded-xl border border-ink/10 text-sm sm:text-xs font-bold outline-none focus:ring-2 focus:ring-amber-400"
                     />
                   </div>
 
@@ -626,34 +770,35 @@ export default function AdminStaffManagement() {
                     <label className="text-[11px] font-black text-ink-muted uppercase block mb-1">মোবাইল নম্বর (ঐচ্ছিক)</label>
                     <input
                       type="tel"
+                      inputMode="tel"
                       placeholder="017XXXXXXXX"
                       value={formPhone}
                       onChange={(e) => setFormPhone(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-gray-50 rounded-xl border border-ink/10 text-xs font-bold outline-none focus:ring-2 focus:ring-amber-400"
+                      className="w-full px-4 py-3 sm:py-2.5 bg-gray-50 rounded-xl border border-ink/10 text-sm sm:text-xs font-bold outline-none focus:ring-2 focus:ring-amber-400"
                     />
                   </div>
                 </div>
 
                 {/* 5. Password with Quick Generator */}
                 <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-[11px] font-black text-ink-muted uppercase">লগইন পাসওয়ার্ড</label>
+                  <div className="flex items-center justify-between mb-1 gap-2 flex-wrap">
+                    <label className="text-[11px] font-black text-ink-muted uppercase">লগইন পাসওয়ার্ড</label>
                     <button
                       type="button"
                       onClick={handleGeneratePassword}
-                      className="text-[10px] font-black text-amber-600 hover:text-amber-700 flex items-center gap-1 cursor-pointer"
+                      className="text-[10px] font-black text-amber-600 active:text-amber-700 flex items-center gap-1 cursor-pointer"
                     >
-                      <RefreshCw size={11} /> স্ট্রং পাসওয়ার্ড তৈরি করুন
+                      <RefreshCw size={11} /> স্ট্রং পাসওয়ার্ড তৈরি করুন
                     </button>
                   </div>
                   <div className="relative">
                     <input
                       type={showPassword ? 'text' : 'password'}
                       required
-                      placeholder="পাসওয়ার্ড লিখুন"
+                      placeholder="পাসওয়ার্ড লিখুন"
                       value={formPassword}
                       onChange={(e) => setFormPassword(e.target.value)}
-                      className="w-full pl-4 pr-10 py-2.5 bg-gray-50 rounded-xl border border-ink/10 text-xs font-mono font-bold outline-none focus:ring-2 focus:ring-amber-400"
+                      className="w-full pl-4 pr-10 py-3 sm:py-2.5 bg-gray-50 rounded-xl border border-ink/10 text-sm sm:text-xs font-mono font-bold outline-none focus:ring-2 focus:ring-amber-400"
                     />
                     <button
                       type="button"
@@ -673,7 +818,7 @@ export default function AdminStaffManagement() {
                       {PERMISSION_OPTIONS.map((perm) => (
                         <label
                           key={perm.id}
-                          className="flex items-start gap-2.5 p-2 bg-gray-50 rounded-xl border border-ink/5 cursor-pointer hover:bg-gray-100 transition-all text-xs"
+                          className="flex items-start gap-2.5 p-2.5 bg-gray-50 rounded-xl border border-ink/5 cursor-pointer active:bg-gray-100 transition-all text-xs"
                         >
                           <input
                             type="checkbox"
@@ -685,7 +830,7 @@ export default function AdminStaffManagement() {
                                 setFormPermissions(formPermissions.filter(p => p !== perm.id));
                               }
                             }}
-                            className="mt-0.5 rounded text-amber-600 focus:ring-amber-400"
+                            className="mt-0.5 rounded text-amber-600 focus:ring-amber-400 w-4 h-4"
                           />
                           <div>
                             <p className="font-bold text-ink">{perm.label}</p>
@@ -698,18 +843,18 @@ export default function AdminStaffManagement() {
                 )}
 
                 {/* Submit Buttons */}
-                <div className="flex gap-3 pt-3">
+                <div className="flex gap-3 pt-3 pb-1">
                   <button
                     type="button"
                     onClick={() => setIsAddModalOpen(false)}
-                    className="flex-1 py-3 rounded-xl border border-ink/10 text-ink font-bold text-xs hover:bg-ink/5 transition-all cursor-pointer"
+                    className="flex-1 py-3.5 sm:py-3 rounded-xl border border-ink/10 text-ink font-bold text-xs active:bg-ink/5 transition-all cursor-pointer"
                   >
                     বাতিল
                   </button>
                   <button
                     type="submit"
                     disabled={isCreating}
-                    className="flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-black text-xs uppercase shadow-md shadow-amber-500/20 transition-all cursor-pointer flex items-center justify-center gap-2"
+                    className="flex-1 py-3.5 sm:py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 active:from-amber-600 active:to-amber-700 text-white font-black text-xs uppercase shadow-md shadow-amber-500/20 transition-all cursor-pointer flex items-center justify-center gap-2"
                   >
                     {isCreating ? <Loader2 size={16} className="animate-spin" /> : 'অ্যাকাউন্ট তৈরি করুন'}
                   </button>
@@ -720,59 +865,62 @@ export default function AdminStaffManagement() {
         )}
       </AnimatePresence>
 
-      {/* 🔑 Success Credentials Modal (Copy to Clipboard) */}
+      {/* 🔑 Success Credentials Modal (Copy to Clipboard) — bottom sheet on mobile */}
       <AnimatePresence>
         {createdCredentials && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/50 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-ink/50 backdrop-blur-sm"
           >
             <motion.div
-              initial={{ scale: 0.9, y: 20 }}
+              initial={{ scale: 1, y: '100%' }}
               animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-              className="bg-white rounded-[36px] shadow-2xl max-w-md w-full p-7 space-y-5 text-center"
+              exit={{ scale: 1, y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+              className="bg-white rounded-t-[32px] sm:rounded-[36px] shadow-2xl max-w-md w-full p-6 sm:p-7 space-y-5 text-center max-h-[92vh] overflow-y-auto"
             >
-              <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto shadow-inner">
-                <CheckCircle2 size={32} />
+              <div className="sm:hidden w-10 h-1.5 bg-ink/10 rounded-full mx-auto -mt-1 mb-1" />
+
+              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto shadow-inner">
+                <CheckCircle2 size={28} />
               </div>
 
               <div className="space-y-1">
-                <h3 className="text-xl font-display font-black text-ink">নতুন কর্মী অ্যাকাউন্ট তৈরি সম্পন্ন!</h3>
+                <h3 className="text-lg sm:text-xl font-display font-black text-ink">নতুন কর্মী অ্যাকাউন্ট তৈরি সম্পন্ন!</h3>
                 <p className="text-xs text-ink-muted">
-                  লগইন তথ্য সংরক্ষণ করুন বা কর্মীকে পাঠিয়ে দিন।
+                  লগইন তথ্য সংরক্ষণ করুন বা কর্মীকে পাঠিয়ে দিন।
                 </p>
               </div>
 
               {/* Credentials Box */}
-              <div className="p-5 bg-gray-50 rounded-2xl border border-ink/10 text-left space-y-3 text-xs font-mono">
+              <div className="p-4 sm:p-5 bg-gray-50 rounded-2xl border border-ink/10 text-left space-y-3 text-xs font-mono">
                 <div>
                   <span className="text-[10px] text-ink-muted uppercase block font-sans font-bold">নাম ও পদবী:</span>
-                  <p className="font-bold text-ink">{createdCredentials.name} ({createdCredentials.role})</p>
+                  <p className="font-bold text-ink break-words">{createdCredentials.name} ({createdCredentials.role})</p>
                 </div>
                 <div>
                   <span className="text-[10px] text-ink-muted uppercase block font-sans font-bold">ইউনিক ইউজারনেম (Username):</span>
-                  <p className="font-bold text-amber-600 text-sm">@{createdCredentials.username}</p>
+                  <p className="font-bold text-amber-600 text-sm break-all">@{createdCredentials.username}</p>
                 </div>
                 <div>
                   <span className="text-[10px] text-ink-muted uppercase block font-sans font-bold">ইমেইল:</span>
-                  <p className="font-bold text-ink">{createdCredentials.email}</p>
+                  <p className="font-bold text-ink break-all">{createdCredentials.email}</p>
                 </div>
                 <div>
-                  <span className="text-[10px] text-ink-muted uppercase block font-sans font-bold">পাসওয়ার্ড:</span>
-                  <p className="font-bold text-emerald-700">{createdCredentials.password}</p>
+                  <span className="text-[10px] text-ink-muted uppercase block font-sans font-bold">পাসওয়ার্ড:</span>
+                  <p className="font-bold text-emerald-700 break-all">{createdCredentials.password}</p>
                 </div>
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex gap-3 pb-1">
                 <button
                   onClick={() => {
                     const text = `🎉 Home Tutor BD Staff Account\nName: ${createdCredentials.name}\nRole: ${createdCredentials.role}\nUsername: ${createdCredentials.username}\nEmail: ${createdCredentials.email}\nPassword: ${createdCredentials.password}\nLogin at: /admin/login`;
                     copyToClipboard(text, 'all-creds');
                   }}
-                  className="flex-1 py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black text-xs uppercase shadow-md shadow-amber-500/20 transition-all cursor-pointer flex items-center justify-center gap-2"
+                  className="flex-1 py-3.5 sm:py-3 rounded-xl bg-amber-500 active:bg-amber-600 text-white font-black text-xs uppercase shadow-md shadow-amber-500/20 transition-all cursor-pointer flex items-center justify-center gap-2"
                 >
                   {copiedField === 'all-creds' ? (
                     <>
@@ -786,7 +934,7 @@ export default function AdminStaffManagement() {
                 </button>
                 <button
                   onClick={() => setCreatedCredentials(null)}
-                  className="px-5 py-3 rounded-xl border border-ink/10 text-ink font-bold text-xs hover:bg-ink/5 transition-all cursor-pointer"
+                  className="px-5 py-3.5 sm:py-3 rounded-xl border border-ink/10 text-ink font-bold text-xs active:bg-ink/5 transition-all cursor-pointer"
                 >
                   বন্ধ করুন
                 </button>
@@ -796,28 +944,31 @@ export default function AdminStaffManagement() {
         )}
       </AnimatePresence>
 
-      {/* ✏️ Modal: Edit Moderator Permissions */}
+      {/* ✏️ Modal: Edit Moderator Permissions — bottom sheet on mobile */}
       <AnimatePresence>
         {staffToEditPermissions && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/50 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-ink/50 backdrop-blur-sm"
           >
             <motion.div
-              initial={{ scale: 0.9, y: 20 }}
+              initial={{ scale: 1, y: '100%' }}
               animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-              className="bg-white rounded-[36px] shadow-2xl max-w-md w-full p-7 space-y-5"
+              exit={{ scale: 1, y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+              className="bg-white rounded-t-[32px] sm:rounded-[36px] shadow-2xl max-w-md w-full p-6 sm:p-7 space-y-5 max-h-[92vh] overflow-y-auto"
             >
+              <div className="sm:hidden w-10 h-1.5 bg-ink/10 rounded-full mx-auto -mt-1 mb-1" />
+
               <div className="space-y-1">
-                <h3 className="text-xl font-display font-black text-ink flex items-center gap-2">
+                <h3 className="text-lg sm:text-xl font-display font-black text-ink flex items-center gap-2">
                   <Key size={20} className="text-purple-600" />
                   মডারেটর পারমিশন পরিবর্তন
                 </h3>
-                <p className="text-xs text-ink-muted">
-                  {staffToEditPermissions.name} (@{staffToEditPermissions.username}) এর পারমিশন নিয়ন্ত্রণ করুন।
+                <p className="text-xs text-ink-muted break-words">
+                  {staffToEditPermissions.name} (@{staffToEditPermissions.username}) এর পারমিশন নিয়ন্ত্রণ করুন।
                 </p>
               </div>
 
@@ -827,7 +978,7 @@ export default function AdminStaffManagement() {
                   return (
                     <label
                       key={perm.id}
-                      className="flex items-start gap-3 p-3 bg-gray-50 rounded-2xl border border-ink/5 cursor-pointer hover:bg-gray-100 transition-all text-xs"
+                      className="flex items-start gap-3 p-3 bg-gray-50 rounded-2xl border border-ink/5 cursor-pointer active:bg-gray-100 transition-all text-xs"
                     >
                       <input
                         type="checkbox"
@@ -841,7 +992,7 @@ export default function AdminStaffManagement() {
                             permissions: updated,
                           });
                         }}
-                        className="mt-0.5 rounded text-purple-600 focus:ring-purple-400"
+                        className="mt-0.5 rounded text-purple-600 focus:ring-purple-400 w-4 h-4"
                       />
                       <div>
                         <p className="font-black text-ink">{perm.label}</p>
@@ -852,17 +1003,17 @@ export default function AdminStaffManagement() {
                 })}
               </div>
 
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-3 pt-2 pb-1">
                 <button
                   onClick={() => setStaffToEditPermissions(null)}
-                  className="flex-1 py-3 rounded-xl border border-ink/10 text-ink font-bold text-xs hover:bg-ink/5 transition-all cursor-pointer"
+                  className="flex-1 py-3.5 sm:py-3 rounded-xl border border-ink/10 text-ink font-bold text-xs active:bg-ink/5 transition-all cursor-pointer"
                 >
                   বাতিল
                 </button>
                 <button
                   onClick={handleSavePermissions}
                   disabled={isUpdatingPermissions}
-                  className="flex-1 py-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-black text-xs uppercase shadow-md shadow-purple-600/20 transition-all cursor-pointer"
+                  className="flex-1 py-3.5 sm:py-3 rounded-xl bg-purple-600 active:bg-purple-700 text-white font-black text-xs uppercase shadow-md shadow-purple-600/20 transition-all cursor-pointer"
                 >
                   {isUpdatingPermissions ? 'সেভ হচ্ছে...' : 'পারমিশন সেভ করুন'}
                 </button>
@@ -872,42 +1023,45 @@ export default function AdminStaffManagement() {
         )}
       </AnimatePresence>
 
-      {/* 🗑️ Modal: Delete Confirmation */}
+      {/* 🗑️ Modal: Delete Confirmation — bottom sheet on mobile */}
       <AnimatePresence>
         {staffToDelete && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/40 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-ink/40 backdrop-blur-sm"
           >
             <motion.div
-              initial={{ scale: 0.9, y: 20 }}
+              initial={{ scale: 1, y: '100%' }}
               animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-              className="bg-white rounded-[32px] shadow-2xl max-w-sm w-full p-7 space-y-5 text-center"
+              exit={{ scale: 1, y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+              className="bg-white rounded-t-[28px] sm:rounded-[32px] shadow-2xl max-w-sm w-full p-6 sm:p-7 space-y-5 text-center"
             >
+              <div className="sm:hidden w-10 h-1.5 bg-ink/10 rounded-full mx-auto -mt-1 mb-1" />
+
               <div className="w-14 h-14 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center mx-auto">
                 <Trash2 size={26} />
               </div>
               <div className="space-y-1">
                 <h3 className="text-lg font-black text-ink">স্টাফ অ্যাকাউন্ট মুছে ফেলতে চান?</h3>
-                <p className="text-xs text-ink-muted font-medium">
+                <p className="text-xs text-ink-muted font-medium break-words">
                   {staffToDelete.name} (@{staffToDelete.username}) এর অ্যাকাউন্ট ডাটাবেজ থেকে মুছে ফেলা হবে।
                 </p>
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex gap-3 pb-1">
                 <button
                   onClick={() => setStaffToDelete(null)}
-                  className="flex-1 py-3 rounded-xl border border-ink/10 text-ink font-bold text-xs hover:bg-ink/5 transition-all cursor-pointer"
+                  className="flex-1 py-3.5 sm:py-3 rounded-xl border border-ink/10 text-ink font-bold text-xs active:bg-ink/5 transition-all cursor-pointer"
                 >
                   বাতিল
                 </button>
                 <button
                   onClick={handleConfirmDelete}
                   disabled={isDeleting}
-                  className="flex-1 py-3 rounded-xl bg-rose-600 text-white font-bold text-xs hover:bg-rose-700 shadow-md shadow-rose-600/20 transition-all cursor-pointer"
+                  className="flex-1 py-3.5 sm:py-3 rounded-xl bg-rose-600 text-white font-bold text-xs active:bg-rose-700 shadow-md shadow-rose-600/20 transition-all cursor-pointer"
                 >
                   {isDeleting ? 'মুছছি...' : 'মুছে ফেলুন'}
                 </button>

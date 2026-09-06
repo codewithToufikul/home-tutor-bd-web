@@ -1,4 +1,4 @@
-// REST-API Cloudinary Upload Client
+// REST-API Cloudflare R2 Upload Client
 const metaEnv = (import.meta as unknown as { env?: Record<string, string> }).env;
 const API_BASE_URL = metaEnv?.VITE_API_URL || 'http://localhost:5001/api/v1';
 
@@ -15,25 +15,58 @@ export const uploadFile = async (
   file: File,
   folder = 'home-tutor-bd/documents',
 ): Promise<string> => {
-  const token = localStorage.getItem('accessToken');
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('folder', folder);
+  return uploadFileWithProgress(file, folder);
+};
 
-  const res = await fetch(`${API_BASE_URL}/upload/single`, {
-    method: 'POST',
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-    body: formData,
-    credentials: 'include',
+export const uploadFileWithProgress = (
+  file: File,
+  folder = 'home-tutor-bd/documents',
+  onProgress?: (percent: number) => void,
+): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const token = localStorage.getItem('accessToken');
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('folder', folder);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${API_BASE_URL}/upload/single`);
+    if (token) {
+      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    }
+    xhr.withCredentials = true;
+
+    if (onProgress) onProgress(10);
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onProgress) {
+        const percent = Math.min(95, Math.max(15, Math.round((e.loaded / e.total) * 95)));
+        onProgress(percent);
+      }
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const res = JSON.parse(xhr.responseText);
+          if (onProgress) onProgress(100);
+          resolve(res.data.url);
+        } catch (err) {
+          reject(new Error('Invalid response format'));
+        }
+      } else {
+        try {
+          const err = JSON.parse(xhr.responseText);
+          reject(new Error(err.message || 'Upload failed'));
+        } catch {
+          reject(new Error('Upload failed'));
+        }
+      }
+    };
+
+    xhr.onerror = () => reject(new Error('Network error during upload'));
+    xhr.send(formData);
   });
-
-  if (!res.ok) {
-    const err = (await res.json()) as { message?: string };
-    throw new Error(err.message || 'File upload failed');
-  }
-
-  const json = (await res.json()) as { data: { url: string } };
-  return json.data.url;
 };
 
 export const uploadMultipleFiles = async (

@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Bell, CheckCircle2, AlertCircle, Info, 
   Trash2, Search, Sparkles, UserPlus, CreditCard, 
-  MessageSquare, Briefcase, ChevronRight, Clock
+  MessageSquare, Briefcase, ChevronRight, Clock,
+  CheckCheck, Filter, X
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from '@/src/components/AdminLayout.tsx';
@@ -12,7 +13,7 @@ import { cn } from '@/src/lib/utils';
 
 export default function AdminNotifications() {
   const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
-  const [filter, setFilter] = useState('all');
+  const [filter, setFilter] = useState<'all' | 'unread' | 'payment' | 'tutor' | 'job'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -33,20 +34,42 @@ export default function AdminNotifications() {
     fetchNotifs();
   }, []);
 
-  const getIcon = (type?: string) => {
+  const getIconConfig = (type?: string) => {
     switch (type) {
       case 'user_registration':
       case 'tutor_verification':
-        return <UserPlus size={20} className="text-primary" />;
+      case 'tutor_approval':
+        return {
+          icon: <UserPlus size={18} className="text-primary" />,
+          bg: 'bg-emerald-50 border-emerald-100 text-emerald-600',
+          badgeText: 'Tutor',
+        };
       case 'payment':
-        return <CreditCard size={20} className="text-emerald-500" />;
+        return {
+          icon: <CreditCard size={18} className="text-teal-600" />,
+          bg: 'bg-teal-50 border-teal-100 text-teal-600',
+          badgeText: 'Payment',
+        };
       case 'tuition_job':
       case 'job_approval':
-        return <Briefcase size={20} className="text-blue-500" />;
+      case 'job_post':
+        return {
+          icon: <Briefcase size={18} className="text-blue-600" />,
+          bg: 'bg-blue-50 border-blue-100 text-blue-600',
+          badgeText: 'Tuition',
+        };
       case 'system':
-        return <Sparkles size={20} className="text-purple-500" />;
+        return {
+          icon: <Sparkles size={18} className="text-purple-600" />,
+          bg: 'bg-purple-50 border-purple-100 text-purple-600',
+          badgeText: 'System',
+        };
       default:
-        return <Info size={20} className="text-primary" />;
+        return {
+          icon: <Info size={18} className="text-primary" />,
+          bg: 'bg-primary/10 border-primary/20 text-primary',
+          badgeText: 'General',
+        };
     }
   };
 
@@ -106,116 +129,212 @@ export default function AdminNotifications() {
       !q ||
       (notif.title || '').toLowerCase().includes(q) ||
       (notif.message || '').toLowerCase().includes(q);
-    if (filter === 'unread') return matchesSearch && !notif.isRead;
-    return matchesSearch;
+
+    if (!matchesSearch) return false;
+
+    if (filter === 'unread') return !notif.isRead;
+    if (filter === 'payment') return notif.type === 'payment';
+    if (filter === 'tutor') return notif.type?.includes('tutor') || notif.type === 'user_registration';
+    if (filter === 'job') return notif.type?.includes('job') || notif.type === 'tuition_job';
+    return true;
   });
+
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  const formatRelativeTime = (dateStr?: string | Date) => {
+    if (!dateStr) return 'Just now';
+    const date = new Date(String(dateStr));
+    if (isNaN(date.getTime())) return 'Recently';
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
 
   return (
     <AdminLayout>
-      <div className="max-w-4xl mx-auto space-y-8 pb-20">
+      <div className="max-w-4xl mx-auto space-y-3 sm:space-y-6 pb-28 px-0">
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-1">
-            <h2 className="text-3xl font-display font-black text-ink tracking-tight flex items-center gap-3">
-              <Bell className="text-primary" size={32} />
-              System Notifications
+        <div className="flex items-center justify-between gap-3 px-1 sm:px-0">
+          <div className="space-y-0.5">
+            <h2 className="text-xl sm:text-3xl font-display font-black text-slate-900 tracking-tight flex items-center gap-2 sm:gap-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                <Bell size={18} className="sm:w-5 sm:h-5" />
+              </div>
+              <span>System Notifications</span>
             </h2>
-            <p className="text-sm font-medium text-ink-muted">Stay updated with the latest platform activities.</p>
+            <p className="text-[11px] sm:text-sm font-medium text-slate-500">
+              Stay updated with real-time platform activities.
+            </p>
           </div>
-          {notifications.some((n) => !n.isRead) && (
+
+          {unreadCount > 0 && (
             <button 
               onClick={markAllRead}
-              className="text-primary font-black text-xs uppercase tracking-widest hover:underline transition-all cursor-pointer"
+              className="flex items-center gap-1 text-primary hover:text-emerald-700 font-bold text-[11px] sm:text-xs transition-all cursor-pointer shrink-0 bg-primary/10 hover:bg-primary/15 px-2.5 sm:px-3 py-1.5 rounded-xl active:scale-95 border border-primary/20"
             >
-              Mark all as read
+              <CheckCheck size={13} />
+              <span className="hidden sm:inline">Mark all read</span>
+              <span className="sm:hidden">Read all</span>
             </button>
           )}
         </div>
 
-        {/* Notifications List Container */}
-        <div className="bg-white/40 backdrop-blur-xl rounded-[40px] border border-white/40 shadow-2xl shadow-ink/5 overflow-hidden">
-          <div className="p-6 border-b border-ink/5 flex items-center justify-between bg-white/40">
-            <div className="flex items-center gap-4">
+        {/* Notifications List Card Container */}
+        <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
+          {/* Filter & Search Toolbar */}
+          <div className="p-2.5 sm:p-4 border-b border-slate-100 flex flex-col gap-2.5 bg-slate-50/70">
+            {/* Search Input */}
+            <div className="relative w-full">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input 
+                type="text" 
+                placeholder="Search notifications by title or message..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-white border border-slate-200 rounded-xl py-2 pl-9 pr-8 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-slate-900 placeholder:text-slate-400" 
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-md"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+
+            {/* Pill Filter Tabs (Horizontal scroll on mobile) */}
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-0.5">
               <button 
                 onClick={() => setFilter('all')}
-                className={cn("px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer", filter === 'all' ? "bg-primary text-white" : "text-ink-muted hover:bg-white")}
+                className={cn(
+                  "py-1 px-3 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer shrink-0",
+                  filter === 'all' 
+                    ? "bg-primary text-white shadow-xs font-black" 
+                    : "bg-white border border-slate-200 text-slate-600 hover:text-slate-900"
+                )}
               >
                 All ({notifications.length})
               </button>
               <button 
                 onClick={() => setFilter('unread')}
-                className={cn("px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer", filter === 'unread' ? "bg-primary text-white" : "text-ink-muted hover:bg-white")}
+                className={cn(
+                  "py-1 px-3 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 flex items-center gap-1",
+                  filter === 'unread' 
+                    ? "bg-primary text-white shadow-xs font-black" 
+                    : "bg-white border border-slate-200 text-slate-600 hover:text-slate-900"
+                )}
               >
-                Unread ({notifications.filter(n => !n.isRead).length})
+                {unreadCount > 0 && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />}
+                Unread ({unreadCount})
               </button>
-            </div>
-            <div className="relative">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted/50" />
-              <input 
-                type="text" 
-                placeholder="Search..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-white/60 border border-ink/5 rounded-xl py-2 pl-10 pr-4 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-primary/20 w-40 md:w-64" 
-              />
+              <button 
+                onClick={() => setFilter('payment')}
+                className={cn(
+                  "py-1 px-3 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer shrink-0",
+                  filter === 'payment' 
+                    ? "bg-primary text-white shadow-xs font-black" 
+                    : "bg-white border border-slate-200 text-slate-600 hover:text-slate-900"
+                )}
+              >
+                Payments
+              </button>
+              <button 
+                onClick={() => setFilter('tutor')}
+                className={cn(
+                  "py-1 px-3 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer shrink-0",
+                  filter === 'tutor' 
+                    ? "bg-primary text-white shadow-xs font-black" 
+                    : "bg-white border border-slate-200 text-slate-600 hover:text-slate-900"
+                )}
+              >
+                Tutors
+              </button>
+              <button 
+                onClick={() => setFilter('job')}
+                className={cn(
+                  "py-1 px-3 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer shrink-0",
+                  filter === 'job' 
+                    ? "bg-primary text-white shadow-xs font-black" 
+                    : "bg-white border border-slate-200 text-slate-600 hover:text-slate-900"
+                )}
+              >
+                Jobs
+              </button>
             </div>
           </div>
 
-          <div className="divide-y divide-ink/5">
+          {/* Notifications Feed */}
+          <div className="divide-y divide-slate-100">
             {loading ? (
-              <div className="py-20 text-center text-ink-muted font-bold text-sm">Loading notifications...</div>
+              <div className="py-16 text-center text-slate-400 font-bold text-xs">Loading notifications...</div>
             ) : (
               <AnimatePresence mode="popLayout">
                 {filtered.map((notif) => {
                   const id = String(notif._id || notif.id);
                   const isUnread = !notif.isRead;
+                  const config = getIconConfig(notif.type);
 
                   return (
                     <motion.div 
                       key={id}
                       layout
-                      initial={{ opacity: 0, y: 10 }}
+                      initial={{ opacity: 0, y: 6 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95 }}
                       onClick={() => handleNotificationClick(notif)}
                       className={cn(
-                        "p-6 flex items-start gap-6 group hover:bg-white/90 transition-all cursor-pointer relative",
-                        isUnread ? "bg-primary/[0.03]" : ""
+                        "p-3 sm:p-5 flex items-start gap-2.5 sm:gap-4 group hover:bg-slate-50/90 transition-all cursor-pointer relative active:bg-slate-100/70",
+                        isUnread ? "bg-emerald-50/40" : "bg-white"
                       )}
                     >
+                      {/* Unread Left Highlight Bar */}
                       {isUnread && (
-                        <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-primary rounded-r" />
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r" />
                       )}
                       
+                      {/* Icon Badge */}
                       <div className={cn(
-                        "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110",
-                        isUnread ? "bg-primary/10 text-primary shadow-md shadow-primary/10" : "bg-ink/5 text-ink-muted"
+                        "w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl border flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 mt-0.5",
+                        config.bg
                       )}>
-                        {getIcon(notif.type)}
+                        {config.icon}
                       </div>
 
+                      {/* Content Body */}
                       <div className="flex-grow space-y-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <h4 className={cn("text-sm text-ink truncate", isUnread ? "font-black" : "font-bold")}>
-                            {notif.title || 'Notification'}
+                        {/* Title Row with full wrap & Time */}
+                        <div className="flex items-start justify-between gap-1.5">
+                          <h4 className={cn(
+                            "text-xs sm:text-sm text-slate-900 leading-snug break-words pr-1",
+                            isUnread ? "font-black text-slate-950" : "font-bold text-slate-800"
+                          )}>
+                            {notif.title || 'System Notification'}
                           </h4>
-                          <span className="text-[10px] font-bold text-ink-muted/60 shrink-0 flex items-center gap-1">
-                            <Clock size={11} />
-                            {notif.createdAt ? new Date(String(notif.createdAt)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
-                          </span>
+                          
+                          <div className="flex items-center gap-1.5 shrink-0 text-[10px] sm:text-xs font-semibold text-slate-400 mt-0.5">
+                            <Clock size={11} className="shrink-0" />
+                            <span className="whitespace-nowrap">{formatRelativeTime(notif.createdAt)}</span>
+                            {isUnread && (
+                              <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
+                            )}
+                          </div>
                         </div>
-                        <p className="text-xs font-medium text-ink-muted leading-relaxed line-clamp-2">{notif.message}</p>
+                        
+                        {/* Message Description */}
+                        <p className="text-[11px] sm:text-xs font-medium text-slate-600 leading-relaxed break-words line-clamp-3">
+                          {notif.message}
+                        </p>
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
+                      {/* Action buttons (Delete & Chevron) */}
+                      <div className="flex items-center gap-0.5 sm:gap-1 shrink-0 self-center pl-1">
                         <button 
                           onClick={(e) => deleteNotification(id, e)}
-                          className="p-2 rounded-xl bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white transition-all cursor-pointer"
-                          title="Delete"
+                          className="p-1.5 sm:p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all cursor-pointer active:scale-90"
+                          title="Delete notification"
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={15} />
                         </button>
-                        <ChevronRight size={18} className="text-ink-muted/40 group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                        <ChevronRight size={16} className="text-slate-300 group-hover:text-primary group-hover:translate-x-0.5 transition-all hidden sm:block" />
                       </div>
                     </motion.div>
                   );
@@ -225,11 +344,19 @@ export default function AdminNotifications() {
           </div>
 
           {!loading && filtered.length === 0 && (
-            <div className="py-20 text-center space-y-4">
-              <div className="w-16 h-16 bg-ink/5 rounded-full flex items-center justify-center text-ink-muted mx-auto">
-                <Bell size={32} />
+            <div className="py-16 text-center space-y-3 px-4">
+              <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 mx-auto">
+                <Bell size={22} />
               </div>
-              <p className="text-sm font-bold text-ink-muted">No notifications found.</p>
+              <p className="text-xs font-bold text-slate-500">No notifications found.</p>
+              {searchQuery && (
+                <button
+                  onClick={() => { setSearchQuery(''); setFilter('all'); }}
+                  className="text-primary text-xs font-bold underline"
+                >
+                  Clear search & filter
+                </button>
+              )}
             </div>
           )}
         </div>

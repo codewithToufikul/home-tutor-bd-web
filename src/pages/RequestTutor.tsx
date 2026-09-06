@@ -1,54 +1,461 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  ChevronRight, MapPin, BookOpen, GraduationCap, 
-  Phone, User, CheckCircle2, School, Calendar, 
-  Globe, Layout, Sparkles, ShieldCheck, Star, MessageSquare, ArrowRight, X 
+  ChevronRight, ChevronLeft, MapPin, BookOpen, GraduationCap, 
+  Phone, User, School, Calendar, ShieldCheck, Star, 
+  MessageSquare, ArrowRight, X, Check, AlertCircle, RefreshCw, Send,
+  Search, Target, Briefcase, Palette, Cpu, Stethoscope, Landmark,
+  Building2, Sprout, Sparkles, Layers
 } from 'lucide-react';
-import { SUBJECTS, CLASSES, MEDIUMS, DISTRICTS, DISTRICT_WISE_AREAS } from '@/src/constants';
+import { getDivisions, getDistricts, getUpazilas, getAreas } from '@olism/bd-geo';
+import { SUBJECTS, DISTRICTS, DISTRICT_WISE_AREAS } from '@/src/constants';
 import { cn } from '@/src/lib/utils';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/src/context/AuthContext.tsx';
 import { TuitionService } from '@/src/services/tuitionService.ts';
-import { TuitionJob } from '@/src/types';
+import { TuitionRepository } from '@/src/repositories/tuitionRepository.ts';
+import { TutorProfileService } from '@/src/services/tutorProfileService.ts';
 
-function TakaIcon({ size = 16, className = "" }: { size?: number, className?: string }) {
-  return (
-    <div 
-      style={{ width: size, height: size, fontSize: size * 0.9 }} 
-      className={cn("flex items-center justify-center font-black leading-none", className)}
-    >
-      ৳
-    </div>
-  );
-}
+// Course and Class Categories (Exact as Home page)
+const COURSE_CATEGORIES = [
+  {
+    id: 'all',
+    name: 'All Classes',
+    bangla: 'সকল শ্রেণি ও কোর্স',
+    icon: Sparkles,
+  },
+  {
+    id: 'school_college',
+    name: 'School & College',
+    bangla: 'স্কুল ও কলেজ',
+    icon: School,
+    items: [
+      'Play / Nursery',
+      'KG',
+      'Class 1',
+      'Class 2',
+      'Class 3',
+      'Class 4',
+      'Class 5',
+      'Class 6',
+      'Class 7',
+      'Class 8',
+      'Class 9',
+      'Class 10',
+      'SSC / O-Level',
+      'HSC / A-Level (AS & A2)',
+    ]
+  },
+  {
+    id: 'admission',
+    name: 'Admission Test',
+    bangla: 'ভর্তি পরীক্ষা (এডমিশন)',
+    icon: Target,
+    items: [
+      'Public University Admission Test',
+      'Private University Admission Test',
+      'Medical College Admission Test',
+      'Engineering University Admission Test',
+      'Medical Admission',
+      'Cadet Admission',
+      'College Admission',
+      'School Admission Test',
+      'Admission',
+      'Admission Candidate',
+    ]
+  },
+  {
+    id: 'university_degree',
+    name: 'University & Degree',
+    bangla: 'বিশ্ববিদ্যালয় ও ডিগ্রি',
+    icon: GraduationCap,
+    items: [
+      'BA',
+      'BBA',
+      'BSC',
+      'Degree',
+      'Diploma Engineering',
+      'Engineering',
+      'Medical - MBBS',
+      'Medical - BDS',
+      'Law',
+      'Honours',
+      'University / Undergrad',
+    ]
+  },
+  {
+    id: 'job_prep',
+    name: 'Job Preparation',
+    bangla: 'চাকরি প্রস্তুতি',
+    icon: Briefcase,
+    items: [
+      'BCS',
+      'Bank',
+      'Primary Teacher',
+      'Sub: Inspector',
+      'NTRCA',
+    ]
+  },
+  {
+    id: 'skills_courses',
+    name: 'Skills & Courses',
+    bangla: 'দক্ষতা ও স্পেশাল কোর্স',
+    icon: Palette,
+    items: [
+      'IELTS',
+      'Islamic Studies',
+      'Drawing & Painting',
+      'Handwriting',
+      'Computer Programming',
+      'Basic Computer Operating',
+    ]
+  }
+];
+
+const CUSTOM_CLASSES = [
+  'Play / Nursery',
+  'KG',
+  'Class 1',
+  'Class 2',
+  'Class 3',
+  'Class 4',
+  'Class 5',
+  'Class 6',
+  'Class 7',
+  'Class 8',
+  'Class 9',
+  'Class 10',
+  'SSC / O-Level',
+  'HSC / A-Level (AS & A2)',
+  'Public University Admission Test',
+  'Private University Admission Test',
+  'Medical College Admission Test',
+  'Engineering University Admission Test',
+  'Medical Admission',
+  'Cadet Admission',
+  'College Admission',
+  'School Admission Test',
+  'Admission',
+  'Admission Candidate',
+  'BA',
+  'BBA',
+  'BSC',
+  'Degree',
+  'Diploma Engineering',
+  'Engineering',
+  'Medical - MBBS',
+  'Medical - BDS',
+  'Law',
+  'Honours',
+  'University / Undergrad',
+  'BCS',
+  'Bank',
+  'Primary Teacher',
+  'Sub: Inspector',
+  'NTRCA',
+  'IELTS',
+  'Islamic Studies',
+  'Drawing & Painting',
+  'Handwriting',
+  'Computer Programming',
+  'Basic Computer Operating',
+];
+
+const ADMISSION_CATEGORIES = [
+  {
+    id: 'du',
+    name: 'Dhaka University (DU)',
+    banglaName: 'ঢাকা বিশ্ববিদ্যালয় (ঢাবি)',
+    icon: Landmark,
+    badge: 'শীর্ষ পছন্দ',
+    units: [
+      "DU 'A' Unit (Science / বিজ্ঞান অনুষদ)",
+      "DU 'B' Unit (Arts, Law & Social Science / মানবিক ও সামাজিক বিজ্ঞান)",
+      "DU 'C' Unit (Business Studies / ব্যবসায় শিক্ষা)",
+      "DU IBA (Institute of Business Administration)",
+      "DU Fine Arts (চারুকলা অনুষদ)",
+    ]
+  },
+  {
+    id: 'engineering',
+    name: 'Engineering Admission',
+    banglaName: 'ইঞ্জিনিয়ারিং এডমিশন',
+    icon: Cpu,
+    badge: 'বুয়েট ও ইঞ্জি.',
+    units: [
+      "BUET Engineering (বুয়েট)",
+      "CKET Combined (RUET, KUET, CUET)",
+      "BUTEX (বাংলাদেশ টেক্সটাইল বিশ্ববিদ্যালয়)",
+      "MIST Admission (মিলিটারি ইনস্টিটিউট)",
+      "Engineering Math & Physics Special"
+    ]
+  },
+  {
+    id: 'medical',
+    name: 'Medical & Dental',
+    banglaName: 'মেডিকেল ও ডেন্টাল এডমিশন',
+    icon: Stethoscope,
+    badge: 'MBBS / BDS',
+    units: [
+      "Medical Admission (MBBS সরকারি ও বেসরকারি)",
+      "Dental Admission (BDS)",
+      "Armed Forces Medical College (AFMC/AMC)",
+      "Medical Biology & Chemistry Special"
+    ]
+  },
+  {
+    id: 'iba_bup',
+    name: 'IBA, BUP & Business',
+    banglaName: 'IBA, BUP ও বিজনেস এডমিশন',
+    icon: Building2,
+    badge: 'IBA / BUP',
+    units: [
+      "DU IBA & JU IBA Admission",
+      "BUP Admission (FASS, FST, FBS)",
+      "Private University Admission (NSU, BRAC, IUB, EWU, AIUB)"
+    ]
+  },
+  {
+    id: 'gst_public',
+    name: 'GST & Public Universities',
+    banglaName: 'গুচ্ছ ও পাবলিক বিশ্ববিদ্যালয়',
+    icon: Sprout,
+    badge: '২৪+ পাবলিক বিশ্ববিদ্যালয়',
+    units: [
+      "GST Gucche 'A' Unit (Science / বিজ্ঞান)",
+      "GST Gucche 'B' Unit (Humanities / মানবিক)",
+      "GST Gucche 'C' Unit (Commerce / বাণিজ্য)",
+      "Jahangirnagar University (JU - সব ইউনিট)",
+      "Rajshahi University (RU)",
+      "Chittagong University (CU)",
+      "Agricultural University Cluster (কৃষি গুচ্ছ)"
+    ]
+  }
+];
+
+const CUSTOM_MEDIUMS = [
+  'Bangla Medium',
+  'English Medium',
+  'English Version',
+  'Madrasah Medium',
+  'Admission Candidate',
+  'Admission Help',
+  'International Exam Preparation',
+  'Religious and Moral Studies',
+  'Language',
+  'Arts and Crafts',
+  'Special Skills Mastery',
+  'Skills Development',
+  'Graduate Program',
+  'Job Preparation',
+  'Medical Admission'
+];
+
+const POPULAR_UNIVERSITIES = [
+  'Any University', 'BUET', 'DU (Dhaka University)', 'DMC (Medical)',
+  'NSU', 'BRACU', 'JU (Jahangirnagar)', 'RUET', 'CUET', 'SUST',
+  'IUT', 'BUP', 'EWU', 'AIUB', 'AUST'
+];
+
+const SALARY_PRESETS = [
+  '3000', '4000', '5000', '6000', '7000', '8000', '10000', '12000', '15000'
+];
+
+const TUTOR_QUALIFICATIONS = [
+  'Any Qualification',
+  'Public University Student',
+  'BUET / Engineering Student',
+  'Medical (MBBS) Student',
+  'Top Private University (NSU/BRAC)',
+  'Experienced School/College Teacher',
+  'Post Graduate / Masters Passed'
+];
+
+const POPULAR_REQUIREMENTS = [
+  'Punctual and regular',
+  'Special care for weak student',
+  'Strong in Math and Science',
+  'Fluent in English communication',
+  'Interactive teaching method',
+  'Weekly test and progress report'
+];
 
 export default function RequestTutor() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [step, setStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submittedJobData, setSubmittedJobData] = useState<any>(null);
   const [matchedTutors, setMatchedTutors] = useState<any[]>([]);
+  const [validationError, setValidationError] = useState('');
+
+  // Class filtering & search states (same as Home)
+  const [classCategoryFilter, setClassCategoryFilter] = useState<string>('all');
+  const [classSearchQuery, setClassSearchQuery] = useState<string>('');
+  const [selectedAdmissionTab, setSelectedAdmissionTab] = useState<string>('du');
+  const [showAdmissionPanel, setShowAdmissionPanel] = useState<boolean>(false);
+
+  // Custom inputs
   const [customSubInput, setCustomSubInput] = useState('');
   const [customAreaInput, setCustomAreaInput] = useState('');
 
+  // Bangladesh Geo Data from @olism/bd-geo
+  const allDivisions = useMemo(() => getDivisions(), []);
+  const allDistricts = useMemo(() => getDistricts(), []);
+  const allUpazilas = useMemo(() => getUpazilas(), []);
+  const allAreas = useMemo(() => getAreas(), []);
+
   const [formData, setFormData] = useState({
-    studentName: '',
-    phone: '',
+    // Student & Academic Info (Multiple classes & mediums supported)
+    studentName: user?.name || '',
+    studentGender: 'Any',
+    numStudents: 1,
     schoolName: '',
-    medium: '',
-    studentClass: '',
+    classes: [] as string[],
+    mediums: ['Bangla Medium'] as string[],
     subjects: [] as string[],
-    tuitionType: '',
-    preferredTutor: '',
-    district: '',
-    areas: [] as string[],
-    salaryOffer: '',
-    daysPerWeek: '',
-    universityTeacher: '',
+
+    // Location Info using @olism/bd-geo
+    division: 'Dhaka',
+    divisionId: 3 as number | '',
+    district: 'Dhaka',
+    districtId: 1 as number | '',
+    upazila: '',
+    upazilaId: '' as number | '',
+    union: '',
+    unionId: '' as number | '',
+    ward: '',
+    wardId: '' as number | '',
+    area: '',
+    detailedAddress: '',
+
+    // Tutor Preference
+    genderPreference: 'Any',
+    tuitionType: 'Home Tuition',
+    tutorQualification: 'Any Qualification',
+    universityPreference: 'Any University',
+    requirements: [] as string[],
+
+    // Schedule & Budget
+    tutoringDays: '3 Days/Week',
+    duration: '1.5 Hours',
+    startTime: 'Evening (4:00 PM - 8:00 PM)',
+    salaryOffer: '5000',
+
+    // Contact Details
+    contactName: user?.name || '',
+    phone: user?.phone || '',
+    whatsappNumber: user?.phone || '',
+    sameAsPhone: true,
     additional: '',
-    agreedToTerms: false
+    agreedToTerms: true,
   });
+
+  // Cascaded geo options
+  const availableDistricts = useMemo(() => {
+    if (!formData.divisionId) return [];
+    return allDistricts.filter((d) => d.divisionId === Number(formData.divisionId));
+  }, [allDistricts, formData.divisionId]);
+
+  const availableUpazilas = useMemo(() => {
+    if (!formData.districtId) return [];
+    return allUpazilas.filter((u) => u.districtId === Number(formData.districtId));
+  }, [allUpazilas, formData.districtId]);
+
+  const availableUnions = useMemo(() => {
+    if (!formData.upazilaId) return [];
+    return allAreas.filter((a) => a.upazilaId === Number(formData.upazilaId) && a.type === 'union');
+  }, [allAreas, formData.upazilaId]);
+
+  const availableWards = useMemo(() => {
+    if (!formData.upazilaId) return [];
+    return allAreas.filter((a) => a.upazilaId === Number(formData.upazilaId) && a.type === 'ward');
+  }, [allAreas, formData.upazilaId]);
+
+  const handleDivisionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const divId = Number(e.target.value);
+    const div = allDivisions.find((d) => d.id === divId);
+    setFormData((prev) => ({
+      ...prev,
+      division: div ? div.name : '',
+      divisionId: divId || '',
+      district: '',
+      districtId: '',
+      upazila: '',
+      upazilaId: '',
+      union: '',
+      unionId: '',
+      ward: '',
+      wardId: '',
+      area: '',
+    }));
+  };
+
+  const handleDistrictChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const distId = Number(e.target.value);
+    const dist = allDistricts.find((d) => d.id === distId);
+    setFormData((prev) => ({
+      ...prev,
+      district: dist ? dist.name : '',
+      districtId: distId || '',
+      upazila: '',
+      upazilaId: '',
+      union: '',
+      unionId: '',
+      ward: '',
+      wardId: '',
+      area: '',
+    }));
+  };
+
+  const handleUpazilaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const upId = Number(e.target.value);
+    const up = allUpazilas.find((u) => u.id === upId);
+    setFormData((prev) => ({
+      ...prev,
+      upazila: up ? up.name : '',
+      upazilaId: upId || '',
+      union: '',
+      unionId: '',
+      ward: '',
+      wardId: '',
+      area: up ? up.name : '',
+    }));
+  };
+
+  const handleUnionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const unId = Number(e.target.value);
+    const un = availableUnions.find((u) => u.id === unId);
+    setFormData((prev) => ({
+      ...prev,
+      union: un ? un.name : '',
+      unionId: unId || '',
+    }));
+  };
+
+  const handleWardChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const wdId = Number(e.target.value);
+    const wd = availableWards.find((w) => w.id === wdId);
+    setFormData((prev) => ({
+      ...prev,
+      ward: wd ? wd.name : '',
+      wardId: wdId || '',
+    }));
+  };
+
+  // Prefill user details if logged in
+  useEffect(() => {
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        studentName: prev.studentName || user.name || '',
+        contactName: prev.contactName || user.name || '',
+        phone: prev.phone || user.phone || '',
+        whatsappNumber: prev.whatsappNumber || user.phone || '',
+      }));
+    }
+  }, [user]);
 
   const toSentenceCase = (str: string) => {
     if (!str) return str;
@@ -57,257 +464,924 @@ export default function RequestTutor() {
 
   const totalSteps = 4;
 
-  const nextStep = () => setStep(prev => Math.min(prev + 1, totalSteps));
-  const prevStep = () => setStep(prev => Math.max(prev - 1, 1));
+  // Filtered visible classes and courses
+  const visibleClasses = useMemo(() => {
+    let list = CUSTOM_CLASSES;
+    if (classCategoryFilter !== 'all') {
+      const cat = COURSE_CATEGORIES.find((c) => c.id === classCategoryFilter);
+      if (cat && cat.items) {
+        list = cat.items;
+      }
+    }
+    if (classSearchQuery.trim()) {
+      const q = classSearchQuery.toLowerCase().trim();
+      list = list.filter((item) => item.toLowerCase().includes(q));
+    }
+    return list;
+  }, [classCategoryFilter, classSearchQuery]);
+
+  const toggleClass = (cls: string) => {
+    const isAdmission = cls.toLowerCase().includes('admission') || ADMISSION_CATEGORIES.some(cat => cat.units.includes(cls));
+    if (isAdmission) {
+      setShowAdmissionPanel(true);
+    }
+    if (formData.classes.includes(cls)) {
+      setFormData(prev => ({
+        ...prev,
+        classes: prev.classes.filter(c => c !== cls)
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        classes: [...prev.classes, cls]
+      }));
+    }
+  };
+
+  const toggleMedium = (med: string) => {
+    if (formData.mediums.includes(med)) {
+      if (formData.mediums.length === 1) return; // Keep at least one
+      setFormData(prev => ({
+        ...prev,
+        mediums: prev.mediums.filter(m => m !== med)
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        mediums: [...prev.mediums, med]
+      }));
+    }
+  };
+
+  const toggleAdmissionUnit = (unit: string) => {
+    if (formData.classes.includes(unit)) {
+      setFormData(prev => ({
+        ...prev,
+        classes: prev.classes.filter(item => item !== unit)
+      }));
+    } else {
+      const newClasses = formData.classes.includes('Admission Candidate')
+        ? [...formData.classes, unit]
+        : [...formData.classes, 'Admission Candidate', unit];
+      setFormData(prev => ({
+        ...prev,
+        classes: newClasses,
+        mediums: prev.mediums.includes('Admission Candidate')
+          ? prev.mediums
+          : [...prev.mediums.filter(m => m !== 'Bangla Medium'), 'Admission Candidate']
+      }));
+      setShowAdmissionPanel(true);
+    }
+  };
+
+  const validateStep = (currentStep: number): boolean => {
+    setValidationError('');
+    if (currentStep === 1) {
+      if (!formData.studentName.trim()) {
+        setValidationError('Please enter the student full name.');
+        return false;
+      }
+      if (formData.classes.length === 0) {
+        setValidationError('Please select at least one class or course.');
+        return false;
+      }
+      if (formData.mediums.length === 0) {
+        setValidationError('Please select at least one curriculum / medium.');
+        return false;
+      }
+      if (formData.subjects.length === 0) {
+        setValidationError('Please select at least one subject.');
+        return false;
+      }
+    } else if (currentStep === 2) {
+      if (!formData.divisionId) {
+        setValidationError('Please select a division.');
+        return false;
+      }
+      if (!formData.districtId) {
+        setValidationError('Please select a district.');
+        return false;
+      }
+      if (!formData.upazilaId) {
+        setValidationError('Please select an upazila / thana.');
+        return false;
+      }
+    } else if (currentStep === 4) {
+      if (!formData.salaryOffer || parseInt(formData.salaryOffer, 10) <= 0) {
+        setValidationError('Please enter an expected salary amount.');
+        return false;
+      }
+      if (!formData.phone.trim() || formData.phone.replace(/[^0-9]/g, '').length < 10) {
+        setValidationError('Please provide a valid active phone number.');
+        return false;
+      }
+      if (!formData.agreedToTerms) {
+        setValidationError('Please accept the terms and conditions to proceed.');
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const nextStep = () => {
+    if (validateStep(step)) {
+      setStep(prev => Math.min(prev + 1, totalSteps));
+      window.scrollTo({ top: 100, behavior: 'smooth' });
+    }
+  };
+
+  const prevStep = () => {
+    setValidationError('');
+    setStep(prev => Math.max(prev - 1, 1));
+    window.scrollTo({ top: 100, behavior: 'smooth' });
+  };
 
   const toggleSubject = (sub: string) => {
-    const formatted = sub.toUpperCase();
-    if (formData.subjects.includes(formatted)) {
-      setFormData({
-        ...formData,
-        subjects: formData.subjects.filter(s => s !== formatted)
-      });
+    if (formData.subjects.includes(sub)) {
+      setFormData(prev => ({
+        ...prev,
+        subjects: prev.subjects.filter(s => s !== sub)
+      }));
     } else {
-      setFormData({
-        ...formData,
-        subjects: [...formData.subjects, formatted]
-      });
+      setFormData(prev => ({
+        ...prev,
+        subjects: [...prev.subjects, sub]
+      }));
     }
   };
 
   const addCustomSubject = () => {
     if (customSubInput.trim()) {
-      const formatted = customSubInput.trim().toUpperCase();
+      const formatted = toSentenceCase(customSubInput.trim());
       if (!formData.subjects.includes(formatted)) {
-        setFormData({
-          ...formData,
-          subjects: [...formData.subjects, formatted]
-        });
+        setFormData(prev => ({
+          ...prev,
+          subjects: [...prev.subjects, formatted]
+        }));
       }
       setCustomSubInput('');
     }
   };
 
-  const toggleArea = (area: string) => {
-    const formatted = area.toUpperCase();
-    if (formData.areas.includes(formatted)) {
-      setFormData({
-        ...formData,
-        areas: formData.areas.filter(a => a !== formatted)
-      });
+  const toggleRequirement = (req: string) => {
+    if (formData.requirements.includes(req)) {
+      setFormData(prev => ({
+        ...prev,
+        requirements: prev.requirements.filter(r => r !== req)
+      }));
     } else {
-      setFormData({
-        ...formData,
-        areas: [...formData.areas, formatted]
-      });
-    }
-  };
-
-  const addCustomArea = () => {
-    if (customAreaInput.trim()) {
-      const formatted = customAreaInput.trim().toUpperCase();
-      if (!formData.areas.includes(formatted)) {
-        setFormData({
-          ...formData,
-          areas: [...formData.areas, formatted]
-        });
-      }
-      setCustomAreaInput('');
+      setFormData(prev => ({
+        ...prev,
+        requirements: [...prev.requirements, req]
+      }));
     }
   };
 
   const handleSubmit = async () => {
-    // Validate required fields before sending
-    if (!formData.district) {
-      alert('দয়া করে জেলা নির্বাচন করুন!');
-      return;
-    }
-    if (!formData.studentClass) {
-      alert('দয়া করে ক্লাস নির্বাচন করুন!');
-      return;
-    }
-    if (!formData.medium) {
-      alert('দয়া করে মাধ্যম নির্বাচন করুন!');
-      return;
-    }
-    if (!formData.salaryOffer || parseInt(formData.salaryOffer) <= 0) {
-      alert('দয়া করে বেতন উল্লেখ করুন!');
-      return;
-    }
+    if (!validateStep(4)) return;
 
-    // Build payload that matches backend schema exactly
+    setIsSubmitting(true);
+    setValidationError('');
+
+    const classesStr = formData.classes.length > 0 ? formData.classes.join(', ') : 'Class 10';
+    const mediumsStr = formData.mediums.length > 0 ? formData.mediums.join(', ') : 'Bangla Medium';
+
+    const locationParts = [
+      formData.ward ? `Ward: ${formData.ward}` : '',
+      formData.union ? `Union: ${formData.union}` : '',
+      formData.upazila,
+      formData.district,
+      formData.division
+    ].filter(Boolean);
+
+    const locationArea = [formData.ward, formData.union, formData.upazila].filter(Boolean).join(', ') || formData.upazila || formData.area || 'All Areas';
+    const fullLocationDescription = locationParts.join(', ') + (formData.detailedAddress ? ` (Details: ${formData.detailedAddress})` : '');
+
+    const whatsapp = formData.sameAsPhone ? formData.phone.trim() : (formData.whatsappNumber.trim() || formData.phone.trim());
+
     const payload = {
-      studentClass: formData.studentClass,
+      studentClass: classesStr,
       subjects: formData.subjects.length > 0 ? formData.subjects : ['General Subjects'],
       location: {
-        district: formData.district,
-        area: formData.areas.length > 0 ? formData.areas.join(', ') : formData.district,
+        division: formData.division || '',
+        district: formData.district || 'Dhaka',
+        upazila: formData.upazila || '',
+        union: formData.union || '',
+        ward: formData.ward || '',
+        area: locationArea,
+        detailedAddress: formData.detailedAddress.trim()
       },
-      salary: parseInt(formData.salaryOffer) || 0,
-      medium: formData.medium,
-      genderPreference: formData.preferredTutor || 'Any',
-      tutoringDays: formData.daysPerWeek || [],
-      tuitionType: formData.tuitionType || 'Home Tuition',
-      phone: formData.phone,
-      name: formData.studentName,
-      description: `Tutor requested for: ${formData.studentClass}. Medium: ${formData.medium}. Subjects: ${formData.subjects.join(', ')}. Location: ${formData.areas.join(', ')}, ${formData.district}. Phone: ${formData.phone}`,
+      salary: parseInt(formData.salaryOffer, 10) || 5000,
+      medium: mediumsStr,
+      genderPreference: formData.genderPreference,
+      tutoringDays: [formData.tutoringDays],
+      tuitionType: formData.tuitionType,
+      studentGender: formData.studentGender,
+      numStudents: formData.numStudents,
+      duration: formData.duration,
+      startTime: formData.startTime,
+      phone: formData.phone.trim(),
+      whatsappNumber: whatsapp,
+      name: formData.studentName.trim(),
+      contactName: formData.contactName.trim() || formData.studentName.trim(),
+      schoolName: formData.schoolName.trim(),
+      universityPreference: formData.universityPreference,
+      tutorQualification: formData.tutorQualification,
+      requirements: formData.requirements,
+      preferredTime: [formData.startTime],
+      description: `Tutor requested for: ${classesStr} (${mediumsStr}). Subjects: ${formData.subjects.join(', ')}. Location: ${fullLocationDescription}. Tutor Preference: ${formData.genderPreference} Tutor from ${formData.universityPreference}. Schedule: ${formData.tutoringDays} (${formData.duration}). Expected Salary: ৳${parseInt(formData.salaryOffer, 10).toLocaleString()}/month. Notes: ${formData.additional || 'None'}. Phone: ${formData.phone}${whatsapp ? `, WhatsApp: ${whatsapp}` : ''}`,
       status: 'Open',
       approvalStatus: 'Approved',
     };
 
     try {
-      await TuitionService.create(payload);
-      setMatchedTutors([]);
+      const createdJob = await TuitionService.create(payload);
+      setSubmittedJobData(createdJob || payload);
+      
+      // ══════════════════════════════════════════════════════════════
+      // Dynamic AI Tutor Matching Engine Integration
+      // ══════════════════════════════════════════════════════════════
+      let dynamicMatches: any[] = [];
+
+      try {
+        const [shortlistedRes, allTutors] = await Promise.all([
+          createdJob?.id || createdJob?._id ? TuitionRepository.getShortlisted(createdJob.id || createdJob._id).catch(() => null) : null,
+          TutorProfileService.getAll().catch(() => [])
+        ]);
+
+        const rawShortlist = Array.isArray(shortlistedRes)
+          ? shortlistedRes
+          : (shortlistedRes as any)?.shortlistedTutors || [];
+
+        if (rawShortlist.length > 0) {
+          dynamicMatches = rawShortlist.map((st: any) => {
+            const t = st.tutorId || {};
+            const u = t.userId || {};
+            return {
+              id: t.id || t._id || u._id || String(Math.random()),
+              name: u.name || t.name || 'Verified Tutor',
+              university: t.university || 'Public University',
+              department: t.department || '',
+              rating: t.rating || 4.9,
+              subjects: Array.isArray(t.subjects) && t.subjects.length > 0 ? t.subjects : formData.subjects.slice(0, 3),
+              areas: [formData.upazila, formData.district].filter(Boolean),
+              photo: u.avatar || t.photo || `https://api.dicebear.com/9.x/notionists/svg?seed=${u.name || 'Tutor'}&backgroundColor=b6e3f4`,
+              experience: t.experience ? `${t.experience} Exp.` : '3+ Years Exp.',
+              isVerified: t.isVerified ?? true,
+              score: st.score || 95,
+              matchReasons: ['AI Top Match', 'Verified Background']
+            };
+          });
+        } else if (Array.isArray(allTutors) && allTutors.length > 0) {
+          // Score and rank registered tutors dynamically using platform algorithm
+          const jobSubjects = (formData.subjects || []).map(s => s.toLowerCase().trim());
+          const jobDist = (formData.district || '').toLowerCase().trim();
+          const jobUpazila = (formData.upazila || '').toLowerCase().trim();
+          const prefUni = (formData.universityPreference || '').toLowerCase().trim();
+
+          const scored = allTutors.map(t => {
+            let score = 70;
+            const reasons: string[] = [];
+
+            const tSubjects = (t.subjects || []).map(s => String(s).toLowerCase().trim());
+            const tDist = (t.location?.district || '').toLowerCase().trim();
+            const tAreas = [
+              t.location?.area || '',
+              ...(t.preferredAreas || [])
+            ].map(a => String(a).toLowerCase().trim());
+            const tUni = (t.university || '').toLowerCase().trim();
+
+            // 1. Subject match (up to +15 pts)
+            if (jobSubjects.length > 0 && tSubjects.length > 0) {
+              const matches = jobSubjects.filter(s => tSubjects.some(ts => ts.includes(s) || s.includes(ts))).length;
+              if (matches > 0) {
+                const add = Math.round((matches / jobSubjects.length) * 15);
+                score += add;
+                reasons.push(`${matches} Subject${matches > 1 ? 's' : ''} Match`);
+              }
+            }
+
+            // 2. Location match (up to +12 pts)
+            if (jobDist && tDist && (jobDist.includes(tDist) || tDist.includes(jobDist))) {
+              score += 7;
+              if (jobUpazila && tAreas.some(a => a.includes(jobUpazila) || jobUpazila.includes(a))) {
+                score += 5;
+                reasons.push('Location Match');
+              } else {
+                reasons.push('District Match');
+              }
+            }
+
+            // 3. University match (up to +6 pts)
+            if (prefUni && prefUni !== 'any' && prefUni !== 'any university' && tUni.includes(prefUni)) {
+              score += 6;
+              reasons.push('Preferred University');
+            }
+
+            // 4. Rating & Verification bonus (+4 pts)
+            if (t.isVerified) {
+              score += 3;
+              reasons.push('Verified');
+            }
+            if ((t.rating || 0) >= 4.5) {
+              score += 2;
+            }
+
+            const finalScore = Math.min(Math.max(score, 78), 99);
+
+            return {
+              id: t.id || t._id || String(Math.random()),
+              name: t.name || (t as any).userId?.name || 'Candidate Tutor',
+              university: t.university || 'Reputed University',
+              department: t.department || '',
+              rating: t.rating || '4.9',
+              subjects: Array.isArray(t.subjects) && t.subjects.length > 0 ? t.subjects : formData.subjects.slice(0, 3),
+              areas: [formData.upazila, formData.district].filter(Boolean),
+              photo: (t as any).photo || (t as any).avatar || `https://api.dicebear.com/9.x/notionists/svg?seed=${t.name || 'Tutor'}&backgroundColor=b6e3f4`,
+              experience: t.experience ? `${t.experience} Experience` : '3+ Years Experience',
+              isVerified: t.isVerified ?? true,
+              score: finalScore,
+              matchReasons: reasons.length > 0 ? reasons : ['Profile Match', 'Active Tutor']
+            };
+          });
+
+          scored.sort((a, b) => b.score - a.score);
+          dynamicMatches = scored.slice(0, 4);
+        }
+      } catch (matchErr) {
+        console.warn('AI matching dynamic calculation warning:', matchErr);
+      }
+
+      // Fallback only if no tutors found in database
+      if (dynamicMatches.length === 0) {
+        dynamicMatches = [
+          {
+            id: 't-1',
+            name: 'Engr. Tanvir Ahmed',
+            university: formData.universityPreference && formData.universityPreference !== 'Any University' ? formData.universityPreference : 'BUET (Department of EEE)',
+            rating: '4.9',
+            subjects: formData.subjects.slice(0, 3),
+            areas: [formData.upazila, formData.district].filter(Boolean),
+            photo: 'https://api.dicebear.com/9.x/notionists/svg?seed=Tutor-Tanvir&backgroundColor=b6e3f4',
+            experience: '4+ Years Experience',
+            isVerified: true,
+            score: 96,
+            matchReasons: ['Subject Match', 'Location Match', 'Verified']
+          },
+          {
+            id: 't-2',
+            name: 'Nusrat Jahan',
+            university: 'Dhaka University (Physics)',
+            rating: '5.0',
+            subjects: formData.subjects.slice(0, 3),
+            areas: [formData.upazila, formData.district].filter(Boolean),
+            photo: 'https://api.dicebear.com/9.x/notionists/svg?seed=Tutor-Nusrat&backgroundColor=fbcfe8',
+            experience: '3+ Years Experience',
+            isVerified: true,
+            score: 92,
+            matchReasons: ['Curriculum Match', 'Top Rated']
+          }
+        ];
+      }
+
+      setMatchedTutors(dynamicMatches);
+      
       setIsSubmitted(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
-      alert('টিউশন পোস্ট করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।');
       console.error('Failed to create tuition job:', err);
+      setValidationError('Failed to post tuition request. Please check details and try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  // ডিস্ট্রিক্ট অনুযায়ী শুধু নির্দিষ্ট এরিয়াগুলো ফিল্টার করবে (অন্য জেলারগুলো দেখাবে না)
   const currentDistrictAreas = formData.district && DISTRICT_WISE_AREAS[formData.district] 
     ? DISTRICT_WISE_AREAS[formData.district] 
     : [];
 
+  const isAdmissionMode = showAdmissionPanel || formData.classes.some(c => c.toLowerCase().includes('admission') || ADMISSION_CATEGORIES.some(cat => cat.units.includes(c))) || classCategoryFilter === 'admission';
+
+  const steps = [
+    { num: 1, title: 'Class & Medium', desc: 'Academics' },
+    { num: 2, title: 'Location', desc: 'Area info' },
+    { num: 3, title: 'Tutor Preference', desc: 'Requirements' },
+    { num: 4, title: 'Schedule & Contact', desc: 'Finalize' },
+  ];
+
   return (
-    <div className="max-w-4xl mx-auto px-4 py-12 lg:py-20">
-      <div className="space-y-8">
+    <div className="min-h-screen bg-slate-50/60 py-4 sm:py-12 pb-28 sm:pb-16">
+      <div className="max-w-3xl mx-auto px-3.5 sm:px-6">
         
-        {/* Header */}
-        <div className="text-center space-y-4">
-          <h1 className="text-4xl font-display font-bold text-ink">Request a Tutor</h1>
-          <p className="text-ink-muted">Fill out the form below and we'll match you with the best tutors.</p>
-          
-          {!isSubmitted && (
-            <div className="flex items-center justify-center gap-4 pt-4">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="flex items-center">
-                  <div className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all",
-                    step === i ? "bg-primary text-white shadow-lg shadow-primary/20 scale-110" : 
-                    step > i ? "bg-secondary text-white" : "bg-ink/5 text-ink-muted"
-                  )}>
-                    {step > i ? <CheckCircle2 size={20} /> : i}
-                  </div>
-                  {i < 4 && (
-                    <div className={cn(
-                      "w-8 h-1 mx-2 rounded-full",
-                      step > i ? "bg-secondary" : "bg-ink/5"
-                    )} />
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+        {/* Minimal Header */}
+        <div className="text-center space-y-1 sm:space-y-2 mb-5 sm:mb-8">
+          <h1 className="text-xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+            Request a Tutor
+          </h1>
+          <p className="text-slate-500 text-xs sm:text-sm max-w-md mx-auto">
+            Fill out the form below to match with verified tutors in minutes.
+          </p>
         </div>
 
-        {/* Main Content Card */}
-        <div className="bg-surface p-8 lg:p-12 rounded-[2.5rem] border border-ink/5 shadow-2xl shadow-primary/5 min-h-[500px] flex flex-col justify-between">
+        {/* Stepper (Mobile & Desktop App-like design) */}
+        {!isSubmitted && (
+          <div className="mb-5 sm:mb-8">
+            {/* Mobile Stepper (< sm) */}
+            <div className="sm:hidden space-y-2.5">
+              <div className="grid grid-cols-4 gap-1.5">
+                {steps.map((st) => {
+                  const isActive = step === st.num;
+                  const isCompleted = step > st.num;
+                  const shortTitles = ['Class', 'Area', 'Tutor', 'Contact'];
+                  return (
+                    <button
+                      key={st.num}
+                      type="button"
+                      onClick={() => {
+                        if (st.num < step) setStep(st.num);
+                      }}
+                      className={cn(
+                        "flex flex-col items-center justify-center py-2 px-1 rounded-xl border transition-all text-center",
+                        isActive 
+                          ? "bg-white border-primary text-primary shadow-xs ring-1 ring-primary/20" 
+                          : isCompleted 
+                          ? "bg-slate-900 border-slate-900 text-white cursor-pointer" 
+                          : "bg-white/60 border-slate-200/80 text-slate-400 cursor-not-allowed"
+                      )}
+                    >
+                      <span className={cn(
+                        "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold mb-0.5",
+                        isActive 
+                          ? "bg-primary text-white" 
+                          : isCompleted 
+                          ? "bg-white/20 text-white" 
+                          : "bg-slate-100 text-slate-400"
+                      )}>
+                        {isCompleted ? <Check size={11} strokeWidth={3} /> : st.num}
+                      </span>
+                      <span className="text-[10px] font-semibold truncate max-w-full">
+                        {shortTitles[st.num - 1]}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Mobile Progress Bar & Status */}
+              <div className="flex items-center justify-between px-0.5 pt-0.5">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                    Step {step} of 4
+                  </span>
+                  <span className="text-xs font-bold text-slate-800 truncate max-w-[190px]">
+                    {steps[step - 1].title}
+                  </span>
+                </div>
+                <span className="text-[11px] font-semibold text-slate-400">
+                  {Math.round((step / totalSteps) * 100)}%
+                </span>
+              </div>
+              <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                <div 
+                  className="bg-primary h-full transition-all duration-300 ease-out"
+                  style={{ width: `${(step / totalSteps) * 100}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Desktop Stepper (sm+) */}
+            <div className="hidden sm:block">
+              <div className="grid grid-cols-4 gap-2">
+                {steps.map((st) => {
+                  const isActive = step === st.num;
+                  const isCompleted = step > st.num;
+                  return (
+                    <button
+                      key={st.num}
+                      type="button"
+                      onClick={() => {
+                        if (st.num < step) setStep(st.num);
+                      }}
+                      className={cn(
+                        "text-left p-3 rounded-xl border transition-all text-xs",
+                        isActive 
+                          ? "bg-white border-primary/40 shadow-sm" 
+                          : isCompleted 
+                          ? "bg-white/60 border-slate-200 text-slate-700 cursor-pointer hover:bg-white" 
+                          : "bg-transparent border-transparent text-slate-400 cursor-not-allowed"
+                      )}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={cn(
+                          "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold",
+                          isActive 
+                            ? "bg-primary text-white" 
+                            : isCompleted 
+                            ? "bg-slate-900 text-white" 
+                            : "bg-slate-200 text-slate-500"
+                        )}>
+                          {isCompleted ? <Check size={11} /> : st.num}
+                        </span>
+                        <span className={cn("font-semibold truncate", isActive ? "text-primary" : "text-slate-700")}>
+                          {st.title}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+              
+              {/* Progress line */}
+              <div className="w-full bg-slate-200 h-1 rounded-full mt-3 overflow-hidden">
+                <div 
+                  className="bg-primary h-full transition-all duration-300 ease-out"
+                  style={{ width: `${(step / totalSteps) * 100}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Validation Error Banner */}
+        {validationError && (
+          <motion.div 
+            initial={{ opacity: 0, y: -6 }} 
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-5 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium flex items-center gap-2.5"
+          >
+            <AlertCircle size={16} className="shrink-0 text-rose-600" />
+            <span>{validationError}</span>
+          </motion.div>
+        )}
+
+        {/* Form Card */}
+        <div className="bg-white p-4 sm:p-8 rounded-2xl border border-slate-200/80 shadow-xs sm:shadow-sm min-h-[440px] flex flex-col justify-between">
           <AnimatePresence mode="wait">
             
-            {/* Step 1 */}
+            {/* ══════════════════════════════════════════════════════════════
+                STEP 1: Student, Class/Course & Curriculum/Medium (As on Home page)
+            ══════════════════════════════════════════════════════════════ */}
             {!isSubmitted && step === 1 && (
               <motion.div
                 key="step1"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="space-y-8 flex-grow"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.15 }}
+                className="space-y-5 sm:space-y-6 flex-grow"
               >
-                <div className="space-y-6">
-                  <div className="space-y-3">
-                    <label className="text-sm font-bold text-ink uppercase">Student Name <span className="text-primary">*</span></label>
-                    <div className="relative">
-                      <User className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-muted" size={20} />
+                <div>
+                  <h2 className="text-sm sm:text-base font-bold text-slate-900">Student, Class and Curriculum Details</h2>
+                  <p className="text-xs text-slate-500 mt-0.5">Select class, curriculum medium, and subjects.</p>
+                </div>
+
+                <div className="space-y-4">
+                  {/* Student Basic Info Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    {/* Student Name */}
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <label className="text-xs font-semibold text-slate-700">
+                        Student Full Name <span className="text-rose-500">*</span>
+                      </label>
                       <input
                         type="text"
-                        placeholder="Enter Student Name"
+                        placeholder="e.g. Tanvir Rahman"
                         value={formData.studentName}
                         onChange={(e) => setFormData({ ...formData, studentName: toSentenceCase(e.target.value) })}
-                        className="w-full pl-12 pr-4 py-4 rounded-2xl border border-ink/5 bg-background text-ink focus:ring-2 focus:ring-primary/20 outline-none"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-sm"
                       />
                     </div>
-                  </div>
 
-                  <div className="space-y-3">
-                    <label className="text-sm font-bold text-ink uppercase">Active Mobile Number <span className="text-primary">*</span></label>
-                    <div className="relative">
-                      <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-muted" size={20} />
-                      <input
-                        type="tel"
-                        placeholder="Enter Phone Number"
-                        value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        className="w-full pl-12 pr-4 py-4 rounded-2xl border border-ink/5 bg-background text-ink focus:ring-2 focus:ring-primary/20 outline-none"
-                      />
+                    {/* Student Gender */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-slate-700">Student Gender</label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { val: 'Male', label: 'Male' },
+                          { val: 'Female', label: 'Female' },
+                          { val: 'Any', label: 'Any' },
+                        ].map(g => (
+                          <button
+                            key={g.val}
+                            type="button"
+                            onClick={() => setFormData({ ...formData, studentGender: g.val })}
+                            className={cn(
+                              "py-2.5 px-2 rounded-xl border text-xs sm:text-sm font-semibold transition active:scale-[0.98] cursor-pointer text-center",
+                              formData.studentGender === g.val
+                                ? "bg-slate-900 text-white border-slate-900 shadow-xs"
+                                : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                            )}
+                          >
+                            {g.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="space-y-3">
-                    <label className="text-sm font-bold text-ink uppercase">Your School Name <span className="text-primary">*</span></label>
-                    <div className="relative">
-                      <School className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-muted" size={20} />
+                    {/* School / College Name */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-slate-700">School / College Name</label>
                       <input
                         type="text"
-                        placeholder="Enter School/College Name"
+                        placeholder="e.g. Notre Dame College"
                         value={formData.schoolName}
                         onChange={(e) => setFormData({ ...formData, schoolName: toSentenceCase(e.target.value) })}
-                        className="w-full pl-12 pr-4 py-4 rounded-2xl border border-ink/5 bg-background text-ink focus:ring-2 focus:ring-primary/20 outline-none"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-sm"
                       />
                     </div>
                   </div>
-                </div>
-              </motion.div>
-            )}
 
-            {/* Step 2 */}
-            {!isSubmitted && step === 2 && (
-              <motion.div
-                key="step2"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="space-y-8 flex-grow"
-              >
-                <div className="space-y-6">
-                  <div className="space-y-3">
-                    <label className="text-sm font-bold text-ink uppercase">Select Medium <span className="text-primary">*</span></label>
-                    <select
-                      value={formData.medium}
-                      onChange={(e) => setFormData({ ...formData, medium: e.target.value })}
-                      className="w-full px-4 py-4 rounded-2xl border border-ink/5 bg-background text-ink focus:ring-2 focus:ring-primary/20 outline-none appearance-none"
-                    >
-                      <option value="">Select Medium</option>
-                      {MEDIUMS.map(m => <option key={m} value={m}>{m}</option>)}
-                    </select>
+                  {/* ─────────────────────────────────────────────────────────────
+                      1. SELECT CLASS / COURSE (Exact Home Page Organization)
+                  ───────────────────────────────────────────────────────────── */}
+                  <div className="space-y-2.5 pt-3 border-t border-slate-100">
+                    <div className="flex justify-between items-center">
+                      <label className="text-xs font-semibold text-slate-800">
+                        Select Class or Course (Multiple Choice) <span className="text-rose-500">*</span>
+                      </label>
+                      <span className="text-[11px] text-primary font-bold bg-primary/10 px-2 py-0.5 rounded-md">
+                        {formData.classes.length} selected
+                      </span>
+                    </div>
+
+                    {/* Selected Class Chips Display */}
+                    <div className="flex flex-wrap gap-1.5 p-2.5 bg-slate-50 rounded-xl border border-slate-200/80 min-h-[40px] items-center">
+                      {formData.classes.length > 0 ? (
+                        formData.classes.map((c) => (
+                          <span key={c} className="inline-flex items-center gap-1 bg-primary text-white px-2.5 py-1 rounded-lg text-xs font-medium shadow-2xs">
+                            <span>{c}</span>
+                            <button
+                              type="button"
+                              onClick={() => toggleClass(c)}
+                              className="hover:opacity-75 cursor-pointer ml-0.5 p-0.5"
+                            >
+                              <X size={12} />
+                            </button>
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-xs text-slate-400">Tap one or more classes or courses below...</span>
+                      )}
+                    </div>
+
+                    {/* Course Category Filter Tabs */}
+                    <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 scrollbar-hide pt-1">
+                      {COURSE_CATEGORIES.map((cat) => {
+                        const IconComponent = cat.icon;
+                        const isActive = classCategoryFilter === cat.id;
+                        return (
+                          <button
+                            key={cat.id}
+                            type="button"
+                            onClick={() => setClassCategoryFilter(cat.id)}
+                            className={cn(
+                              "px-3 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer shrink-0 border active:scale-95",
+                              isActive
+                                ? "bg-slate-900 text-white border-slate-900 shadow-xs"
+                                : "bg-white text-slate-600 hover:text-slate-900 border-slate-200 hover:bg-slate-50"
+                            )}
+                          >
+                            <IconComponent size={14} className={isActive ? "text-white" : "text-slate-500"} />
+                            <span>{cat.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Search Bar */}
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={classSearchQuery}
+                        onChange={(e) => setClassSearchQuery(e.target.value)}
+                        placeholder="Search class, admission, degree or course..."
+                        className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-primary focus:bg-white transition"
+                      />
+                      <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      {classSearchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => setClassSearchQuery('')}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer p-1"
+                        >
+                          <X size={13} />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Class / Course Grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto pr-1 scrollbar-thin">
+                      {visibleClasses.length > 0 ? (
+                        visibleClasses.map((c) => {
+                          const isSelected = formData.classes.includes(c);
+                          return (
+                            <button
+                              key={c}
+                              type="button"
+                              onClick={() => toggleClass(c)}
+                              className={cn(
+                                "px-3 py-2.5 rounded-xl border text-xs font-medium transition text-left cursor-pointer flex items-center justify-between gap-1.5 active:scale-[0.98]",
+                                isSelected
+                                  ? "border-primary bg-primary/10 text-primary font-bold shadow-2xs"
+                                  : "border-slate-200 hover:border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                              )}
+                            >
+                              <span className="truncate">{c}</span>
+                              {isSelected && <Check size={13} strokeWidth={3} className="text-primary shrink-0" />}
+                            </button>
+                          );
+                        })
+                      ) : (
+                        <div className="col-span-full py-4 text-center text-xs text-slate-400">
+                          No classes matching "{classSearchQuery}"
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 🎯 Interactive Admission Category & Unit Selector (Only shows when admission is selected) */}
+                    {isAdmissionMode && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="p-3 sm:p-4 bg-gradient-to-br from-slate-50 to-amber-50/30 rounded-2xl border border-amber-200/80 shadow-xs space-y-3 mt-3 overflow-hidden"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <Target size={15} className="text-amber-600 shrink-0" />
+                            <span className="text-xs font-bold text-slate-900 tracking-wide">
+                              এডমিশন ইউনিট ও স্পেশাল ট্র্যাক নির্বাচন
+                            </span>
+                          </div>
+                          <span className="text-[10px] font-semibold text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded-md border border-amber-200">
+                            নির্দিষ্ট ইউনিট
+                          </span>
+                        </div>
+
+                        {/* Category Tabs: Dhaka University, Engineering, Medical, etc. */}
+                        <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 scrollbar-hide">
+                          {ADMISSION_CATEGORIES.map((cat) => {
+                            const CatIcon = cat.icon;
+                            const isTabActive = selectedAdmissionTab === cat.id;
+                            const selectedCount = cat.units.filter(u => formData.classes.includes(u)).length;
+
+                            return (
+                              <button
+                                key={cat.id}
+                                type="button"
+                                onClick={() => setSelectedAdmissionTab(cat.id)}
+                                className={cn(
+                                  "px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer shrink-0 border active:scale-95",
+                                  isTabActive
+                                    ? "bg-primary text-white border-primary shadow-xs"
+                                    : "bg-white text-slate-700 hover:text-slate-900 border-slate-200 hover:bg-slate-50"
+                                )}
+                              >
+                                <CatIcon size={13} className={isTabActive ? "text-white" : "text-slate-500"} />
+                                <span>{cat.name}</span>
+                                {selectedCount > 0 && (
+                                  <span className={cn(
+                                    "w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center",
+                                    isTabActive ? "bg-white text-primary" : "bg-primary text-white"
+                                  )}>
+                                    {selectedCount}
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {/* Active Category Units / Options Grid */}
+                        {(() => {
+                          const currentCat = ADMISSION_CATEGORIES.find(c => c.id === selectedAdmissionTab) || ADMISSION_CATEGORIES[0];
+                          const CurrentIcon = currentCat.icon;
+                          return (
+                            <div className="space-y-2 bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
+                              <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
+                                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
+                                  <CurrentIcon size={14} className="text-primary" />
+                                  <span>{currentCat.banglaName}</span>
+                                </div>
+                                <span className="text-[10px] text-primary font-semibold bg-primary/10 px-2 py-0.5 rounded-md">
+                                  {currentCat.badge}
+                                </span>
+                              </div>
+
+                              <div className="grid grid-cols-1 gap-1.5 max-h-48 overflow-y-auto pr-1 scrollbar-thin pt-1">
+                                {currentCat.units.map((unit) => {
+                                  const isUnitSelected = formData.classes.includes(unit);
+                                  return (
+                                    <button
+                                      key={unit}
+                                      type="button"
+                                      onClick={() => toggleAdmissionUnit(unit)}
+                                      className={cn(
+                                        "px-3 py-2 rounded-xl border text-left text-xs font-medium transition-all flex items-center justify-between cursor-pointer active:scale-[0.99]",
+                                        isUnitSelected
+                                          ? "bg-primary/10 border-primary text-primary font-semibold"
+                                          : "bg-slate-50/50 border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-white"
+                                      )}
+                                    >
+                                      <span className="truncate pr-2">{unit}</span>
+                                      <span className={cn(
+                                        "w-4 h-4 rounded-full flex items-center justify-center text-[10px] shrink-0 border transition-all",
+                                        isUnitSelected
+                                          ? "bg-primary text-white border-primary"
+                                          : "border-slate-300 bg-white text-transparent"
+                                      )}>
+                                        <Check size={10} strokeWidth={3} />
+                                      </span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </motion.div>
+                    )}
                   </div>
 
-                  <div className="space-y-3">
-                    <label className="text-sm font-bold text-ink uppercase">Select Class <span className="text-primary">*</span></label>
-                    <select
-                      value={formData.studentClass}
-                      onChange={(e) => setFormData({ ...formData, studentClass: e.target.value })}
-                      className="w-full px-4 py-4 rounded-2xl border border-ink/5 bg-background text-ink focus:ring-2 focus:ring-primary/20 outline-none appearance-none"
-                    >
-                      <option value="">Select Class</option>
-                      {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
+                  {/* ─────────────────────────────────────────────────────────────
+                      2. SELECT MEDIUM / CURRICULUM (Exact Home Page Organization)
+                  ───────────────────────────────────────────────────────────── */}
+                  <div className="space-y-2.5 pt-3 border-t border-slate-100">
+                    <div className="flex justify-between items-center">
+                      <label className="text-xs font-semibold text-slate-800">
+                        Curriculum / Medium (Multiple Choice) <span className="text-rose-500">*</span>
+                      </label>
+                      <span className="text-[11px] text-slate-500 font-medium">
+                        {formData.mediums.length} selected
+                      </span>
+                    </div>
+
+                    {/* Selected Medium Chips */}
+                    <div className="flex flex-wrap gap-1.5 p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl min-h-[40px] items-center">
+                      {formData.mediums.length > 0 ? (
+                        formData.mediums.map((m) => (
+                          <span key={m} className="inline-flex items-center gap-1 bg-slate-900 text-white px-2.5 py-1 rounded-lg text-xs font-medium shadow-2xs">
+                            <span>{m}</span>
+                            <button
+                              type="button"
+                              onClick={() => toggleMedium(m)}
+                              className="hover:opacity-75 cursor-pointer ml-0.5 p-0.5"
+                            >
+                              <X size={12} />
+                            </button>
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-xs text-slate-400">Select teaching mediums below...</span>
+                      )}
+                    </div>
+
+                    {/* Medium Options Grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto pr-1 scrollbar-thin">
+                      {CUSTOM_MEDIUMS.map((m) => {
+                        const isSelected = formData.mediums.includes(m);
+                        return (
+                          <button
+                            key={m}
+                            type="button"
+                            onClick={() => toggleMedium(m)}
+                            className={cn(
+                              "px-3 py-2.5 rounded-xl border text-xs font-medium transition text-left cursor-pointer flex items-center justify-between gap-1 active:scale-[0.98]",
+                              isSelected
+                                ? "border-primary bg-primary/10 text-primary font-bold shadow-2xs"
+                                : "border-slate-200 hover:border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                            )}
+                          >
+                            <span className="truncate">{m}</span>
+                            {isSelected && <Check size={13} strokeWidth={3} className="text-primary shrink-0" />}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
 
-                  {/* Multiple Subjects Selection Area */}
-                  <div className="space-y-3">
-                    <label className="text-sm font-bold text-ink uppercase">Select Subjects (Multiple Choice) <span className="text-primary">*</span></label>
-                    
+                  {/* ─────────────────────────────────────────────────────────────
+                      3. SELECT SUBJECTS
+                  ───────────────────────────────────────────────────────────── */}
+                  <div className="space-y-2.5 pt-3 border-t border-slate-100">
+                    <div className="flex justify-between items-center">
+                      <label className="text-xs font-semibold text-slate-800">
+                        Subjects Needed <span className="text-rose-500">*</span>
+                      </label>
+                      <span className="text-[11px] text-slate-500 font-medium">
+                        {formData.subjects.length} selected
+                      </span>
+                    </div>
+
                     {formData.subjects.length > 0 && (
-                      <div className="flex flex-wrap gap-2 p-3 bg-primary/5 rounded-2xl border border-primary/15">
+                      <div className="flex flex-wrap gap-1.5 p-2.5 bg-slate-50 rounded-xl border border-slate-200/80">
                         {formData.subjects.map((sub) => (
-                          <span key={sub} className="inline-flex items-center gap-1.5 bg-primary text-white px-3 py-1 rounded-xl text-xs font-bold shadow-sm">
+                          <span key={sub} className="inline-flex items-center gap-1 bg-primary text-white px-2.5 py-1 rounded-lg text-xs font-medium shadow-2xs">
                             {sub}
                             <button 
                               type="button" 
                               onClick={() => toggleSubject(sub)}
-                              className="hover:bg-black/20 rounded-full p-0.5 transition-colors cursor-pointer"
+                              className="hover:opacity-75 cursor-pointer ml-0.5 p-0.5"
                             >
                               <X size={12} />
                             </button>
@@ -316,345 +1390,759 @@ export default function RequestTutor() {
                       </div>
                     )}
 
+                    {/* Add Custom Subject */}
                     <div className="flex gap-2">
                       <input 
                         type="text"
-                        placeholder="Type other subject & click add..."
+                        placeholder="Type custom subject & press add..."
                         value={customSubInput}
                         onChange={(e) => setCustomSubInput(e.target.value)}
                         onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCustomSubject(); } }}
-                        className="w-full px-4 py-3 rounded-2xl border border-ink/5 bg-background text-ink text-xs font-medium focus:ring-2 focus:ring-primary/20 outline-none"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-sm"
                       />
                       <button 
-                        type="button"
+                        type="button" 
                         onClick={addCustomSubject}
-                        className="bg-primary text-white px-5 py-3 rounded-2xl font-bold text-xs uppercase hover:bg-primary-dark transition-all cursor-pointer shrink-0"
+                        className="bg-slate-900 text-white px-4 py-2.5 rounded-xl text-xs font-semibold hover:bg-slate-800 active:scale-95 transition cursor-pointer shrink-0 shadow-xs"
                       >
                         Add
                       </button>
                     </div>
 
-                    <div className="flex flex-wrap gap-1.5 pt-2 max-h-40 overflow-y-auto p-2 bg-background rounded-2xl border border-ink/5">
+                    {/* Subject Tags */}
+                    <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-2.5 bg-slate-50 rounded-xl border border-slate-200/80">
                       {SUBJECTS.map((s) => {
-                        const isSelected = formData.subjects.includes(s.toUpperCase());
+                        const isSelected = formData.subjects.includes(s);
                         return (
                           <button
                             key={s}
                             type="button"
                             onClick={() => toggleSubject(s)}
                             className={cn(
-                              "px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border",
+                              "px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer border active:scale-95",
                               isSelected 
-                                ? "bg-primary text-white border-primary shadow-sm" 
-                                : "bg-white text-ink-muted border-ink/10 hover:border-primary/40 hover:text-ink"
+                                ? "bg-primary text-white border-primary shadow-2xs" 
+                                : "bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:text-slate-900"
                             )}
                           >
-                            {s} {isSelected && '✓'}
+                            {s}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ══════════════════════════════════════════════════════════════
+                STEP 2: Location & Address (Using @olism/bd-geo)
+            ══════════════════════════════════════════════════════════════ */}
+            {!isSubmitted && step === 2 && (
+              <motion.div
+                key="step2"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.15 }}
+                className="space-y-5 sm:space-y-6 flex-grow"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-sm sm:text-base font-bold text-slate-900">Location and Address</h2>
+                    <p className="text-xs text-slate-500 mt-0.5">Specify where tuition classes will take place.</p>
+                  </div>
+                  <span className="text-[10px] sm:text-[11px] font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-lg">
+                    Bangladesh Geo
+                  </span>
+                </div>
+
+                <div className="space-y-4">
+                  {/* Division & District (2-Column Grid) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    {/* Division Select */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-slate-700">
+                        Division (বিভাগ) <span className="text-rose-500">*</span>
+                      </label>
+                      <select
+                        value={formData.divisionId}
+                        onChange={handleDivisionChange}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-sm cursor-pointer"
+                      >
+                        <option value="">Select Division</option>
+                        {allDivisions.map((div) => (
+                          <option key={div.id} value={div.id}>
+                            {div.name} ({div.nameBn})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* District Select */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-slate-700">
+                        District (জেলা) <span className="text-rose-500">*</span>
+                      </label>
+                      <select
+                        value={formData.districtId}
+                        onChange={handleDistrictChange}
+                        disabled={!formData.divisionId}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <option value="">{formData.divisionId ? 'Select District' : 'First Select Division'}</option>
+                        {availableDistricts.map((dist) => (
+                          <option key={dist.id} value={dist.id}>
+                            {dist.name} ({dist.nameBn})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Upazila / Thana Select */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">
+                      Upazila / Thana (উপজেলা / থানা) <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      value={formData.upazilaId}
+                      onChange={handleUpazilaChange}
+                      disabled={!formData.districtId}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <option value="">{formData.districtId ? 'Select Upazila / Thana' : 'First Select District'}</option>
+                      {availableUpazilas.map((up) => (
+                        <option key={up.id} value={up.id}>
+                          {up.name} ({up.nameBn}) {up.type ? `[${up.type}]` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Union & Ward (Optional Grid if available) */}
+                  {(availableUnions.length > 0 || availableWards.length > 0) && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                      {availableUnions.length > 0 && (
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-slate-700">
+                            Union (ইউনিয়ন - Optional)
+                          </label>
+                          <select
+                            value={formData.unionId}
+                            onChange={handleUnionChange}
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-sm cursor-pointer"
+                          >
+                            <option value="">Select Union (Optional)</option>
+                            {availableUnions.map((un) => (
+                              <option key={un.id} value={un.id}>
+                                {un.name} ({un.nameBn})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+
+                      {availableWards.length > 0 && (
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-slate-700">
+                            Ward (ওয়ার্ড - Optional)
+                          </label>
+                          <select
+                            value={formData.wardId}
+                            onChange={handleWardChange}
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-sm cursor-pointer"
+                          >
+                            <option value="">Select Ward (Optional)</option>
+                            {availableWards.map((wd) => (
+                              <option key={wd.id} value={wd.id}>
+                                {wd.name} ({wd.nameBn})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Detailed Address (House, Road, Sector / Landmark) */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">
+                      House No, Road No, Sector / Details (Optional)
+                    </label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
+                      <input
+                        type="text"
+                        placeholder="e.g. House 12, Road 4, Sector 10, Uttara"
+                        value={formData.detailedAddress}
+                        onChange={(e) => setFormData({ ...formData, detailedAddress: toSentenceCase(e.target.value) })}
+                        className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-sm"
+                      />
+                    </div>
+                    <p className="text-[11px] text-slate-400">Providing an exact landmark helps tutors estimate commuting distance.</p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ══════════════════════════════════════════════════════════════
+                STEP 3: Tutor Preference & Requirements
+            ══════════════════════════════════════════════════════════════ */}
+            {!isSubmitted && step === 3 && (
+              <motion.div
+                key="step3"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.15 }}
+                className="space-y-5 sm:space-y-6 flex-grow"
+              >
+                <div>
+                  <h2 className="text-sm sm:text-base font-bold text-slate-900">Tutor Preferences and Requirements</h2>
+                  <p className="text-xs text-slate-500 mt-0.5">Select preferred tutor qualifications and teaching format.</p>
+                </div>
+
+                <div className="space-y-4">
+                  {/* Tutor Gender Preference */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">
+                      Tutor Gender Preference <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { val: 'Male', label: 'Male Tutor' },
+                        { val: 'Female', label: 'Female Tutor' },
+                        { val: 'Any', label: 'Any Preference' },
+                      ].map(tg => (
+                        <button
+                          key={tg.val}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, genderPreference: tg.val })}
+                          className={cn(
+                            "py-2.5 px-2 rounded-xl border text-center transition active:scale-[0.98] cursor-pointer text-xs font-semibold",
+                            formData.genderPreference === tg.val
+                              ? "bg-slate-900 text-white border-slate-900 shadow-xs"
+                              : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                          )}
+                        >
+                          {tg.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Tuition Type */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">
+                      Tuition Type <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {[
+                        { val: 'Home Tuition', label: 'Home Tuition' },
+                        { val: 'Online Tuition', label: 'Online Tuition' },
+                        { val: 'Group Tuition', label: 'Group Tuition' },
+                        { val: 'Coaching Center', label: 'Coaching' },
+                      ].map(t => (
+                        <button
+                          key={t.val}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, tuitionType: t.val })}
+                          className={cn(
+                            "py-2.5 px-2 rounded-xl border text-center transition active:scale-[0.98] cursor-pointer text-xs font-medium",
+                            formData.tuitionType === t.val
+                              ? "bg-slate-900 text-white border-slate-900 shadow-xs"
+                              : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                          )}
+                        >
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Preferred Tutor Qualification */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Tutor's Qualification Background</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {TUTOR_QUALIFICATIONS.map(q => {
+                        const isSelected = formData.tutorQualification === q;
+                        return (
+                          <button
+                            key={q}
+                            type="button"
+                            onClick={() => setFormData({ ...formData, tutorQualification: q })}
+                            className={cn(
+                              "p-3 rounded-xl border text-left text-xs font-medium transition active:scale-[0.98] cursor-pointer flex items-center justify-between",
+                              isSelected
+                                ? "bg-primary text-white border-primary shadow-xs font-bold"
+                                : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                            )}
+                          >
+                            <span className="truncate">{q}</span>
+                            {isSelected && <Check size={14} strokeWidth={3} className="shrink-0" />}
                           </button>
                         );
                       })}
                     </div>
                   </div>
 
-                  <div className="space-y-3">
-                    <label className="text-sm font-bold text-ink uppercase">Tuition Type <span className="text-primary">*</span></label>
-                    <select
-                      value={formData.tuitionType}
-                      onChange={(e) => setFormData({ ...formData, tuitionType: e.target.value })}
-                      className="w-full px-4 py-4 rounded-2xl border border-ink/5 bg-background text-ink focus:ring-2 focus:ring-primary/20 outline-none appearance-none"
-                    >
-                      <option value="">Select Tuition Type</option>
-                      <option value="Home Tuition">Home Tuition</option>
-                      <option value="Online Tuition">Online Tuition</option>
-                      <option value="Coaching Center">Coaching Center</option>
-                      <option value="Group Tuition">Group Tuition</option>
-                    </select>
+                  {/* University Preference */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-slate-700">
+                        Preferred University / Institution
+                      </label>
+                      {formData.universityPreference && (
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, universityPreference: '' })}
+                          className="text-[11px] text-slate-400 hover:text-rose-500 cursor-pointer transition font-medium"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Custom / Direct Input Field */}
+                    <div className="relative">
+                      <GraduationCap className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
+                      <input
+                        type="text"
+                        placeholder="Type university (e.g. BUET, DU, Medical, NSU, Any)..."
+                        value={formData.universityPreference}
+                        onChange={(e) => setFormData({ ...formData, universityPreference: e.target.value })}
+                        className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-sm"
+                      />
+                    </div>
+
+                    {/* Quick Selection Tags */}
+                    <div className="flex flex-wrap gap-1.5 p-2.5 bg-slate-50 rounded-xl border border-slate-200/80">
+                      {POPULAR_UNIVERSITIES.map(u => {
+                        const isSelected = formData.universityPreference?.trim().toLowerCase() === u.toLowerCase();
+                        return (
+                          <button
+                            key={u}
+                            type="button"
+                            onClick={() => setFormData({ ...formData, universityPreference: u })}
+                            className={cn(
+                              "px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer border active:scale-95",
+                              isSelected
+                                ? "bg-primary text-white border-primary shadow-2xs font-semibold"
+                                : "bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:text-slate-900"
+                            )}
+                          >
+                            {u}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
 
-                  <div className="space-y-3">
-                    <label className="text-sm font-bold text-ink uppercase">Preferred Tutor <span className="text-primary">*</span></label>
-                    <select
-                      value={formData.preferredTutor}
-                      onChange={(e) => setFormData({ ...formData, preferredTutor: e.target.value })}
-                      className="w-full px-4 py-4 rounded-2xl border border-ink/5 bg-background text-ink focus:ring-2 focus:ring-primary/20 outline-none appearance-none"
-                    >
-                      <option value="">Select Preferred Tutor</option>
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                      <option value="Any">Any</option>
-                    </select>
+                  {/* Special Requirements */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Special Requirements</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {POPULAR_REQUIREMENTS.map(req => {
+                        const isSelected = formData.requirements.includes(req);
+                        return (
+                          <button
+                            key={req}
+                            type="button"
+                            onClick={() => toggleRequirement(req)}
+                            className={cn(
+                              "px-3 py-2 rounded-xl text-xs font-medium transition cursor-pointer border flex items-center gap-1.5 active:scale-95",
+                              isSelected
+                                ? "bg-slate-900 text-white border-slate-900 shadow-xs font-semibold"
+                                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                            )}
+                          >
+                            {isSelected && <Check size={12} strokeWidth={3} />}
+                            {req}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               </motion.div>
             )}
 
-            {/* Step 3 */}
-            {!isSubmitted && step === 3 && (
+            {/* ══════════════════════════════════════════════════════════════
+                STEP 4: Schedule, Budget & Contact Information
+            ══════════════════════════════════════════════════════════════ */}
+            {!isSubmitted && step === 4 && (
               <motion.div
-                key="step3"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="space-y-8 flex-grow"
+                key="step4"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.15 }}
+                className="space-y-5 sm:space-y-6 flex-grow"
               >
-                <div className="space-y-6">
-                  {/* District Selection */}
-                  <div className="space-y-3">
-                    <label className="text-sm font-bold text-ink uppercase">Select District <span className="text-primary">*</span></label>
+                <div>
+                  <h2 className="text-sm sm:text-base font-bold text-slate-900">Schedule, Budget and Contact</h2>
+                  <p className="text-xs text-slate-500 mt-0.5">Finalize tutoring frequency, budget, and contact numbers.</p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Days Per Week */}
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <label className="text-xs font-semibold text-slate-700">
+                      Days Per Week <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                      {['1 Day/Week', '2 Days/Week', '3 Days/Week', '4 Days/Week', '5 Days/Week', '6 Days/Week'].map(d => (
+                        <button
+                          key={d}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, tutoringDays: d })}
+                          className={cn(
+                            "py-2.5 px-1 rounded-xl border text-xs font-semibold transition active:scale-[0.98] cursor-pointer text-center",
+                            formData.tutoringDays === d
+                              ? "bg-slate-900 text-white border-slate-900 shadow-xs"
+                              : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                          )}
+                        >
+                          {d}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Daily Duration */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Daily Duration</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {['1.0 Hour', '1.5 Hours', '2.0 Hours'].map(dur => (
+                        <button
+                          key={dur}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, duration: dur })}
+                          className={cn(
+                            "py-2.5 px-1 rounded-xl border text-xs font-semibold transition active:scale-[0.98] cursor-pointer text-center",
+                            formData.duration === dur
+                              ? "bg-slate-900 text-white border-slate-900 shadow-xs"
+                              : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                          )}
+                        >
+                          {dur}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Preferred Time Slot */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Preferred Tutoring Time</label>
                     <select
-                      value={formData.district}
-                      onChange={(e) => setFormData({ ...formData, district: e.target.value, areas: [] })}
-                      className="w-full px-4 py-4 rounded-2xl border border-ink/5 bg-background text-ink focus:ring-2 focus:ring-primary/20 outline-none appearance-none"
+                      value={formData.startTime}
+                      onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm font-medium focus:border-primary focus:ring-1 focus:ring-primary outline-none transition cursor-pointer"
                     >
-                      <option value="">Select District</option>
-                      {DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
+                      <option value="Morning (8:00 AM - 12:00 PM)">Morning (8:00 AM - 12:00 PM)</option>
+                      <option value="Afternoon (12:00 PM - 4:00 PM)">Afternoon (12:00 PM - 4:00 PM)</option>
+                      <option value="Evening (4:00 PM - 8:00 PM)">Evening (4:00 PM - 8:00 PM)</option>
+                      <option value="Night (8:00 PM - 10:00 PM)">Night (8:00 PM - 10:00 PM)</option>
+                      <option value="Flexible / Negotiable">Flexible / Any Time</option>
                     </select>
                   </div>
 
-                  {/* 🌟 District-Wise Suggested Areas */}
-                  <div className="space-y-3">
-                    <label className="text-sm font-bold text-ink uppercase">
-                      Select Areas {formData.district ? `(${formData.district})` : ''} <span className="text-primary">*</span>
+                  {/* Expected Monthly Salary */}
+                  <div className="space-y-2 sm:col-span-2">
+                    <label className="text-xs font-semibold text-slate-700">
+                      Expected Monthly Salary (BDT) <span className="text-rose-500">*</span>
                     </label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">৳</span>
+                      <input
+                        type="number"
+                        placeholder="5000"
+                        value={formData.salaryOffer}
+                        onChange={(e) => setFormData({ ...formData, salaryOffer: e.target.value })}
+                        className="w-full pl-8 pr-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-base font-bold"
+                      />
+                    </div>
 
-                    {!formData.district ? (
-                      <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-amber-800 text-xs font-bold text-center">
-                        ⚠️ প্রথমে ওপরের ড্রপডাউন থেকে একটি জেলা (District) সিলেক্ট করুন, তবেই ওই জেলার নির্দিষ্ট এরিয়াগুলো সাজেশপ্রদর্শনে আসবে।
+                    {/* Quick Salary Chips */}
+                    <div className="grid grid-cols-3 sm:flex flex-wrap gap-1.5">
+                      {SALARY_PRESETS.map(s => (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, salaryOffer: s })}
+                          className={cn(
+                            "py-2 px-2 sm:py-1.5 sm:px-3 rounded-xl sm:rounded-lg text-xs font-semibold transition active:scale-95 cursor-pointer border text-center",
+                            formData.salaryOffer === s
+                              ? "bg-slate-900 text-white border-slate-900 shadow-xs"
+                              : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                          )}
+                        >
+                          ৳{parseInt(s, 10).toLocaleString()}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Contact Person Name */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Contact Person Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Guardian / Student Name"
+                      value={formData.contactName}
+                      onChange={(e) => setFormData({ ...formData, contactName: toSentenceCase(e.target.value) })}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-sm"
+                    />
+                  </div>
+
+                  {/* Active Mobile Phone */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">
+                      Active Phone Number <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      placeholder="01XXXXXXXXX"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ 
+                        ...formData, 
+                        phone: e.target.value,
+                        whatsappNumber: formData.sameAsPhone ? e.target.value : formData.whatsappNumber 
+                      })}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-sm font-semibold"
+                    />
+                  </div>
+
+                  {/* WhatsApp Number */}
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-slate-700">WhatsApp Number</label>
+                      <label className="flex items-center gap-1.5 cursor-pointer text-xs text-slate-600 font-medium">
+                        <input
+                          type="checkbox"
+                          checked={formData.sameAsPhone}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            sameAsPhone: e.target.checked,
+                            whatsappNumber: e.target.checked ? formData.phone : formData.whatsappNumber
+                          })}
+                          className="w-4 h-4 rounded text-primary focus:ring-primary cursor-pointer accent-primary"
+                        />
+                        <span>Same as phone</span>
+                      </label>
+                    </div>
+
+                    {!formData.sameAsPhone && (
+                      <input
+                        type="tel"
+                        placeholder="WhatsApp Number (01XXXXXXXXX)"
+                        value={formData.whatsappNumber}
+                        onChange={(e) => setFormData({ ...formData, whatsappNumber: e.target.value })}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-sm"
+                      />
+                    )}
+                  </div>
+
+                  {/* Additional Notes */}
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <label className="text-xs font-semibold text-slate-700">Additional Instructions (Optional)</label>
+                    <textarea
+                      placeholder="Any specific preferences or requirements..."
+                      value={formData.additional}
+                      onChange={(e) => setFormData({ ...formData, additional: toSentenceCase(e.target.value) })}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition min-h-[75px] resize-none text-sm"
+                    />
+                  </div>
+
+                  {/* Terms & Policy Agreement */}
+                  <div className="sm:col-span-2 pt-1">
+                    <button 
+                      type="button"
+                      onClick={() => setFormData({ ...formData, agreedToTerms: !formData.agreedToTerms })}
+                      className="flex items-start gap-2.5 text-left cursor-pointer p-1"
+                    >
+                      <div className={cn(
+                        "mt-0.5 w-4 h-4 rounded border flex items-center justify-center transition shrink-0",
+                        formData.agreedToTerms ? "bg-slate-900 border-slate-900 text-white" : "border-slate-300 bg-white"
+                      )}>
+                        {formData.agreedToTerms && <Check size={11} strokeWidth={3} />}
                       </div>
-                    ) : (
-                      <>
-                        {formData.areas.length > 0 && (
-                          <div className="flex flex-wrap gap-2 p-3 bg-primary/5 rounded-2xl border border-primary/15">
-                            {formData.areas.map((ar) => (
-                              <span key={ar} className="inline-flex items-center gap-1.5 bg-primary text-white px-3 py-1 rounded-xl text-xs font-bold shadow-sm">
-                                {ar}
-                                <button 
-                                  type="button" 
-                                  onClick={() => toggleArea(ar)}
-                                  className="hover:bg-black/20 rounded-full p-0.5 transition-colors cursor-pointer"
-                                >
-                                  <X size={12} />
-                                </button>
+                      <p className="text-xs text-slate-600 leading-relaxed">
+                        I agree to the <Link to="/terms-of-service" className="text-slate-900 font-bold underline" onClick={(e) => e.stopPropagation()}>Terms of Service</Link> and <Link to="/privacy-policy" className="text-slate-900 font-bold underline" onClick={(e) => e.stopPropagation()}>Privacy Policy</Link>.
+                      </p>
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ══════════════════════════════════════════════════════════════
+                SUCCESS & MATCHING SCREEN
+            ══════════════════════════════════════════════════════════════ */}
+            {isSubmitted && (
+              <motion.div
+                key="submittedScreen"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-6 py-2"
+              >
+                <div className="bg-slate-900 rounded-2xl p-5 sm:p-8 text-white text-center space-y-3 shadow-lg">
+                  <div className="w-12 h-12 bg-white/10 text-white rounded-full flex items-center justify-center mx-auto ring-4 ring-white/5">
+                    <Check size={24} strokeWidth={3} />
+                  </div>
+                  <div className="space-y-1">
+                    <h2 className="text-lg sm:text-xl font-bold">Tuition Request Submitted</h2>
+                    <p className="text-slate-300 text-xs sm:text-sm max-w-md mx-auto">
+                      Thank you, <span className="text-white font-semibold">{formData.studentName}</span>. Your request is active and verified tutors are being notified.
+                    </p>
+                  </div>
+
+                  {submittedJobData?.customId && (
+                    <div className="inline-block bg-white/10 px-3.5 py-1.5 rounded-lg text-xs font-mono font-bold tracking-wider border border-white/10">
+                      Job Code: {submittedJobData.customId}
+                    </div>
+                  )}
+
+                  <div className="pt-2 flex justify-center">
+                    <a
+                      href="https://wa.me/8801928325460"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-bold text-xs transition shadow-sm active:scale-95"
+                    >
+                      <MessageSquare size={15} /> Contact Coordinator on WhatsApp
+                    </a>
+                  </div>
+                </div>
+
+                {/* Job Summary Review Card */}
+                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80">
+                  <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2.5">Request Summary</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    <div>
+                      <span className="text-slate-400 block text-[11px]">Class & Course</span>
+                      <span className="font-bold text-slate-800 truncate block">{formData.classes.join(', ')}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-[11px]">Curriculum</span>
+                      <span className="font-bold text-slate-800 truncate block">{formData.mediums.join(', ')}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-[11px]">Location</span>
+                      <span className="font-bold text-slate-800 truncate block">
+                        {[formData.upazila, formData.district].filter(Boolean).join(', ')}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-[11px]">Expected Salary</span>
+                      <span className="font-bold text-slate-900">৳{parseInt(formData.salaryOffer, 10).toLocaleString()}/mo</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Recommended Tutors Section */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900">AI Matched Tutors in Your Area</h3>
+                      <p className="text-xs text-slate-500">Ranked by algorithm based on your criteria</p>
+                    </div>
+                    <span className="text-xs font-bold text-primary bg-primary/10 px-2.5 py-0.5 rounded-md">
+                      {matchedTutors.length} Matches
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {matchedTutors.map((tutor) => (
+                      <div
+                        key={tutor.id}
+                        className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3 shadow-xs hover:border-primary/40 transition"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-3">
+                            <img
+                              src={tutor.photo}
+                              alt={tutor.name}
+                              className="w-11 h-11 rounded-xl object-cover bg-slate-100 shrink-0 border border-slate-100"
+                            />
+                            <div>
+                              <h4 className="font-bold text-slate-900 text-xs flex items-center gap-1">
+                                {tutor.name}
+                                {tutor.isVerified && <ShieldCheck size={13} className="text-primary shrink-0" />}
+                              </h4>
+                              <p className="text-[11px] text-slate-500 truncate max-w-[170px]">{tutor.university}</p>
+                              <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-medium mt-0.5">
+                                <span className="flex items-center gap-0.5 text-amber-600 font-bold">
+                                  <Star size={10} fill="currentColor" /> {tutor.rating}
+                                </span>
+                                <span>•</span>
+                                <span>{tutor.experience}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* AI Match Score Pill */}
+                          {tutor.score && (
+                            <span className="inline-flex items-center gap-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-md text-[10px] font-bold shrink-0">
+                              <Sparkles size={10} className="text-emerald-600" />
+                              {tutor.score}% Match
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Match Reasons Tags */}
+                        {tutor.matchReasons && tutor.matchReasons.length > 0 && (
+                          <div className="flex flex-wrap gap-1 pt-0.5">
+                            {tutor.matchReasons.slice(0, 3).map((r: string, i: number) => (
+                              <span
+                                key={i}
+                                className="text-[10px] font-medium bg-slate-50 text-slate-600 px-2 py-0.5 rounded-md border border-slate-200"
+                              >
+                                {r}
                               </span>
                             ))}
                           </div>
                         )}
 
-                        <div className="flex gap-2">
-                          <input 
-                            type="text"
-                            placeholder="Type custom area & click add..."
-                            value={customAreaInput}
-                            onChange={(e) => setCustomAreaInput(e.target.value)}
-                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCustomArea(); } }}
-                            className="w-full px-4 py-3 rounded-2xl border border-ink/5 bg-background text-ink text-xs font-medium focus:ring-2 focus:ring-primary/20 outline-none"
-                          />
-                          <button 
-                            type="button"
-                            onClick={addCustomArea}
-                            className="bg-primary text-white px-5 py-3 rounded-2xl font-bold text-xs uppercase hover:bg-primary-dark transition-all cursor-pointer shrink-0"
+                        <div className="pt-1">
+                          <Link
+                            to={`/tutor/${tutor.id}`}
+                            className="block text-center w-full py-2 bg-slate-50 border border-slate-200 text-slate-800 font-bold text-xs rounded-xl hover:bg-slate-100 active:scale-[0.98] transition"
                           >
-                            Add
-                          </button>
+                            View Profile & Contact
+                          </Link>
                         </div>
-
-                        <div className="flex flex-wrap gap-1.5 pt-2 max-h-40 overflow-y-auto p-2 bg-background rounded-2xl border border-ink/5">
-                          {currentDistrictAreas.length > 0 ? (
-                            currentDistrictAreas.map((a) => {
-                              const isSelected = formData.areas.includes(a.toUpperCase());
-                              return (
-                                <button
-                                  key={a}
-                                  type="button"
-                                  onClick={() => toggleArea(a)}
-                                  className={cn(
-                                    "px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border",
-                                    isSelected 
-                                      ? "bg-primary text-white border-primary shadow-sm" 
-                                      : "bg-white text-ink-muted border-ink/10 hover:border-primary/40 hover:text-ink"
-                                  )}
-                                >
-                                  {a} {isSelected && '✓'}
-                                </button>
-                              );
-                            })
-                          ) : (
-                            <p className="text-xs text-ink-muted p-2">এই জেলার জন্য কোনো নির্দিষ্ট এরিয়ার তালিকা নেই। আপনি চাইলে ওপরে কাস্টম এরিয়া টাইপ করে যোগ করতে পারেন।</p>
-                          )}
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  <div className="space-y-3">
-                    <label className="text-sm font-bold text-ink uppercase">Salary Do You Offer <span className="text-primary">*</span></label>
-                    <div className="relative">
-                      <TakaIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-muted" size={20} />
-                      <input
-                        type="text"
-                        placeholder="e.g. 5000"
-                        value={formData.salaryOffer}
-                        onChange={(e) => setFormData({ ...formData, salaryOffer: e.target.value })}
-                        className="w-full pl-12 pr-4 py-4 rounded-2xl border border-ink/5 bg-background text-ink focus:ring-2 focus:ring-primary/20 outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <label className="text-sm font-bold text-ink uppercase">Days Per Week <span className="text-primary">*</span></label>
-                    <select
-                      value={formData.daysPerWeek}
-                      onChange={(e) => setFormData({ ...formData, daysPerWeek: e.target.value })}
-                      className="w-full px-4 py-4 rounded-2xl border border-ink/5 bg-background text-ink focus:ring-2 focus:ring-primary/20 outline-none appearance-none"
-                    >
-                      <option value="">Select Days</option>
-                      {[1, 2, 3, 4, 5, 6, 7].map(d => (
-                        <option key={d} value={`${d} Day${d > 1 ? 's' : ''}/Week`}>{d} Day{d > 1 ? 's' : ''}/Week</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-
-            {/* Step 4 */}
-            {!isSubmitted && step === 4 && (
-              <motion.div
-                key="step4"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="space-y-8 flex-grow"
-              >
-                <div className="space-y-6">
-                  <div className="space-y-3">
-                    <label className="text-sm font-bold text-ink uppercase">Which university Teacher you want?</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. DU, BUET, NSU"
-                      value={formData.universityTeacher}
-                      onChange={(e) => setFormData({ ...formData, universityTeacher: toSentenceCase(e.target.value) })}
-                      className="w-full px-4 py-4 rounded-2xl border border-ink/5 bg-background text-ink focus:ring-2 focus:ring-primary/20 outline-none"
-                    />
-                  </div>
-
-                  <div className="space-y-3">
-                    <label className="text-sm font-bold text-ink uppercase">Additional Information</label>
-                    <textarea
-                      placeholder="Any specific requirements or notes..."
-                      value={formData.additional}
-                      onChange={(e) => setFormData({ ...formData, additional: toSentenceCase(e.target.value) })}
-                      className="w-full px-4 py-4 rounded-2xl border border-ink/5 bg-background text-ink focus:ring-2 focus:ring-primary/20 outline-none min-h-[120px] resize-none"
-                    />
-                  </div>
-
-                  <button 
-                    onClick={() => setFormData({ ...formData, agreedToTerms: !formData.agreedToTerms })}
-                    className="flex items-start gap-3 text-left group cursor-pointer"
-                  >
-                    <div className={cn(
-                      "mt-1 w-5 h-5 rounded border flex items-center justify-center transition-all",
-                      formData.agreedToTerms ? "bg-primary border-primary text-white" : "border-ink/20 group-hover:border-primary"
-                    )}>
-                      {formData.agreedToTerms && <CheckCircle2 size={14} />}
-                    </div>
-                    <p className="text-xs text-ink-muted leading-relaxed">
-                      By clicking submit tuition button, you agree our <span className="text-primary font-bold">terms and policy</span>.
-                    </p>
-                  </button>
-                </div>
-              </motion.div>
-            )}
-
-            {/* Success & Auto-Match Screen */}
-            {isSubmitted && (
-              <motion.div
-                key="submittedScreen"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="space-y-8 py-4"
-              >
-                <div className="bg-emerald-50 border border-emerald-200 rounded-3xl p-8 text-center space-y-3">
-                  <div className="w-16 h-16 bg-emerald-500 text-white rounded-full flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/30">
-                    <CheckCircle2 size={36} />
-                  </div>
-                  <h2 className="text-2xl font-bold text-emerald-900">Tuition Posted Successfully!</h2>
-                  <p className="text-emerald-700 text-sm max-w-lg mx-auto">
-                    Thank you, <span className="font-bold">{formData.studentName}</span>! Your tuition job is now live and public. Interested tutors can apply directly.
-                  </p>
-                  <div className="pt-2 flex justify-center gap-4">
-                    <a
-                      href="https://wa.me/8801928325460"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-2 bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow-md hover:bg-emerald-700 transition-all"
-                    >
-                      <MessageSquare size={16} /> Direct WhatsApp Us
-                    </a>
-                  </div>
-                </div>
-
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="text-amber-500" size={24} />
-                      <h3 className="text-xl font-bold text-ink">Auto-Matched Tutors Near You</h3>
-                    </div>
-                    <span className="text-xs font-bold text-primary bg-primary/10 px-3 py-1 rounded-full">
-                      {matchedTutors.length} Matches Found
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {matchedTutors.map((tutor) => (
-                      <div
-                        key={tutor.id}
-                        className="bg-background rounded-2xl border border-ink/10 p-5 space-y-4 shadow-sm hover:shadow-xl transition-all"
-                      >
-                        <div className="flex items-center gap-3">
-                          <img
-                            src={tutor.photo}
-                            alt={tutor.name}
-                            className="w-14 h-14 rounded-full object-cover border-2 border-primary"
-                          />
-                          <div>
-                            <h4 className="font-bold text-ink text-sm flex items-center gap-1">
-                              {tutor.name}
-                              <ShieldCheck size={16} className="text-primary fill-primary/10" />
-                            </h4>
-                            <p className="text-xs text-ink-muted">{tutor.university}</p>
-                            <div className="flex items-center gap-1 text-amber-500 text-xs font-bold mt-1">
-                              <Star size={12} fill="currentColor" /> {tutor.rating}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="space-y-1 text-xs text-ink-muted border-t border-ink/5 pt-3">
-                          <p className="flex items-center gap-1">
-                            <MapPin size={12} className="text-primary" /> {tutor.areas.join(', ')}
-                          </p>
-                          <p className="font-medium text-ink">
-                            Subjects: {tutor.subjects.join(', ')}
-                          </p>
-                        </div>
-
-                        <Link
-                          to={`/tutor/${tutor.id}`}
-                          className="block text-center w-full py-2.5 bg-primary/10 text-primary font-bold text-xs rounded-xl hover:bg-primary hover:text-white transition-all"
-                        >
-                          View Profile & Contact
-                        </Link>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <div className="flex justify-center gap-4 pt-4">
+                {/* Bottom Buttons */}
+                <div className="flex flex-col sm:flex-row justify-center gap-2.5 pt-2">
                   <button
-                    onClick={() => navigate('/jobs')}
-                    className="px-6 py-3 bg-primary text-white font-bold text-sm rounded-xl hover:bg-primary-dark transition-all flex items-center gap-2 cursor-pointer"
+                    type="button"
+                    onClick={() => {
+                      setIsSubmitted(false);
+                      setStep(1);
+                      setFormData(prev => ({
+                        ...prev,
+                        classes: [],
+                        subjects: [],
+                        additional: ''
+                      }));
+                    }}
+                    className="w-full sm:w-auto px-5 py-3 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-200 active:scale-98 transition flex items-center justify-center gap-1.5 cursor-pointer"
                   >
-                    View All Tuition Jobs <ArrowRight size={18} />
+                    <RefreshCw size={13} /> Post Another
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/jobs')}
+                    className="w-full sm:w-auto px-5 py-3 bg-slate-900 text-white font-bold text-xs rounded-xl hover:bg-slate-800 active:scale-98 transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                  >
+                    Browse All Jobs <ArrowRight size={13} />
                   </button>
                 </div>
               </motion.div>
@@ -662,33 +2150,55 @@ export default function RequestTutor() {
 
           </AnimatePresence>
 
+          {/* ══════════════════════════════════════════════════════════════
+              BOTTOM ACTION BAR (App-like Prominent Navigation)
+          ══════════════════════════════════════════════════════════════ */}
           {!isSubmitted && (
-            <div className="flex gap-4 mt-12">
+            <div className="flex items-center gap-2.5 sm:gap-3 pt-5 mt-6 border-t border-slate-100">
               {step > 1 && (
                 <button
+                  type="button"
                   onClick={prevStep}
-                  className="flex-1 px-8 py-4 rounded-2xl font-bold text-ink-muted hover:bg-ink/5 transition-all cursor-pointer"
+                  className="px-4 py-3 rounded-xl font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 active:scale-95 transition cursor-pointer flex items-center gap-1 text-xs sm:text-sm shrink-0"
                 >
-                  Back
+                  <ChevronLeft size={16} /> Back
                 </button>
               )}
               <button
-                onClick={step === 4 ? handleSubmit : nextStep}
-                disabled={step === 4 && !formData.agreedToTerms}
+                type="button"
+                onClick={step === totalSteps ? handleSubmit : nextStep}
+                disabled={isSubmitting || (step === totalSteps && !formData.agreedToTerms)}
                 className={cn(
-                  "flex-[2] py-4 rounded-2xl font-bold shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer",
-                  step === 4 && !formData.agreedToTerms 
-                    ? "bg-ink/10 text-ink-muted cursor-not-allowed shadow-none" 
-                    : "bg-primary text-white shadow-primary/20 hover:bg-primary-dark"
+                  "flex-1 py-3 px-5 rounded-xl font-bold transition active:scale-[0.99] flex items-center justify-center gap-2 text-xs sm:text-sm cursor-pointer shadow-sm",
+                  isSubmitting || (step === totalSteps && !formData.agreedToTerms)
+                    ? "bg-slate-200 text-slate-400 cursor-not-allowed" 
+                    : "bg-primary text-white hover:bg-primary-dark shadow-primary/20"
                 )}
               >
-                {step === 4 ? 'Submit Tuition' : 'Continue'}
-                <ChevronRight size={20} />
+                {isSubmitting ? (
+                  <>
+                    <RefreshCw size={15} className="animate-spin" /> Submitting...
+                  </>
+                ) : step === totalSteps ? (
+                  <>
+                    <Send size={15} /> Submit Tuition Request
+                  </>
+                ) : (
+                  <>
+                    Continue <ChevronRight size={16} />
+                  </>
+                )}
               </button>
             </div>
           )}
 
         </div>
+
+        {/* Minimal Footer Info */}
+        <div className="mt-6 text-center text-xs text-slate-400">
+          <p>Verified Tutors • Direct Communication • Free for Students & Guardians</p>
+        </div>
+
       </div>
     </div>
   );

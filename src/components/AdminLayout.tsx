@@ -11,6 +11,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/src/context/AuthContext.tsx';
 import NotificationBell from '@/src/components/NotificationBell.tsx';
 import MessageBell from '@/src/components/MessageBell.tsx';
+import SafeAvatar from '@/src/components/SafeAvatar.tsx';
 import logoImage from '@/src/lib/Home.png';
 
 // roles: which roles can see this item. 'all' means everyone (super_admin, admin, moderator)
@@ -21,7 +22,8 @@ const SIDEBAR_ITEMS = [
   { icon: ShieldCheck, label: 'Staff & Roles', href: '/admin/staff', roles: ['super_admin'] },
   { icon: CreditCard, label: 'All Payments', href: '/admin/payments', roles: ['super_admin', 'admin'] },
   { icon: Briefcase, label: 'Manage Tuition Jobs', href: '/admin/jobs-approve', roles: ['all'] },
-  { icon: Clock, label: 'Hire Tutor Request-Pending', href: '/admin/hire-pending', roles: ['all'] },
+  { icon: Clock, label: 'Tutor Applications Pending', href: '/admin/hire-pending', roles: ['all'] },
+  { icon: UserCheck, label: 'Direct Tutor Requests', href: '/admin/hire-requests', roles: ['all'] },
   { icon: PlusCircle, label: 'Create Tuition Job', href: '/admin/create-job', roles: ['super_admin', 'admin'] },
   { icon: Megaphone, label: 'Create Notice', href: '/admin/create-notice', roles: ['all'] },
   { icon: UserCheck, label: 'All Tutor', href: '/admin/all-tutors', roles: ['all'] },
@@ -249,13 +251,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         isSidebarOpen ? "lg:ml-72" : "lg:ml-24"
       )}>
         {/* Top Bar */}
-        <header className="h-20 bg-white/40 backdrop-blur-xl border-b border-white/20 flex items-center justify-between px-6 lg:px-10 sticky top-0 z-30 shrink-0">
+        <header className="h-16 sm:h-20 bg-white/70 backdrop-blur-xl border-b border-slate-200/50 flex items-center justify-between px-3 sm:px-6 lg:px-10 sticky top-0 z-30 shrink-0">
           <div className="flex items-center gap-2 md:gap-6">
             <button 
               onClick={() => setIsMobileMenuOpen(true)}
-              className="lg:hidden w-10 h-10 md:w-12 md:h-12 flex items-center justify-center hover:bg-white/50 rounded-xl md:rounded-2xl text-ink-muted transition-all"
+              className="lg:hidden w-10 h-10 md:w-12 md:h-12 flex items-center justify-center hover:bg-white/50 rounded-xl md:rounded-2xl text-ink-muted transition-all cursor-pointer"
             >
-              <Menu size={24} />
+              <Menu size={22} />
             </button>
           </div>
 
@@ -275,16 +277,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </span>
               </div>
               <div className="relative group">
-                <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl border-2 border-white p-0.5 shadow-lg shadow-ink/5 cursor-pointer overflow-hidden group-hover:scale-105 transition-transform">
-                  <img 
-                    src={user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user?.name || user?.email || 'admin')}`}
-                    alt={user?.name || 'Admin'} 
-                    className="w-full h-full object-cover rounded-[14px]"
-                    referrerPolicy="no-referrer"
+                <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl border-2 border-white shadow-md cursor-pointer overflow-hidden group-hover:scale-105 transition-transform flex items-center justify-center bg-primary/10">
+                  <SafeAvatar 
+                    src={user?.avatar} 
+                    name={user?.name || 'Admin'} 
+                    className="w-full h-full object-cover"
                   />
                 </div>
-                <div className="absolute top-full right-0 mt-4 w-56 bg-white/85 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/20 py-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all transform translate-y-4 group-hover:translate-y-0 z-50">
-                  <div className="px-4 py-2 mb-2 border-b border-ink/5 lg:hidden">
+                <div className="absolute top-full right-0 mt-3 w-56 bg-white/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-slate-200/80 py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all transform translate-y-2 group-hover:translate-y-0 z-50">
+                  <div className="px-4 py-2 mb-1 border-b border-ink/5 lg:hidden">
                     <p className="text-sm font-black text-ink">{user?.name || 'Admin'}</p>
                     <p className={`text-[10px] font-black uppercase ${
                       userRole === 'super_admin' ? 'text-amber-600' :
@@ -313,9 +314,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </header>
 
         {/* Dashboard Content */}
-        <main className="flex-1 p-6 lg:p-12 space-y-16 overflow-y-auto overflow-x-hidden scrollbar-hide">
-          {children}
-        </main>
+        {(() => {
+          const isInbox = location.pathname.includes('/inbox');
+          return (
+            <main className={cn(
+              "flex-1 min-h-0",
+              isInbox 
+                ? "p-1 lg:p-4 overflow-hidden h-[calc(100vh-4.5rem)] sm:h-[calc(100vh-5rem)] flex flex-col" 
+                : "p-1 sm:p-6 lg:p-12 space-y-5 sm:space-y-16 overflow-y-auto overflow-x-hidden scrollbar-hide pb-20 sm:pb-12"
+            )}>
+              {children}
+            </main>
+          );
+        })()}
       </div>
     </div>
   );

@@ -386,13 +386,48 @@ export default function CoachingBatches() {
 
                 <div>
                   <label className="block mb-1 text-ink-muted uppercase">Schedule & Timing</label>
-                  <input 
-                    type="text" 
-                    placeholder="e.g. Sat, Mon, Wed (5:00 PM)"
+                  <select
                     value={batchForm.schedule}
                     onChange={(e) => setBatchForm({ ...batchForm, schedule: e.target.value })}
                     className="w-full px-4 py-3.5 rounded-2xl border border-ink/10 outline-none focus:border-primary font-medium bg-background"
-                  />
+                  >
+                    <option value="">-- Select Schedule --</option>
+                    <optgroup label="Days Per Week">
+                      <option value="1 Day/Week (Friday)">1 Day/Week (Friday)</option>
+                      <option value="1 Day/Week (Saturday)">1 Day/Week (Saturday)</option>
+                      <option value="2 Days/Week (Fri & Sat)">2 Days/Week (Fri & Sat)</option>
+                      <option value="3 Days/Week (Sat, Mon, Wed)">3 Days/Week (Sat, Mon, Wed)</option>
+                      <option value="3 Days/Week (Sun, Tue, Thu)">3 Days/Week (Sun, Tue, Thu)</option>
+                      <option value="4 Days/Week">4 Days/Week</option>
+                      <option value="5 Days/Week (Sun–Thu)">5 Days/Week (Sun–Thu)</option>
+                      <option value="6 Days/Week (Sat–Thu)">6 Days/Week (Sat–Thu)</option>
+                      <option value="Daily (7 Days/Week)">Daily (7 Days/Week)</option>
+                    </optgroup>
+                    <optgroup label="Morning Batches">
+                      <option value="3 Days/Week (7:00 AM)">3 Days/Week (7:00 AM)</option>
+                      <option value="3 Days/Week (8:00 AM)">3 Days/Week (8:00 AM)</option>
+                      <option value="3 Days/Week (9:00 AM)">3 Days/Week (9:00 AM)</option>
+                      <option value="5 Days/Week (8:00 AM)">5 Days/Week (8:00 AM)</option>
+                    </optgroup>
+                    <optgroup label="Afternoon Batches">
+                      <option value="3 Days/Week (12:00 PM)">3 Days/Week (12:00 PM)</option>
+                      <option value="3 Days/Week (2:00 PM)">3 Days/Week (2:00 PM)</option>
+                      <option value="3 Days/Week (3:00 PM)">3 Days/Week (3:00 PM)</option>
+                      <option value="3 Days/Week (4:00 PM)">3 Days/Week (4:00 PM)</option>
+                    </optgroup>
+                    <optgroup label="Evening Batches">
+                      <option value="3 Days/Week (5:00 PM)">3 Days/Week (5:00 PM)</option>
+                      <option value="3 Days/Week (6:00 PM)">3 Days/Week (6:00 PM)</option>
+                      <option value="3 Days/Week (7:00 PM)">3 Days/Week (7:00 PM)</option>
+                      <option value="3 Days/Week (8:00 PM)">3 Days/Week (8:00 PM)</option>
+                      <option value="5 Days/Week (6:00 PM)">5 Days/Week (6:00 PM)</option>
+                    </optgroup>
+                    <optgroup label="Special">
+                      <option value="Weekend Batch (Fri & Sat)">Weekend Batch (Fri & Sat)</option>
+                      <option value="Weekday Batch (Sun–Thu)">Weekday Batch (Sun–Thu)</option>
+                      <option value="Crash Course (Daily)">Crash Course (Daily)</option>
+                    </optgroup>
+                  </select>
                 </div>
               </div>
 

@@ -20,10 +20,14 @@ import {
   Calendar,
   DollarSign,
   UserCheck,
-  Sparkles
+  Sparkles,
+  Megaphone,
+  FileDown
 } from 'lucide-react';
 import TutorLayout from '@/src/components/TutorLayout.tsx';
 import TutorProfileIncompleteModal from '@/src/components/TutorProfileIncompleteModal.tsx';
+import NoticeBoard from '@/src/components/NoticeBoard.tsx';
+import DownloadZone from '@/src/components/DownloadZone.tsx';
 import { cn } from '@/src/lib/utils';
 import { Link } from 'react-router-dom';
 import { TuitionJob, TutorProfile } from '@/src/types';
@@ -44,7 +48,7 @@ export default function TutorDashboard() {
   const [totalEarnings, setTotalEarnings] = useState(0);
   const [recentApps, setRecentApps] = useState<any[]>([]);
   const [appliedJobIds, setAppliedJobIds] = useState<Set<string>>(new Set());
-  const [activeTab, setActiveTab] = useState<'matched' | 'active' | 'applications'>('matched');
+  const [activeTab, setActiveTab] = useState<'matched' | 'active' | 'applications' | 'notices' | 'downloads'>('matched');
   const [loading, setLoading] = useState(true);
 
   // Profile completion state & popup alert
@@ -217,23 +221,23 @@ export default function TutorDashboard() {
     <TutorLayout>
       <div className="space-y-8">
         {/* Welcome Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6">
           <div className="space-y-1">
-            <h1 className="text-3xl font-display font-black text-ink">
+            <h1 className="text-2xl sm:text-3xl font-display font-black text-ink">
               Tutor Dashboard
             </h1>
-            <p className="text-sm font-medium text-ink-muted">
+            <p className="text-xs sm:text-sm font-medium text-ink-muted">
               Welcome back! Here's what's happening with your profile today.
             </p>
           </div>
-          <button className="bg-primary text-white px-8 py-4 rounded-2xl font-black text-sm uppercase shadow-xl shadow-primary/20 hover:bg-primary-dark transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer">
+          <button className="w-full sm:w-auto bg-primary text-white px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm uppercase shadow-lg sm:shadow-xl shadow-primary/20 hover:bg-primary-dark transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer">
             <TrendingUp size={18} />
             Boost Profile
           </button>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Stats Grid - 2 cols on mobile, 4 cols on desktop */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 md:gap-6">
           {stats.map((stat, index) => {
             const isTabAction = stat.label === 'Applied Jobs' || stat.label === 'Active Tuitions';
             const targetTab = stat.label === 'Applied Jobs' ? 'applications' : 'active';
@@ -241,9 +245,9 @@ export default function TutorDashboard() {
             return (
               <motion.div
                 key={stat.label}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
+                transition={{ delay: index * 0.05 }}
                 onClick={() => {
                   if (isTabAction) {
                     setActiveTab(targetTab as any);
@@ -252,21 +256,21 @@ export default function TutorDashboard() {
                   }
                 }}
                 className={cn(
-                  "bg-white/60 backdrop-blur-xl p-6 rounded-[32px] border border-white/40 shadow-xl shadow-ink/5 group hover:bg-white transition-all cursor-pointer h-full",
-                  isTabAction && activeTab === targetTab && "ring-2 ring-primary/40 bg-white shadow-primary/10"
+                  "bg-white/80 backdrop-blur-xl p-3.5 sm:p-5 md:p-6 rounded-2xl sm:rounded-[28px] border border-white/60 shadow-lg shadow-ink/5 group hover:bg-white transition-all cursor-pointer h-full active:scale-[0.98]",
+                  isTabAction && activeTab === targetTab && "ring-2 ring-primary/50 bg-white shadow-primary/10"
                 )}
               >
-                <div className="flex items-center justify-between mb-4">
-                  <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg transition-transform group-hover:scale-110", stat.color)}>
-                    <stat.icon size={24} />
+                <div className="flex items-center justify-between mb-2.5 sm:mb-4">
+                  <div className={cn("w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center text-white shadow-md transition-transform group-hover:scale-105", stat.color)}>
+                    <stat.icon className="w-4 h-4 sm:w-6 sm:h-6" />
                   </div>
-                  <span className="text-[10px] font-black text-emerald-500 bg-emerald-50 px-2 py-1 rounded-lg">
+                  <span className="text-[9px] sm:text-[10px] font-black text-emerald-600 bg-emerald-50 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md sm:rounded-lg">
                     {stat.trend}
                   </span>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-2xl font-black text-ink">{stat.value}</p>
-                  <p className="text-xs font-bold text-ink-muted uppercase">{stat.label}</p>
+                <div className="space-y-0.5 sm:space-y-1">
+                  <p className="text-lg sm:text-2xl font-black text-ink tracking-tight">{stat.value}</p>
+                  <p className="text-[10px] sm:text-xs font-bold text-ink-muted uppercase tracking-wider truncate">{stat.label}</p>
                 </div>
               </motion.div>
             );
@@ -275,21 +279,21 @@ export default function TutorDashboard() {
 
         {/* ─────────────────────────────────────────────────────────── */}
         {/* 🌟 Dynamic Dashboard Tabbar 🌟 */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-ink/10 pb-4">
-          <div className="flex items-center gap-2 p-1.5 bg-white/70 backdrop-blur-xl rounded-2xl border border-white/60 shadow-sm overflow-x-auto w-full sm:w-auto scrollbar-hide">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-ink/10 pb-3 sm:pb-4">
+          <div className="flex items-center gap-1.5 sm:gap-2 p-1 sm:p-1.5 bg-white/80 backdrop-blur-xl rounded-xl sm:rounded-2xl border border-white/60 shadow-sm overflow-x-auto w-full sm:w-auto scrollbar-hide snap-x snap-mandatory">
             <button
               onClick={() => setActiveTab('matched')}
               className={cn(
-                "flex items-center gap-2 px-5 py-3 rounded-xl font-black text-xs uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer",
+                "snap-start flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-black text-[11px] sm:text-xs uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer active:scale-95",
                 activeTab === 'matched'
-                  ? "bg-primary text-white shadow-lg shadow-primary/20"
+                  ? "bg-primary text-white shadow-md sm:shadow-lg shadow-primary/20"
                   : "text-ink-muted hover:text-ink hover:bg-white/80"
               )}
             >
-              <Sparkles size={15} />
+              <Sparkles size={14} />
               Auto-Matched
               <span className={cn(
-                "px-2 py-0.5 rounded-full text-[10px] font-black",
+                "px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black",
                 activeTab === 'matched' ? "bg-white/20 text-white" : "bg-ink/5 text-ink-muted"
               )}>
                 {matchedJobs.length}
@@ -299,16 +303,16 @@ export default function TutorDashboard() {
             <button
               onClick={() => setActiveTab('active')}
               className={cn(
-                "flex items-center gap-2 px-5 py-3 rounded-xl font-black text-xs uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer",
+                "snap-start flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-black text-[11px] sm:text-xs uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer active:scale-95",
                 activeTab === 'active'
-                  ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20"
+                  ? "bg-emerald-600 text-white shadow-md sm:shadow-lg shadow-emerald-600/20"
                   : "text-ink-muted hover:text-ink hover:bg-white/80"
               )}
             >
-              <CheckCircle2 size={15} />
+              <CheckCircle2 size={14} />
               Active Tuitions
               <span className={cn(
-                "px-2 py-0.5 rounded-full text-[10px] font-black",
+                "px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black",
                 activeTab === 'active' ? "bg-white/20 text-white" : "bg-emerald-50 text-emerald-600"
               )}>
                 {activeTuitions.length}
@@ -318,31 +322,57 @@ export default function TutorDashboard() {
             <button
               onClick={() => setActiveTab('applications')}
               className={cn(
-                "flex items-center gap-2 px-5 py-3 rounded-xl font-black text-xs uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer",
+                "snap-start flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-black text-[11px] sm:text-xs uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer active:scale-95",
                 activeTab === 'applications'
-                  ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
+                  ? "bg-blue-600 text-white shadow-md sm:shadow-lg shadow-blue-600/20"
                   : "text-ink-muted hover:text-ink hover:bg-white/80"
               )}
             >
-              <Briefcase size={15} />
-              Recent Applications
+              <Briefcase size={14} />
+              Applications
               <span className={cn(
-                "px-2 py-0.5 rounded-full text-[10px] font-black",
+                "px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black",
                 activeTab === 'applications' ? "bg-white/20 text-white" : "bg-ink/5 text-ink-muted"
               )}>
                 {recentApps.length}
               </span>
             </button>
+
+            <button
+              onClick={() => setActiveTab('notices')}
+              className={cn(
+                "snap-start flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-black text-[11px] sm:text-xs uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer active:scale-95",
+                activeTab === 'notices'
+                  ? "bg-purple-600 text-white shadow-md sm:shadow-lg shadow-purple-600/20"
+                  : "text-ink-muted hover:text-ink hover:bg-white/80"
+              )}
+            >
+              <Megaphone size={14} />
+              Notice Board
+            </button>
+
+            <button
+              onClick={() => setActiveTab('downloads')}
+              className={cn(
+                "snap-start flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-black text-[11px] sm:text-xs uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer active:scale-95",
+                activeTab === 'downloads'
+                  ? "bg-emerald-600 text-white shadow-md sm:shadow-lg shadow-emerald-600/20"
+                  : "text-ink-muted hover:text-ink hover:bg-white/80"
+              )}
+            >
+              <FileDown size={14} />
+              Download Zone
+            </button>
           </div>
 
-          <div className="flex items-center gap-3 self-end sm:self-auto">
+          <div className="flex items-center gap-3 self-end sm:self-auto px-1">
             {activeTab === 'matched' && (
-              <Link to="/jobs" className="text-xs font-black text-primary hover:underline flex items-center gap-1">
+              <Link to="/jobs" className="text-xs font-black text-primary hover:underline flex items-center gap-1 active:scale-95">
                 Browse All Jobs <ArrowRight size={13} />
               </Link>
             )}
             {activeTab === 'applications' && (
-              <Link to="/tutor/applied" className="text-xs font-black text-blue-600 hover:underline flex items-center gap-1">
+              <Link to="/tutor/applied" className="text-xs font-black text-blue-600 hover:underline flex items-center gap-1 active:scale-95">
                 Full Application List <ArrowRight size={13} />
               </Link>
             )}
@@ -351,60 +381,60 @@ export default function TutorDashboard() {
 
         {/* ─────────────────────────────────────────────────────────── */}
         {/* Main Content & Sidebar Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 pb-20 sm:pb-8">
           
           {/* Main Tab Content Column (Span 2) */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-5 sm:space-y-6">
 
             {/* TAB 1: Auto-Matched Jobs */}
             {activeTab === 'matched' && (
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 <div className="flex items-center justify-between px-1">
-                  <h2 className="text-xl font-display font-black text-ink flex items-center gap-2">
+                  <h2 className="text-lg sm:text-xl font-display font-black text-ink flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
                     AI Auto-Matched Tuitions
                   </h2>
-                  <span className="text-xs font-bold text-ink-muted">{matchedJobs.length} matches found</span>
+                  <span className="text-[11px] sm:text-xs font-bold text-ink-muted">{matchedJobs.length} matches found</span>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-6">
                   {matchedJobs.length > 0 ? (
                     matchedJobs.map((job) => (
                       <motion.div
                         key={job.id}
-                        whileHover={{ y: -4 }}
-                        className="bg-white/80 backdrop-blur-xl p-6 rounded-[32px] border border-white/40 shadow-xl shadow-ink/5 flex flex-col justify-between space-y-4"
+                        whileHover={{ y: -3 }}
+                        className="bg-white/80 backdrop-blur-xl p-4 sm:p-6 rounded-2xl sm:rounded-[28px] border border-white/60 shadow-lg shadow-ink/5 flex flex-col justify-between space-y-3.5 sm:space-y-4"
                       >
-                        <div className="space-y-3">
+                        <div className="space-y-2.5 sm:space-y-3">
                           <div className="flex items-center justify-between">
-                            <span className="px-3 py-1 bg-primary/10 text-primary text-[10px] font-black uppercase rounded-lg">
+                            <span className="px-2.5 py-1 bg-primary/10 text-primary text-[10px] font-black uppercase rounded-lg">
                               Recommended
                             </span>
-                            <span className="text-xs font-black text-primary">{job.salary} ৳/mo</span>
+                            <span className="text-xs sm:text-sm font-black text-primary">{job.salary} ৳/mo</span>
                           </div>
-                          <h3 className="font-display font-black text-ink text-base">
+                          <h3 className="font-display font-black text-ink text-sm sm:text-base leading-snug">
                             Tutor Needed For {Array.isArray(job.subjects) ? job.subjects.slice(0,2).join(', ') : (job.medium || 'Tuition')}
                           </h3>
                           <div className="space-y-1.5 text-xs font-bold text-ink-muted">
                             <p className="flex items-center gap-1.5">
-                              <MapPin size={14} className="text-primary" />
-                              {[(job as any).location?.area || (typeof (job as any).location === 'string' ? (job as any).location : ''), (job as any).location?.district || ''].filter(Boolean).join(', ') || 'Location N/A'}
+                              <MapPin size={13} className="text-primary shrink-0" />
+                              <span className="truncate">{[(job as any).location?.area || (typeof (job as any).location === 'string' ? (job as any).location : ''), (job as any).location?.district || ''].filter(Boolean).join(', ') || 'Location N/A'}</span>
                             </p>
                             <p className="flex items-center gap-1.5">
-                              <BookOpen size={14} className="text-primary" /> Class: {(job as any).studentClass || 'N/A'}
+                              <BookOpen size={13} className="text-primary shrink-0" /> Class: {(job as any).studentClass || 'N/A'}
                             </p>
                           </div>
                         </div>
                         
                         {appliedJobIds.has(String(job.id || (job as any)._id)) ? (
-                          <div className="w-full bg-emerald-50 border border-emerald-200 text-emerald-600 py-3 rounded-2xl font-black text-xs uppercase text-center flex items-center justify-center gap-2">
+                          <div className="w-full bg-emerald-50 border border-emerald-200 text-emerald-600 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl font-black text-xs uppercase text-center flex items-center justify-center gap-2">
                             <CheckCircle2 size={14} />
                             Already Applied
                           </div>
                         ) : (
                           <Link 
                             to={`/job/${job.id || (job as any)._id}`} 
-                            className="w-full bg-primary/10 text-primary py-3 rounded-2xl font-black text-xs uppercase text-center hover:bg-primary hover:text-white transition-all flex items-center justify-center gap-2"
+                            className="w-full bg-primary/10 text-primary py-2.5 sm:py-3 rounded-xl sm:rounded-2xl font-black text-xs uppercase text-center hover:bg-primary hover:text-white transition-all flex items-center justify-center gap-2 active:scale-95"
                           >
                             View Details
                             <ArrowRight size={14} />
@@ -413,12 +443,12 @@ export default function TutorDashboard() {
                       </motion.div>
                     ))
                   ) : (
-                    <div className="col-span-2 p-12 bg-white/60 backdrop-blur-xl rounded-[32px] border border-white/40 text-center space-y-3">
-                      <div className="w-14 h-14 bg-primary/5 text-primary rounded-2xl flex items-center justify-center mx-auto">
-                        <Sparkles size={28} />
+                    <div className="col-span-2 p-8 sm:p-12 bg-white/60 backdrop-blur-xl rounded-2xl sm:rounded-[32px] border border-white/40 text-center space-y-3">
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 bg-primary/5 text-primary rounded-2xl flex items-center justify-center mx-auto">
+                        <Sparkles size={24} />
                       </div>
                       <div className="space-y-1">
-                        <h3 className="text-base font-black text-ink">No Exact Matches Right Now</h3>
+                        <h3 className="text-sm sm:text-base font-black text-ink">No Exact Matches Right Now</h3>
                         <p className="text-xs font-medium text-ink-muted">Update your profile subjects & preferred areas to get more accurate auto matches.</p>
                       </div>
                     </div>
@@ -429,75 +459,75 @@ export default function TutorDashboard() {
 
             {/* TAB 2: Active Tuitions */}
             {activeTab === 'active' && (
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 <div className="flex items-center justify-between px-1">
-                  <h2 className="text-xl font-display font-black text-ink flex items-center gap-2">
+                  <h2 className="text-lg sm:text-xl font-display font-black text-ink flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
                     Active Confirmed Tuitions (চলতি টিউশন)
                   </h2>
-                  <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+                  <span className="text-[11px] sm:text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 sm:px-3 py-1 rounded-full border border-emerald-200">
                     {activeTuitions.length} Active
                   </span>
                 </div>
 
                 {activeTuitions.length > 0 ? (
-                  <div className="grid grid-cols-1 gap-6">
+                  <div className="grid grid-cols-1 gap-4 sm:gap-6">
                     {activeTuitions.map((tuition, idx) => (
                       <motion.div
                         key={tuition.id || idx}
                         initial={{ opacity: 0, y: 15 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: idx * 0.1 }}
-                        className="bg-gradient-to-br from-white via-emerald-50/20 to-white backdrop-blur-xl p-7 rounded-[32px] border-2 border-emerald-500/20 shadow-xl shadow-emerald-500/5 hover:border-emerald-500/40 transition-all space-y-6 relative overflow-hidden"
+                        className="bg-gradient-to-br from-white via-emerald-50/20 to-white backdrop-blur-xl p-4 sm:p-7 rounded-2xl sm:rounded-[32px] border-2 border-emerald-500/20 shadow-xl shadow-emerald-500/5 hover:border-emerald-500/40 transition-all space-y-4 sm:space-y-6 relative overflow-hidden"
                       >
-                        <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-start justify-between gap-3 sm:gap-4">
                           <div className="space-y-1">
-                            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500 text-white text-[10px] font-black uppercase tracking-wider rounded-full shadow-sm">
-                              <CheckCircle2 size={13} />
+                            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-emerald-500 text-white text-[9px] sm:text-[10px] font-black uppercase tracking-wider rounded-full shadow-sm">
+                              <CheckCircle2 size={12} />
                               Active & Confirmed
                             </div>
-                            <h3 className="text-lg font-black text-ink pt-1">{tuition.title}</h3>
+                            <h3 className="text-base sm:text-lg font-black text-ink pt-0.5">{tuition.title}</h3>
                           </div>
                           <div className="text-right shrink-0">
-                            <p className="text-xl font-black text-emerald-600">{tuition.salary}</p>
-                            <p className="text-[10px] font-bold text-ink-muted uppercase">Salary</p>
+                            <p className="text-lg sm:text-xl font-black text-emerald-600">{tuition.salary}</p>
+                            <p className="text-[9px] sm:text-[10px] font-bold text-ink-muted uppercase">Salary</p>
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3 p-4 bg-emerald-50/60 rounded-2xl border border-emerald-100/80 text-xs font-bold text-ink">
-                          <div className="flex items-center gap-2">
-                            <BookOpen size={15} className="text-emerald-600 shrink-0" />
+                        <div className="grid grid-cols-2 gap-2 sm:gap-3 p-3 sm:p-4 bg-emerald-50/60 rounded-xl sm:rounded-2xl border border-emerald-100/80 text-[11px] sm:text-xs font-bold text-ink">
+                          <div className="flex items-center gap-1.5 sm:gap-2">
+                            <BookOpen size={14} className="text-emerald-600 shrink-0" />
                             <span>Class: <span className="font-black text-emerald-700">{tuition.studentClass}</span></span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Calendar size={15} className="text-emerald-600 shrink-0" />
+                          <div className="flex items-center gap-1.5 sm:gap-2">
+                            <Calendar size={14} className="text-emerald-600 shrink-0" />
                             <span>{tuition.daysPerWeek}</span>
                           </div>
-                          <div className="flex items-center gap-2 col-span-2">
-                            <MapPin size={15} className="text-emerald-600 shrink-0" />
+                          <div className="flex items-center gap-1.5 sm:gap-2 col-span-2">
+                            <MapPin size={14} className="text-emerald-600 shrink-0" />
                             <span className="truncate">{tuition.location}</span>
                           </div>
                         </div>
 
                         {/* Platform Fee Notice */}
-                        <div className="p-3.5 bg-rose-50/70 rounded-2xl border border-rose-200 flex items-center justify-between text-xs">
+                        <div className="p-3 sm:p-3.5 bg-rose-50/70 rounded-xl sm:rounded-2xl border border-rose-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0 text-xs">
                           <div className="space-y-0.5">
                             <span className="text-[10px] font-black uppercase text-rose-600">Platform Fee ({tuition.platformFeePercent}%):</span>
                             <p className="font-black text-rose-700">৳{tuition.platformFeeAmount?.toLocaleString()}</p>
                           </div>
                           <Link
                             to="/tutor/active-tuitions"
-                            className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black text-[10px] uppercase shadow-sm transition-all"
+                            className="w-full sm:w-auto text-center px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black text-[10px] uppercase shadow-sm transition-all active:scale-95"
                           >
                             Pay / Details
                           </Link>
                         </div>
 
-                        <div className="p-4 bg-white rounded-2xl border border-ink/5 shadow-sm space-y-3">
+                        <div className="p-3.5 sm:p-4 bg-white rounded-xl sm:rounded-2xl border border-ink/5 shadow-sm space-y-2.5 sm:space-y-3">
                           <p className="text-[10px] font-black text-ink-muted uppercase tracking-wider">Guardian / Student Information</p>
-                          <div className="flex items-center justify-between gap-3">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                             <div className="flex items-center gap-3">
-                              <div className="w-11 h-11 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center font-black text-base shadow-sm">
+                              <div className="w-10 h-10 sm:w-11 sm:h-11 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center font-black text-base shadow-sm">
                                 {tuition.guardianName.charAt(0).toUpperCase()}
                               </div>
                               <div>
@@ -511,7 +541,7 @@ export default function TutorDashboard() {
                             {tuition.guardianPhone ? (
                               <a
                                 href={`tel:${tuition.guardianPhone}`}
-                                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-xs uppercase flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition-all cursor-pointer active:scale-95"
+                                className="w-full sm:w-auto justify-center px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-xs uppercase flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition-all cursor-pointer active:scale-95"
                               >
                                 <Phone size={14} />
                                 Call Now
@@ -520,10 +550,10 @@ export default function TutorDashboard() {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-3 pt-2">
+                        <div className="flex items-center gap-3 pt-1">
                           <Link
                             to={`/job/${tuition.id}`}
-                            className="flex-1 py-3 bg-ink/5 hover:bg-ink hover:text-white text-ink rounded-xl font-black text-xs uppercase text-center transition-all flex items-center justify-center gap-2"
+                            className="flex-1 py-2.5 sm:py-3 bg-ink/5 hover:bg-ink hover:text-white text-ink rounded-xl font-black text-xs uppercase text-center transition-all flex items-center justify-center gap-2 active:scale-95"
                           >
                             View Tuition Details
                             <ArrowRight size={14} />
@@ -533,12 +563,12 @@ export default function TutorDashboard() {
                     ))}
                   </div>
                 ) : (
-                  <div className="p-12 bg-white/60 backdrop-blur-xl rounded-[32px] border border-white/40 shadow-sm text-center space-y-3">
-                    <div className="w-14 h-14 bg-emerald-50 text-emerald-500 rounded-2xl flex items-center justify-center mx-auto">
-                      <BookOpen size={28} />
+                  <div className="p-8 sm:p-12 bg-white/60 backdrop-blur-xl rounded-2xl sm:rounded-[32px] border border-white/40 shadow-sm text-center space-y-3">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 bg-emerald-50 text-emerald-500 rounded-2xl flex items-center justify-center mx-auto">
+                      <BookOpen size={24} />
                     </div>
                     <div className="space-y-1">
-                      <h3 className="text-base font-black text-ink">এখনো কোনো Active Tuition নেই</h3>
+                      <h3 className="text-sm sm:text-base font-black text-ink">এখনো কোনো Active Tuition নেই</h3>
                       <p className="text-xs font-medium text-ink-muted max-w-md mx-auto">
                         Auto-Matched টিউশনে Apply করুন। Guardian আপনার আবেদন Accept করলে তা এখানে যুক্ত হবে।
                       </p>
@@ -550,87 +580,103 @@ export default function TutorDashboard() {
 
             {/* TAB 3: Recent Applications */}
             {activeTab === 'applications' && (
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 <div className="flex items-center justify-between px-1">
-                  <h2 className="text-xl font-display font-black text-ink flex items-center gap-2">
+                  <h2 className="text-lg sm:text-xl font-display font-black text-ink flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse" />
                     Applied Tuition History
                   </h2>
-                  <Link to="/tutor/applied" className="text-xs font-black text-blue-600 hover:underline">
+                  <Link to="/tutor/applied" className="text-xs font-black text-blue-600 hover:underline active:scale-95">
                     View All
                   </Link>
                 </div>
 
-                <div className="bg-white/60 backdrop-blur-xl rounded-[32px] border border-white/40 shadow-xl shadow-ink/5 overflow-hidden">
+                <div className="bg-white/60 backdrop-blur-xl rounded-2xl sm:rounded-[32px] border border-white/40 shadow-xl shadow-ink/5 overflow-hidden">
                   <div className="divide-y divide-ink/5">
                     {recentApps.length > 0 ? recentApps.map((job) => (
-                      <div key={job.id} className="p-6 hover:bg-white/40 transition-colors group">
-                        <div className="flex flex-wrap items-center justify-between gap-4">
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-primary/5 rounded-2xl flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all">
-                              <Briefcase size={24} />
+                      <div key={job.id} className="p-4 sm:p-6 hover:bg-white/40 transition-colors group">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+                          <div className="flex items-start sm:items-center gap-3 sm:gap-4">
+                            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/5 rounded-xl sm:rounded-2xl flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all shrink-0">
+                              <Briefcase className="w-5 h-5 sm:w-6 sm:h-6" />
                             </div>
-                            <div className="space-y-1">
-                              <h3 className="font-black text-ink group-hover:text-primary transition-colors">{job.title}</h3>
-                              <div className="flex items-center gap-3 text-xs font-bold text-ink-muted">
-                                <span className="flex items-center gap-1"><MapPin size={12} /> {job.location}</span>
-                                <span className="flex items-center gap-1"><Clock size={12} /> {job.date}</span>
+                            <div className="space-y-0.5 sm:space-y-1">
+                              <h3 className="font-black text-ink text-sm sm:text-base group-hover:text-primary transition-colors">{job.title}</h3>
+                              <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[11px] sm:text-xs font-bold text-ink-muted">
+                                <span className="flex items-center gap-1"><MapPin size={11} /> {job.location}</span>
+                                <span className="flex items-center gap-1"><Clock size={11} /> {job.date}</span>
                               </div>
                             </div>
                           </div>
-                          <div className="flex items-center gap-6">
-                            <div className="text-right">
-                              <p className="text-sm font-black text-primary">{job.salary}</p>
-                              <p className="text-[10px] font-bold text-ink-muted uppercase">{job.id}</p>
+                          <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-6 pt-2 sm:pt-0 border-t sm:border-t-0 border-ink/5">
+                            <div className="text-left sm:text-right">
+                              <p className="text-xs sm:text-sm font-black text-primary">{job.salary}</p>
+                              <p className="text-[9px] sm:text-[10px] font-bold text-ink-muted uppercase">{job.id}</p>
                             </div>
-                            <span className={cn(
-                              "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase",
-                              job.status === 'pending' ? "bg-amber-50 text-amber-500" :
-                              job.status === 'accepted' ? "bg-emerald-50 text-emerald-500" :
-                              job.status === 'shortlisted' ? "bg-emerald-50 text-emerald-600 font-black border border-emerald-200" :
-                              "bg-rose-50 text-rose-500"
-                            )}>
-                              {job.status}
-                            </span>
-                            <Link to={`/job/${job.id}`} className="p-2 text-ink-muted hover:text-primary hover:bg-primary/5 rounded-xl transition-all cursor-pointer">
-                              <ChevronRight size={20} />
-                            </Link>
+                            <div className="flex items-center gap-2">
+                              <span className={cn(
+                                "px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[9px] sm:text-[10px] font-black uppercase",
+                                job.status === 'pending' ? "bg-amber-50 text-amber-600" :
+                                job.status === 'accepted' ? "bg-emerald-50 text-emerald-600" :
+                                job.status === 'shortlisted' ? "bg-emerald-50 text-emerald-600 font-black border border-emerald-200" :
+                                "bg-rose-50 text-rose-500"
+                              )}>
+                                {job.status}
+                              </span>
+                              <Link to={`/job/${job.id}`} className="p-1.5 sm:p-2 text-ink-muted hover:text-primary hover:bg-primary/5 rounded-lg sm:rounded-xl transition-all cursor-pointer">
+                                <ChevronRight size={18} />
+                              </Link>
+                            </div>
                           </div>
                         </div>
                       </div>
                     )) : (
-                      <div className="p-12 text-center text-sm text-ink-muted">No applications found yet.</div>
+                      <div className="p-8 sm:p-12 text-center text-xs sm:text-sm text-ink-muted">No applications found yet.</div>
                     )}
                   </div>
                 </div>
               </div>
             )}
 
+            {/* TAB 4: Notice Board */}
+            {activeTab === 'notices' && (
+              <div className="space-y-4 sm:space-y-6">
+                <NoticeBoard userRole="tutor" showHeader={false} />
+              </div>
+            )}
+
+            {/* TAB 5: Download Zone */}
+            {activeTab === 'downloads' && (
+              <div className="space-y-4 sm:space-y-6">
+                <DownloadZone />
+              </div>
+            )}
+
           </div>
 
           {/* Right Column: Profile Strength & Quick Actions (Span 1) */}
-          <div className="space-y-8">
-            <div className="bg-primary rounded-[32px] p-8 text-white shadow-2xl shadow-primary/20 relative overflow-hidden group">
+          <div className="space-y-4 sm:space-y-8">
+            <div className="bg-primary rounded-2xl sm:rounded-[32px] p-5 sm:p-8 text-white shadow-xl sm:shadow-2xl shadow-primary/20 relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-700" />
-              <div className="relative z-10 space-y-6">
-                <div className="space-y-2">
+              <div className="relative z-10 space-y-4 sm:space-y-6">
+                <div className="space-y-1.5 sm:space-y-2">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-xl font-display font-black">Profile Strength</h3>
+                    <h3 className="text-lg sm:text-xl font-display font-black">Profile Strength</h3>
                     <span className={cn(
-                      "text-[11px] font-black px-2.5 py-0.5 rounded-full",
+                      "text-[10px] sm:text-[11px] font-black px-2.5 py-0.5 rounded-full",
                       completion.isComplete ? "bg-emerald-400 text-ink" : "bg-amber-400 text-ink"
                     )}>
                       {completion.isComplete ? '100% Verified' : `${completion.percentage}% Done`}
                     </span>
                   </div>
-                  <p className="text-sm text-white/80 font-medium">
+                  <p className="text-xs sm:text-sm text-white/80 font-medium leading-relaxed">
                     {completion.isComplete 
                       ? 'Congratulations! Your profile is 100% complete.' 
                       : 'Complete your profile to 100% to get 3x more tuition offers.'}
                   </p>
                 </div>
-                <div className="space-y-3">
-                  <div className="flex justify-between text-xs font-black uppercase">
+                <div className="space-y-2 sm:space-y-3">
+                  <div className="flex justify-between text-[11px] sm:text-xs font-black uppercase">
                     <span>Progress</span>
                     <span>{completion.percentage}%</span>
                   </div>
@@ -648,7 +694,7 @@ export default function TutorDashboard() {
                 </div>
                 <Link
                   to="/tutor/profile"
-                  className="w-full bg-white text-primary py-4 rounded-2xl font-black text-sm uppercase shadow-lg hover:bg-ink hover:text-white transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2 block text-center"
+                  className="w-full bg-white text-primary py-3.5 sm:py-4 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm uppercase shadow-lg hover:bg-ink hover:text-white transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2 block text-center"
                 >
                   {completion.isComplete ? 'Edit Profile' : 'Complete 100% Profile'}
                   <ArrowRight size={16} />
@@ -656,33 +702,33 @@ export default function TutorDashboard() {
               </div>
             </div>
 
-            <div className="bg-white/60 backdrop-blur-xl p-8 rounded-[32px] border border-white/40 shadow-xl shadow-ink/5 space-y-6">
-              <h3 className="text-lg font-display font-black text-ink">Quick Actions</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <Link to="/tutor/profile" className="flex flex-col items-center gap-3 p-4 bg-ink/5 rounded-2xl hover:bg-primary hover:text-white transition-all group cursor-pointer text-center">
-                  <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-primary shadow-sm group-hover:scale-110 transition-transform">
-                    <UserCheck size={20} />
+            <div className="bg-white/60 backdrop-blur-xl p-5 sm:p-8 rounded-2xl sm:rounded-[32px] border border-white/40 shadow-xl shadow-ink/5 space-y-4 sm:space-y-6">
+              <h3 className="text-base sm:text-lg font-display font-black text-ink">Quick Actions</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-2 gap-2.5 sm:gap-4">
+                <Link to="/tutor/profile" className="flex flex-col items-center gap-2 sm:gap-3 p-3 sm:p-4 bg-ink/5 rounded-xl sm:rounded-2xl hover:bg-primary hover:text-white transition-all group cursor-pointer text-center active:scale-95">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 bg-white rounded-xl flex items-center justify-center text-primary shadow-sm group-hover:scale-110 transition-transform">
+                    <UserCheck className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
                   <span className="text-[10px] font-black uppercase">Profile</span>
                 </Link>
                 <Link 
                   to="/tutor/notifications"
-                  className="flex flex-col items-center gap-3 p-4 bg-ink/5 rounded-2xl hover:bg-primary hover:text-white transition-all group w-full cursor-pointer text-center"
+                  className="flex flex-col items-center gap-2 sm:gap-3 p-3 sm:p-4 bg-ink/5 rounded-xl sm:rounded-2xl hover:bg-primary hover:text-white transition-all group w-full cursor-pointer text-center active:scale-95"
                 >
-                  <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-primary shadow-sm group-hover:scale-110 transition-transform">
-                    <Bell size={20} />
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 bg-white rounded-xl flex items-center justify-center text-primary shadow-sm group-hover:scale-110 transition-transform">
+                    <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
                   <span className="text-[10px] font-black uppercase">Alerts</span>
                 </Link>
-                <Link to="/tutor/applied" className="flex flex-col items-center gap-3 p-4 bg-ink/5 rounded-2xl hover:bg-primary hover:text-white transition-all group cursor-pointer text-center">
-                  <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-primary shadow-sm group-hover:scale-110 transition-transform">
-                    <Briefcase size={20} />
+                <Link to="/tutor/applied" className="flex flex-col items-center gap-2 sm:gap-3 p-3 sm:p-4 bg-ink/5 rounded-xl sm:rounded-2xl hover:bg-primary hover:text-white transition-all group cursor-pointer text-center active:scale-95">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 bg-white rounded-xl flex items-center justify-center text-primary shadow-sm group-hover:scale-110 transition-transform">
+                    <Briefcase className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
                   <span className="text-[10px] font-black uppercase">Status</span>
                 </Link>
-                <Link to="/tutor/settings" className="flex flex-col items-center gap-3 p-4 bg-ink/5 rounded-2xl hover:bg-primary hover:text-white transition-all group cursor-pointer text-center">
-                  <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-primary shadow-sm group-hover:scale-110 transition-transform">
-                    <Settings size={20} />
+                <Link to="/tutor/settings" className="flex flex-col items-center gap-2 sm:gap-3 p-3 sm:p-4 bg-ink/5 rounded-xl sm:rounded-2xl hover:bg-primary hover:text-white transition-all group cursor-pointer text-center active:scale-95">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 bg-white rounded-xl flex items-center justify-center text-primary shadow-sm group-hover:scale-110 transition-transform">
+                    <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
                   <span className="text-[10px] font-black uppercase">Settings</span>
                 </Link>

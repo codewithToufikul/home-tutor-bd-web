@@ -102,9 +102,9 @@ export default function TutorActiveTuitions() {
 
           const daysCount = Array.isArray(job?.tutoringDays) ? job.tutoringDays.length : 3;
           const monthlyTargetClasses = daysCount * 4; // e.g. 12 classes/month
-          const salaryNum = job?.salary ? Number(job.salary) : 0;
-          const platformFeePercent = (job as any)?.platformFeePercent || 50; // default 50%
-          const platformFeeAmount = Math.round((salaryNum * platformFeePercent) / 100);
+          const salaryNum = job?.salary ? Number(job.salary) : (a.expectedSalary ? Number(a.expectedSalary) : 0);
+          const platformFeePercent = a.mediaFee && salaryNum ? Math.round((Number(a.mediaFee) / salaryNum) * 100) : ((job as any)?.platformFeePercent || 60);
+          const platformFeeAmount = a.mediaFee ? Number(a.mediaFee) : Math.round((salaryNum * platformFeePercent) / 100);
 
           return {
             id: String(rawJobId || a._id || ''),
@@ -176,94 +176,94 @@ export default function TutorActiveTuitions() {
 
   return (
     <TutorLayout>
-      <div className="space-y-8 max-w-6xl mx-auto pb-20">
-        
+      <div className="space-y-5 sm:space-y-8 max-w-6xl mx-auto pb-24 sm:pb-20">
+
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6">
           <div className="space-y-1">
-            <h1 className="text-3xl font-display font-black text-ink flex items-center gap-3">
-              <div className="w-12 h-12 bg-emerald-500/10 text-emerald-600 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/5">
-                <BookOpen size={24} />
+            <h1 className="text-2xl sm:text-3xl font-display font-black text-ink flex items-center gap-2.5 sm:gap-3">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-emerald-500/10 text-emerald-600 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-md shadow-emerald-500/5 shrink-0">
+                <BookOpen className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
-              Active Tuitions (চলতি টিউশন)
+              <span>Active Tuitions (চলতি টিউশন)</span>
             </h1>
-            <p className="text-sm font-medium text-ink-muted">
+            <p className="text-xs sm:text-sm font-medium text-ink-muted">
               আপনার কনফার্ম হওয়া সকল টিউশনের ক্লাস ট্র্যাকিং, শিডিউল এবং গার্ডিয়ানের সাথে যোগাযোগের তথ্য।
             </p>
           </div>
 
           <Link
             to="/jobs"
-            className="bg-primary text-white px-6 py-3.5 rounded-2xl font-black text-xs uppercase shadow-xl shadow-primary/20 hover:bg-primary-dark transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer self-start md:self-auto"
+            className="w-full sm:w-auto bg-primary text-white px-5 sm:px-6 py-3 sm:py-3.5 rounded-xl sm:rounded-2xl font-black text-xs uppercase shadow-lg sm:shadow-xl shadow-primary/20 hover:bg-primary-dark transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
           >
             <PlusCircle size={16} />
             Find New Tuitions
           </Link>
         </div>
 
-        {/* Stats Summary Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white/70 backdrop-blur-xl p-6 rounded-[28px] border border-white/60 shadow-xl shadow-ink/5 flex items-center gap-5">
-            <div className="w-14 h-14 bg-emerald-500 text-white rounded-2xl flex items-center justify-center font-black shadow-lg shadow-emerald-500/20">
-              <CheckCircle2 size={28} />
+        {/* Stats Summary Row - 2 cols on mobile, 4 cols on desktop */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 md:gap-6">
+          <div className="bg-white/80 backdrop-blur-xl p-3.5 sm:p-5 md:p-6 rounded-2xl sm:rounded-[28px] border border-white/60 shadow-lg shadow-ink/5 flex items-center gap-3 sm:gap-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-14 bg-emerald-500 text-white rounded-xl sm:rounded-2xl flex items-center justify-center font-black shadow-md shadow-emerald-500/20 shrink-0">
+              <CheckCircle2 className="w-5 h-5 sm:w-7 sm:h-7" />
             </div>
-            <div>
-              <p className="text-xs font-bold text-ink-muted uppercase">চলতি টিউশন</p>
-              <p className="text-2xl font-black text-ink">{activeTuitions.length} টি</p>
-            </div>
-          </div>
-
-          <div className="bg-white/70 backdrop-blur-xl p-6 rounded-[28px] border border-white/60 shadow-xl shadow-ink/5 flex items-center gap-5">
-            <div className="w-14 h-14 bg-purple-500 text-white rounded-2xl flex items-center justify-center font-black shadow-lg shadow-purple-500/20">
-              <DollarSign size={28} />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-ink-muted uppercase">মাসিক সম্ভাব্য আয়</p>
-              <p className="text-2xl font-black text-purple-600">৳{totalMonthlyEarnings.toLocaleString()}</p>
+            <div className="min-w-0">
+              <p className="text-[10px] sm:text-xs font-bold text-ink-muted uppercase truncate">চলতি টিউশন</p>
+              <p className="text-lg sm:text-2xl font-black text-ink">{activeTuitions.length} টি</p>
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-rose-50 to-amber-50/60 backdrop-blur-xl p-6 rounded-[28px] border-2 border-rose-200 shadow-xl shadow-rose-500/5 flex items-center gap-5">
-            <div className="w-14 h-14 bg-rose-500 text-white rounded-2xl flex items-center justify-center font-black shadow-lg shadow-rose-500/20">
-              <Receipt size={28} />
+          <div className="bg-white/80 backdrop-blur-xl p-3.5 sm:p-5 md:p-6 rounded-2xl sm:rounded-[28px] border border-white/60 shadow-lg shadow-ink/5 flex items-center gap-3 sm:gap-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-14 bg-purple-500 text-white rounded-xl sm:rounded-2xl flex items-center justify-center font-black shadow-md shadow-purple-500/20 shrink-0">
+              <DollarSign className="w-5 h-5 sm:w-7 sm:h-7" />
             </div>
-            <div>
-              <p className="text-xs font-black text-rose-600 uppercase">মোট বকেয়া ফি (Due)</p>
-              <p className="text-2xl font-black text-rose-600">৳{totalDuePlatformFee.toLocaleString()}</p>
+            <div className="min-w-0">
+              <p className="text-[10px] sm:text-xs font-bold text-ink-muted uppercase truncate">মাসিক সম্ভাব্য আয়</p>
+              <p className="text-lg sm:text-2xl font-black text-purple-600 truncate">৳{totalMonthlyEarnings.toLocaleString()}</p>
             </div>
           </div>
 
-          <div className="bg-white/70 backdrop-blur-xl p-6 rounded-[28px] border border-white/60 shadow-xl shadow-ink/5 flex items-center gap-5">
-            <div className="w-14 h-14 bg-teal-500 text-white rounded-2xl flex items-center justify-center font-black shadow-lg shadow-teal-500/20">
-              <ShieldCheck size={28} />
+          <div className="bg-gradient-to-br from-rose-50 to-amber-50/60 backdrop-blur-xl p-3.5 sm:p-5 md:p-6 rounded-2xl sm:rounded-[28px] border-2 border-rose-200 shadow-lg shadow-rose-500/5 flex items-center gap-3 sm:gap-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-14 bg-rose-500 text-white rounded-xl sm:rounded-2xl flex items-center justify-center font-black shadow-md shadow-rose-500/20 shrink-0">
+              <Receipt className="w-5 h-5 sm:w-7 sm:h-7" />
             </div>
-            <div>
-              <p className="text-xs font-bold text-ink-muted uppercase">পরিশোধিত ফি (Paid)</p>
-              <p className="text-2xl font-black text-teal-600">৳{totalPaidPlatformFee.toLocaleString()}</p>
+            <div className="min-w-0">
+              <p className="text-[10px] sm:text-xs font-black text-rose-600 uppercase truncate">মোট বকেয়া ফি (Due)</p>
+              <p className="text-lg sm:text-2xl font-black text-rose-600 truncate">৳{totalDuePlatformFee.toLocaleString()}</p>
+            </div>
+          </div>
+
+          <div className="bg-white/80 backdrop-blur-xl p-3.5 sm:p-5 md:p-6 rounded-2xl sm:rounded-[28px] border border-white/60 shadow-lg shadow-ink/5 flex items-center gap-3 sm:gap-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-14 bg-teal-500 text-white rounded-xl sm:rounded-2xl flex items-center justify-center font-black shadow-md shadow-teal-500/20 shrink-0">
+              <ShieldCheck className="w-5 h-5 sm:w-7 sm:h-7" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] sm:text-xs font-bold text-ink-muted uppercase truncate">পরিশোধিত ফি (Paid)</p>
+              <p className="text-lg sm:text-2xl font-black text-teal-600 truncate">৳{totalPaidPlatformFee.toLocaleString()}</p>
             </div>
           </div>
         </div>
 
         {/* Search Bar */}
         <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-muted" size={20} />
+          <Search className="absolute left-3.5 sm:left-4 top-1/2 -translate-y-1/2 text-ink-muted" size={18} />
           <input
             type="text"
             placeholder="Search by student, subject, class, or location..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-4 bg-white rounded-2xl border border-ink/5 shadow-sm focus:ring-2 focus:ring-emerald-500/20 outline-none font-medium transition-all text-sm"
+            className="w-full pl-10 sm:pl-12 pr-4 py-3 sm:py-4 bg-white rounded-xl sm:rounded-2xl border border-ink/5 shadow-sm focus:ring-2 focus:ring-emerald-500/20 outline-none font-medium transition-all text-xs sm:text-sm"
           />
         </div>
 
         {/* Active Tuitions List */}
         {loading ? (
-          <div className="py-24 text-center space-y-4 bg-white/40 backdrop-blur-xl border border-white/40 rounded-[32px] shadow-sm">
-            <Loader2 className="animate-spin text-emerald-600 mx-auto" size={36} />
+          <div className="py-20 sm:py-24 text-center space-y-4 bg-white/40 backdrop-blur-xl border border-white/40 rounded-2xl sm:rounded-[32px] shadow-sm">
+            <Loader2 className="animate-spin text-emerald-600 mx-auto" size={32} />
             <p className="text-xs font-bold text-ink-muted">Loading active tuitions...</p>
           </div>
         ) : filteredTuitions.length > 0 ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
             {filteredTuitions.map((tuition, index) => {
               const loggedClasses = classLogs[tuition.id] || 0;
               const targetClasses = tuition.monthlyTargetClasses || 12;
@@ -272,73 +272,73 @@ export default function TutorActiveTuitions() {
               return (
                 <motion.div
                   key={tuition.id}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.08 }}
-                  className="bg-white/80 backdrop-blur-xl p-8 rounded-[36px] border-2 border-emerald-500/20 shadow-xl shadow-emerald-500/5 hover:border-emerald-500/40 transition-all space-y-6 flex flex-col justify-between"
+                  transition={{ delay: index * 0.05 }}
+                  className="bg-white/85 backdrop-blur-xl p-4 sm:p-6 md:p-8 rounded-2xl sm:rounded-[32px] md:rounded-[36px] border-2 border-emerald-500/20 shadow-lg shadow-emerald-500/5 hover:border-emerald-500/40 transition-all space-y-4 sm:space-y-6 flex flex-col justify-between"
                 >
                   {/* Top Header */}
-                  <div className="space-y-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="space-y-1.5">
-                        <div className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-emerald-500 text-white text-[10px] font-black uppercase tracking-wider rounded-full shadow-sm">
-                          <CheckCircle2 size={13} />
+                  <div className="space-y-3 sm:space-y-4">
+                    <div className="flex items-start justify-between gap-3 sm:gap-4">
+                      <div className="space-y-1">
+                        <div className="inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 py-0.5 sm:py-1 bg-emerald-500 text-white text-[9px] sm:text-[10px] font-black uppercase tracking-wider rounded-full shadow-sm">
+                          <CheckCircle2 size={12} />
                           Active & Confirmed
                         </div>
-                        <h3 className="text-xl font-display font-black text-ink">{tuition.title}</h3>
+                        <h3 className="text-base sm:text-xl font-display font-black text-ink leading-snug">{tuition.title}</h3>
                         <p className="text-xs font-bold text-emerald-700">বিষয়: {tuition.subjects}</p>
                       </div>
                       <div className="text-right shrink-0">
-                        <p className="text-2xl font-black text-emerald-600">{tuition.salaryFormatted}</p>
-                        <span className="text-[10px] font-bold text-ink-muted uppercase">মাসিক বেতন</span>
+                        <p className="text-lg sm:text-2xl font-black text-emerald-600">{tuition.salaryFormatted}</p>
+                        <span className="text-[9px] sm:text-[10px] font-bold text-ink-muted uppercase">মাসিক বেতন</span>
                       </div>
                     </div>
 
                     {/* Schedule & Info Grid */}
-                    <div className="grid grid-cols-2 gap-3 p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100/60 text-xs font-bold text-ink">
-                      <div className="flex items-center gap-2">
-                        <BookOpen size={15} className="text-emerald-600 shrink-0" />
+                    <div className="grid grid-cols-2 gap-2 sm:gap-3 p-3 sm:p-4 bg-emerald-50/50 rounded-xl sm:rounded-2xl border border-emerald-100/60 text-[11px] sm:text-xs font-bold text-ink">
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        <BookOpen size={14} className="text-emerald-600 shrink-0" />
                         <span>শ্রেণী: <span className="font-black text-emerald-700">{tuition.studentClass}</span></span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Calendar size={15} className="text-emerald-600 shrink-0" />
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        <Calendar size={14} className="text-emerald-600 shrink-0" />
                         <span>{tuition.daysPerWeek}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Clock size={15} className="text-emerald-600 shrink-0" />
-                        <span>সময়: {tuition.timeSlot}</span>
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        <Clock size={14} className="text-emerald-600 shrink-0" />
+                        <span className="truncate">সময়: {tuition.timeSlot}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <ShieldCheck size={15} className="text-emerald-600 shrink-0" />
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        <ShieldCheck size={14} className="text-emerald-600 shrink-0" />
                         <span>শুরু: {tuition.confirmedDate}</span>
                       </div>
-                      <div className="flex items-center gap-2 col-span-2 pt-1 border-t border-emerald-100/60">
-                        <MapPin size={15} className="text-emerald-600 shrink-0" />
+                      <div className="flex items-center gap-1.5 sm:gap-2 col-span-2 pt-1 border-t border-emerald-100/60">
+                        <MapPin size={14} className="text-emerald-600 shrink-0" />
                         <span className="truncate">{tuition.location}</span>
                       </div>
                     </div>
 
                     {/* 💰 Platform Fee & Charge Status Card 💰 */}
                     <div className={cn(
-                      "p-4 rounded-2xl border transition-all space-y-3",
+                      "p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border transition-all space-y-2.5 sm:space-y-3",
                       paidFees[tuition.id]
                         ? "bg-teal-50/60 border-teal-200"
                         : "bg-gradient-to-br from-rose-50/80 to-amber-50/60 border-rose-200"
                     )}>
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Receipt size={16} className={paidFees[tuition.id] ? "text-teal-600" : "text-rose-600"} />
-                          <span className="text-xs font-black text-ink uppercase tracking-wide">
-                            প্ল্যাটফর্ম চার্জ / ফি (Platform Fee)
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                          <Receipt size={15} className={paidFees[tuition.id] ? "text-teal-600" : "text-rose-600"} />
+                          <span className="text-[11px] sm:text-xs font-black text-ink uppercase tracking-wide">
+                            প্ল্যাটফর্ম চার্জ / ফি
                           </span>
                         </div>
                         <span className={cn(
-                          "px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border",
+                          "px-2 sm:px-2.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wider border",
                           paidFees[tuition.id]
                             ? "bg-teal-100 text-teal-700 border-teal-300"
                             : "bg-rose-100 text-rose-700 border-rose-300 animate-pulse"
                         )}>
-                          {paidFees[tuition.id] ? "✓ Paid (পরিশোধিত)" : "● Due (বকেয়া)"}
+                          {paidFees[tuition.id] ? "✓ Paid" : "● Due (বকেয়া)"}
                         </span>
                       </div>
 
@@ -349,35 +349,35 @@ export default function TutorActiveTuitions() {
                         </div>
                         <div className="text-right">
                           <p className="text-[10px] text-ink-muted">প্রদেয় ফি (Amount):</p>
-                          <p className={cn("text-sm font-black", paidFees[tuition.id] ? "text-teal-700" : "text-rose-600")}>
+                          <p className={cn("text-xs sm:text-sm font-black", paidFees[tuition.id] ? "text-teal-700" : "text-rose-600")}>
                             ৳{tuition.platformFeeAmount.toLocaleString()}
                           </p>
                         </div>
                       </div>
 
                       {!paidFees[tuition.id] && (
-                        <div className="flex items-center justify-between pt-1">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
                           <span className="text-[10px] font-medium text-rose-600/80">
                             * টিউশন শুরুর প্রথম ১০ দিনের মধ্যে পরিশোধযোগ্য
                           </span>
-                          <button
-                            onClick={() => setSelectedPayFeeTuition(tuition)}
-                            className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black text-[11px] uppercase flex items-center gap-1.5 shadow-md shadow-rose-600/20 transition-all cursor-pointer"
+                          <Link
+                            to="/tutor/payments"
+                            className="w-full sm:w-auto text-center px-3.5 py-2 sm:py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black text-[11px] uppercase flex items-center justify-center gap-1.5 shadow-md shadow-rose-600/20 transition-all active:scale-95 cursor-pointer"
                           >
                             <CreditCard size={12} />
                             Pay Fee Now
-                          </button>
+                          </Link>
                         </div>
                       )}
                     </div>
 
                     {/* Class Attendance & Progress Tracker */}
-                    <div className="p-4 bg-white rounded-2xl border border-ink/5 shadow-sm space-y-3">
+                    <div className="p-3.5 sm:p-4 bg-white rounded-xl sm:rounded-2xl border border-ink/5 shadow-sm space-y-2.5 sm:space-y-3">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Clock size={15} className="text-emerald-600" />
-                          <span className="text-xs font-black text-ink uppercase tracking-wide">
-                            চলতি মাসের ক্লাস লগ ({loggedClasses}/{targetClasses} সম্পন্ন)
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                          <Clock size={14} className="text-emerald-600" />
+                          <span className="text-[11px] sm:text-xs font-black text-ink uppercase tracking-wide">
+                            চলতি মাসের ক্লাস লগ ({loggedClasses}/{targetClasses})
                           </span>
                         </div>
                         <span className="text-xs font-black text-emerald-600">{progressPct}%</span>
@@ -391,10 +391,10 @@ export default function TutorActiveTuitions() {
                         />
                       </div>
 
-                      <div className="flex items-center justify-between pt-1">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
                         <button
                           onClick={() => handleMarkClassDone(tuition.id)}
-                          className="text-[11px] font-black text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-xl transition-all flex items-center gap-1 cursor-pointer"
+                          className="w-full sm:w-auto text-center text-[11px] font-black text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-3 py-2 sm:py-1.5 rounded-xl transition-all flex items-center justify-center gap-1 cursor-pointer active:scale-95"
                         >
                           + আজকের ক্লাস সম্পন্ন মার্ক করুন
                         </button>
@@ -403,7 +403,7 @@ export default function TutorActiveTuitions() {
                             setSelectedNotesTuition(tuition);
                             setNoteInput(tuitionNotes[tuition.id] || '');
                           }}
-                          className="text-[11px] font-bold text-ink-muted hover:text-ink flex items-center gap-1 cursor-pointer"
+                          className="text-[11px] font-bold text-ink-muted hover:text-ink flex items-center justify-center sm:justify-start gap-1 cursor-pointer py-1"
                         >
                           <FileText size={13} /> {tuitionNotes[tuition.id] ? 'নোট দেখুন' : '+ নোট যুক্ত করুন'}
                         </button>
@@ -411,49 +411,49 @@ export default function TutorActiveTuitions() {
                     </div>
 
                     {/* Guardian Contact Info Card */}
-                    <div className="p-4 bg-white rounded-2xl border border-ink/5 shadow-sm space-y-3">
+                    <div className="p-3.5 sm:p-4 bg-white rounded-xl sm:rounded-2xl border border-ink/5 shadow-sm space-y-3">
                       <p className="text-[10px] font-black text-ink-muted uppercase tracking-wider">
                         গার্ডিয়ান / স্টুডেন্টের যোগাযোগের তথ্য
                       </p>
-                      <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-11 h-11 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center font-black text-base shadow-sm">
+                          <div className="w-10 h-10 sm:w-11 sm:h-11 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center font-black text-base shadow-sm shrink-0">
                             {tuition.guardianName.charAt(0).toUpperCase()}
                           </div>
-                          <div>
-                            <p className="text-sm font-black text-ink">{tuition.guardianName}</p>
-                            <p className="text-xs font-bold text-emerald-700">
+                          <div className="min-w-0">
+                            <p className="text-sm font-black text-ink truncate">{tuition.guardianName}</p>
+                            <p className="text-xs font-bold text-emerald-700 truncate">
                               {tuition.guardianPhone || 'নম্বর উপলব্ধ'}
                             </p>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 flex-wrap">
+                        <div className="grid grid-cols-3 sm:flex items-center gap-2">
                           <button
                             onClick={() => handleStartChatWithStudent(tuition.studentUserId)}
-                            className="px-3.5 py-2 bg-primary hover:bg-primary-dark text-white rounded-xl font-black text-xs uppercase flex items-center gap-1.5 shadow-md shadow-primary/20 transition-all cursor-pointer"
+                            className="px-2.5 sm:px-3.5 py-2 bg-primary hover:bg-primary-dark text-white rounded-xl font-black text-[11px] sm:text-xs uppercase flex items-center justify-center gap-1 shadow-sm shadow-primary/20 transition-all cursor-pointer active:scale-95"
                           >
                             <MessageSquare size={13} />
-                            ইন-অ্যাপ চ্যাট
+                            <span className="truncate">চ্যাট</span>
                           </button>
 
                           {tuition.guardianPhone && (
                             <>
                               <a
                                 href={`tel:${tuition.guardianPhone}`}
-                                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-xs uppercase flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
+                                className="px-2.5 sm:px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-[11px] sm:text-xs uppercase flex items-center justify-center gap-1 shadow-sm shadow-emerald-600/20 transition-all cursor-pointer active:scale-95"
                               >
                                 <Phone size={13} />
-                                Call
+                                <span>Call</span>
                               </a>
                               <a
                                 href={`https://wa.me/${tuition.guardianPhone.replace(/[^0-9]/g, '')}`}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="px-3.5 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-xl font-black text-xs uppercase flex items-center gap-1.5 border border-emerald-200 transition-all cursor-pointer"
+                                className="px-2.5 sm:px-3.5 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-xl font-black text-[11px] sm:text-xs uppercase flex items-center justify-center gap-1 border border-emerald-200 transition-all cursor-pointer active:scale-95"
                               >
                                 <MessageSquare size={13} />
-                                WhatsApp
+                                <span>WA</span>
                               </a>
                             </>
                           )}
@@ -463,15 +463,15 @@ export default function TutorActiveTuitions() {
                   </div>
 
                   {/* Actions Footer */}
-                  <div className="pt-4 border-t border-ink/5 flex items-center justify-between">
+                  <div className="pt-3.5 sm:pt-4 border-t border-ink/5 flex items-center justify-between">
                     <span className="text-[10px] font-bold text-ink-muted uppercase">
                       Job ID: #{tuition.id.slice(-6).toUpperCase()}
                     </span>
                     <Link
                       to={`/job/${tuition.id}`}
-                      className="px-5 py-2.5 bg-ink/5 hover:bg-ink hover:text-white text-ink rounded-xl font-black text-xs uppercase transition-all flex items-center gap-2"
+                      className="px-4 sm:px-5 py-2 sm:py-2.5 bg-ink/5 hover:bg-ink hover:text-white text-ink rounded-xl font-black text-xs uppercase transition-all flex items-center gap-1.5 sm:gap-2 active:scale-95"
                     >
-                      View Details <ArrowRight size={14} />
+                      View Details <ArrowRight size={13} />
                     </Link>
                   </div>
                 </motion.div>
@@ -479,19 +479,19 @@ export default function TutorActiveTuitions() {
             })}
           </div>
         ) : (
-          <div className="p-16 bg-white/60 backdrop-blur-xl rounded-[36px] border border-white/40 shadow-sm text-center space-y-4">
-            <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
-              <BookOpen size={32} />
+          <div className="p-8 sm:p-16 bg-white/60 backdrop-blur-xl rounded-2xl sm:rounded-[36px] border border-white/40 shadow-sm text-center space-y-3 sm:space-y-4">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
+              <BookOpen size={28} />
             </div>
-            <div className="space-y-1.5">
-              <h3 className="text-xl font-display font-black text-ink">কোনো Active Tuition পাওয়া যায়নি</h3>
+            <div className="space-y-1 sm:space-y-1.5">
+              <h3 className="text-lg sm:text-xl font-display font-black text-ink">কোনো Active Tuition পাওয়া যায়নি</h3>
               <p className="text-xs font-medium text-ink-muted max-w-md mx-auto">
                 আপনি যে টিউশনগুলোতে আবেদন করেছেন সেগুলো Guardian কর্তৃক Accept বা Confirm হলে স্বয়ংক্রিয়ভাবে এখানে যুক্ত হবে।
               </p>
             </div>
             <Link
               to="/jobs"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-xs uppercase shadow-lg shadow-emerald-600/20 transition-all"
+              className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl sm:rounded-2xl font-black text-xs uppercase shadow-lg shadow-emerald-600/20 transition-all active:scale-95"
             >
               Browse Tuition Jobs <ArrowRight size={14} />
             </Link>

@@ -1,10 +1,11 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { 
-  Briefcase, MapPin, BookOpen, GraduationCap, 
+import {
+  Briefcase, MapPin, BookOpen, GraduationCap,
   Clock, Search, Filter, Layout, CheckSquare, ChevronDown,
   ChevronLeft, ChevronRight, Home, X, RotateCcw, Sparkles,
-  SlidersHorizontal, Check, AlertCircle, ArrowRight
+  SlidersHorizontal, Check, AlertCircle, ArrowRight,
+  Wifi, Users, DollarSign, Calendar, BadgeCheck, Monitor, LayoutGrid
 } from 'lucide-react';
 import type { TuitionJob } from '@/src/types';
 import { cn } from '@/src/lib/utils';
@@ -15,7 +16,7 @@ import { useGetTuitionJobsQuery } from '@/src/services/tuitionApi';
 export default function Jobs() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialCategory = searchParams.get('category') || 'All';
-  
+
   const [searchId, setSearchId] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [tuitionType, setTuitionType] = useState('All');
@@ -26,33 +27,28 @@ export default function Jobs() {
   const [studentClass, setStudentClass] = useState('All');
   const [salaryRange, setSalaryRange] = useState('All');
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
-  
+
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  // Debounce search query
   useEffect(() => {
     const timeout = window.setTimeout(() => setDebouncedSearch(searchId), 300);
     return () => window.clearTimeout(timeout);
   }, [searchId]);
 
-  // Reset area when district changes
   const handleDistrictChange = (newDistrict: string) => {
     setDistrict(newDistrict);
     setArea('All');
     setCurrentPage(1);
   };
 
-  // Get available areas based on selected district
   const availableAreas = useMemo(() => {
     if (district !== 'All' && DISTRICT_WISE_AREAS[district]) {
       return DISTRICT_WISE_AREAS[district];
     }
-    // If 'All' district is selected, aggregate top areas
     return DISTRICT_WISE_AREAS['Dhaka'] || [];
   }, [district]);
 
-  // Parse salary range filter for backend query
   const salaryBounds = useMemo(() => {
     if (salaryRange === '< 3000') return { maxSalary: 3000 };
     if (salaryRange === '3000-5000') return { minSalary: 3000, maxSalary: 5000 };
@@ -62,63 +58,45 @@ export default function Jobs() {
     return {};
   }, [salaryRange]);
 
-  // Reset page when any filter changes
   useEffect(() => {
     setCurrentPage(1);
   }, [debouncedSearch, tuitionType, genderPref, district, area, category, studentClass, salaryRange, itemsPerPage]);
 
-  // Sync category state with URL param if it changes
   useEffect(() => {
     const cat = searchParams.get('category');
-    if (cat) {
-      setCategory(cat);
-    } else {
-      setCategory('All');
-    }
+    if (cat) setCategory(cat);
+    else setCategory('All');
     setCurrentPage(1);
   }, [searchParams]);
 
   const handleCategoryChange = (val: string) => {
     setCategory(val);
     setCurrentPage(1);
-    if (val === 'All') {
-      searchParams.delete('category');
-    } else {
-      searchParams.set('category', val);
-    }
+    if (val === 'All') searchParams.delete('category');
+    else searchParams.set('category', val);
     setSearchParams(searchParams);
   };
 
-  // Check if any filter is active
-  const hasActiveFilters = useMemo(() => {
-    return (
-      debouncedSearch.trim() !== '' ||
-      tuitionType !== 'All' ||
-      genderPref !== 'All' ||
-      district !== 'All' ||
-      area !== 'All' ||
-      category !== 'All' ||
-      studentClass !== 'All' ||
-      salaryRange !== 'All'
-    );
-  }, [debouncedSearch, tuitionType, genderPref, district, area, category, studentClass, salaryRange]);
+  const hasActiveFilters = useMemo(() => (
+    debouncedSearch.trim() !== '' ||
+    tuitionType !== 'All' ||
+    genderPref !== 'All' ||
+    district !== 'All' ||
+    area !== 'All' ||
+    category !== 'All' ||
+    studentClass !== 'All' ||
+    salaryRange !== 'All'
+  ), [debouncedSearch, tuitionType, genderPref, district, area, category, studentClass, salaryRange]);
 
   const resetAllFilters = () => {
-    setSearchId('');
-    setDebouncedSearch('');
-    setTuitionType('All');
-    setGenderPref('All');
-    setDistrict('All');
-    setArea('All');
-    setCategory('All');
-    setStudentClass('All');
-    setSalaryRange('All');
+    setSearchId(''); setDebouncedSearch(''); setTuitionType('All');
+    setGenderPref('All'); setDistrict('All'); setArea('All');
+    setCategory('All'); setStudentClass('All'); setSalaryRange('All');
     setCurrentPage(1);
     searchParams.delete('category');
     setSearchParams(searchParams);
   };
 
-  // ── RTK Query Backend Search & Filter ──────────────
   const queryParams = useMemo(() => ({
     ...(debouncedSearch ? { search: debouncedSearch } : {}),
     ...(district !== 'All' ? { district } : {}),
@@ -137,7 +115,6 @@ export default function Jobs() {
   const jobs: TuitionJob[] = useMemo(() => {
     const raw = (jobsData as any)?.data ?? [];
     if (!Array.isArray(raw)) return [];
-
     return raw.map((j: any) => {
       const locArea = typeof j.location === 'object' ? String(j.location?.area || '') : String(j.area || '');
       const locDistrict = typeof j.location === 'object' ? String(j.location?.district || '') : String(typeof j.location === 'string' ? j.location : '');
@@ -161,7 +138,6 @@ export default function Jobs() {
 
   const totalItems: number = (jobsData as any)?.meta?.total ?? jobs.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
-  const hasMore = currentPage < totalPages;
   const activeJobs = jobs;
 
   const handlePageChange = (page: number) => {
@@ -170,135 +146,125 @@ export default function Jobs() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Smart pagination: show ellipsis for large page counts
+  const getPageNumbers = () => {
+    if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
+    const pages: (number | '...')[] = [];
+    if (currentPage <= 4) {
+      pages.push(1, 2, 3, 4, 5, '...', totalPages);
+    } else if (currentPage >= totalPages - 3) {
+      pages.push(1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+    } else {
+      pages.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
+    }
+    return pages;
+  };
+
+  const subjectColors = [
+    'bg-teal-50 text-teal-700 border-teal-200',
+    'bg-violet-50 text-violet-700 border-violet-200',
+    'bg-amber-50 text-amber-700 border-amber-200',
+    'bg-rose-50 text-rose-700 border-rose-200',
+    'bg-blue-50 text-blue-700 border-blue-200',
+    'bg-emerald-50 text-emerald-700 border-emerald-200',
+  ];
+
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-24 pt-28">
+    <div className="min-h-screen bg-[#F0F4F8] pb-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        
-        {/* Top Header & Mobile Filter Button */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+
+        {/* ── Page Header ─────────────────────────────── */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-6 gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-display font-black text-ink">
-              Available Tuition Jobs
-            </h1>
+
             <p className="text-xs sm:text-sm text-ink-muted font-medium mt-1">
-              Showing <span className="text-ink font-bold">{totalItems > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} - {Math.min(currentPage * itemsPerPage, totalItems)}</span> of <span className="text-primary font-bold">{totalItems}</span> matching tuitions
+              Showing{' '}
+              <span className="text-ink font-black">
+                {totalItems > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}
+                {' – '}
+                {Math.min(currentPage * itemsPerPage, totalItems)}
+              </span>{' '}
+              of <span className="text-primary font-black">{totalItems}</span> matching tuitions
             </p>
           </div>
 
-          <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+            {/* Mobile filter toggle */}
             <button
               onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
-              className="lg:hidden flex items-center gap-2 px-4 py-2 bg-white border border-ink/10 rounded-xl text-xs font-bold text-ink shadow-sm cursor-pointer"
+              className="lg:hidden inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-ink/10 rounded-xl text-xs font-bold text-ink shadow-sm cursor-pointer relative"
             >
               <SlidersHorizontal size={14} className="text-primary" />
               Filters
               {hasActiveFilters && (
-                <span className="w-2 h-2 rounded-full bg-primary" />
+                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-primary text-white text-[9px] flex items-center justify-center font-black">
+                  !
+                </span>
               )}
             </button>
 
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-ink-muted">Per Page:</span>
-              <select 
+            {/* Per Page selector */}
+            <div className="flex items-center gap-2 bg-white border border-ink/10 rounded-xl px-3 py-2 shadow-sm">
+              <span className="text-[11px] font-bold text-ink-muted whitespace-nowrap">Per Page:</span>
+              <select
                 value={itemsPerPage}
-                onChange={(e) => {
-                  setItemsPerPage(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-                className="bg-white border border-ink/10 rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer shadow-sm"
+                onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                className="text-xs font-black text-ink outline-none bg-transparent cursor-pointer"
               >
                 <option value={10}>10</option>
                 <option value={20}>20</option>
                 <option value={30}>30</option>
                 <option value={50}>50</option>
               </select>
+              <ChevronDown size={12} className="text-ink-muted" />
             </div>
           </div>
         </div>
 
-        {/* Active Filter Badges Bar */}
-        {hasActiveFilters && (
-          <div className="flex flex-wrap items-center gap-2 mb-6 p-3 bg-white rounded-2xl border border-ink/5 shadow-sm">
-            <span className="text-xs font-bold text-ink-muted flex items-center gap-1.5 mr-1">
-              <Filter size={14} className="text-primary" /> Active Filters:
-            </span>
-
-            {debouncedSearch && (
-              <span className="inline-flex items-center gap-1 px-3 py-1 bg-primary/10 text-primary rounded-xl text-xs font-bold">
-                "{debouncedSearch}"
-                <button onClick={() => setSearchId('')} className="hover:text-primary-dark cursor-pointer"><X size={12} /></button>
-              </span>
-            )}
-
-            {genderPref !== 'All' && (
-              <span className="inline-flex items-center gap-1 px-3 py-1 bg-primary/10 text-primary rounded-xl text-xs font-bold">
-                Tutor: {genderPref}
-                <button onClick={() => setGenderPref('All')} className="hover:text-primary-dark cursor-pointer"><X size={12} /></button>
-              </span>
-            )}
-
-            {district !== 'All' && (
-              <span className="inline-flex items-center gap-1 px-3 py-1 bg-primary/10 text-primary rounded-xl text-xs font-bold">
-                District: {district}
-                <button onClick={() => handleDistrictChange('All')} className="hover:text-primary-dark cursor-pointer"><X size={12} /></button>
-              </span>
-            )}
-
-            {area !== 'All' && (
-              <span className="inline-flex items-center gap-1 px-3 py-1 bg-primary/10 text-primary rounded-xl text-xs font-bold">
-                Area: {area}
-                <button onClick={() => setArea('All')} className="hover:text-primary-dark cursor-pointer"><X size={12} /></button>
-              </span>
-            )}
-
-            {category !== 'All' && (
-              <span className="inline-flex items-center gap-1 px-3 py-1 bg-primary/10 text-primary rounded-xl text-xs font-bold">
-                Category: {category}
-                <button onClick={() => handleCategoryChange('All')} className="hover:text-primary-dark cursor-pointer"><X size={12} /></button>
-              </span>
-            )}
-
-            {studentClass !== 'All' && (
-              <span className="inline-flex items-center gap-1 px-3 py-1 bg-primary/10 text-primary rounded-xl text-xs font-bold">
-                Class: {studentClass}
-                <button onClick={() => setStudentClass('All')} className="hover:text-primary-dark cursor-pointer"><X size={12} /></button>
-              </span>
-            )}
-
-            {salaryRange !== 'All' && (
-              <span className="inline-flex items-center gap-1 px-3 py-1 bg-primary/10 text-primary rounded-xl text-xs font-bold">
-                Salary: {salaryRange} ৳
-                <button onClick={() => setSalaryRange('All')} className="hover:text-primary-dark cursor-pointer"><X size={12} /></button>
-              </span>
-            )}
-
-            {tuitionType !== 'All' && (
-              <span className="inline-flex items-center gap-1 px-3 py-1 bg-primary/10 text-primary rounded-xl text-xs font-bold">
-                Type: {tuitionType}
-                <button onClick={() => setTuitionType('All')} className="hover:text-primary-dark cursor-pointer"><X size={12} /></button>
-              </span>
-            )}
-
-            <button
-              onClick={resetAllFilters}
-              className="ml-auto inline-flex items-center gap-1 text-xs font-black text-rose-500 hover:text-rose-700 transition-colors cursor-pointer px-2 py-1"
+        {/* ── Active Filter Badges ──────────────────────── */}
+        <AnimatePresence>
+          {hasActiveFilters && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="flex flex-wrap items-center gap-2 mb-5 p-3 bg-white rounded-2xl border border-ink/5 shadow-sm overflow-hidden"
             >
-              <RotateCcw size={12} /> Clear All
-            </button>
-          </div>
-        )}
+              <span className="text-[11px] font-black text-ink-muted flex items-center gap-1 mr-1">
+                <Filter size={12} className="text-primary" /> Active Filters:
+              </span>
+              {debouncedSearch && (
+                <FilterBadge label={`"${debouncedSearch}"`} onRemove={() => setSearchId('')} />
+              )}
+              {genderPref !== 'All' && <FilterBadge label={`Tutor: ${genderPref}`} onRemove={() => setGenderPref('All')} />}
+              {district !== 'All' && <FilterBadge label={district} onRemove={() => handleDistrictChange('All')} />}
+              {area !== 'All' && <FilterBadge label={area} onRemove={() => setArea('All')} />}
+              {category !== 'All' && <FilterBadge label={category} onRemove={() => handleCategoryChange('All')} />}
+              {studentClass !== 'All' && <FilterBadge label={`Class: ${studentClass}`} onRemove={() => setStudentClass('All')} />}
+              {salaryRange !== 'All' && <FilterBadge label={`৳ ${salaryRange}`} onRemove={() => setSalaryRange('All')} />}
+              {tuitionType !== 'All' && <FilterBadge label={tuitionType} onRemove={() => setTuitionType('All')} />}
+              <button
+                onClick={resetAllFilters}
+                className="ml-auto inline-flex items-center gap-1 text-[11px] font-black text-rose-500 hover:text-rose-700 transition-colors cursor-pointer"
+              >
+                <RotateCcw size={11} /> Clear All
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        <div className="flex flex-col lg:flex-row gap-8 items-start">
-          
-          {/* Sidebar Filter */}
+        <div className="flex flex-col lg:flex-row gap-6 items-start">
+
+          {/* ── Sidebar Filter ──────────────────────────── */}
           <aside className={cn(
-            "lg:w-80 w-full space-y-6 lg:sticky lg:top-28",
+            "lg:w-72 w-full shrink-0 lg:sticky lg:top-28",
             isMobileFilterOpen ? "block" : "hidden lg:block"
           )}>
-            <div className="bg-white p-6 rounded-3xl border border-ink/5 shadow-sm space-y-6">
-              <div className="flex items-center justify-between border-b border-ink/5 pb-3">
-                <h2 className="text-base font-display font-bold text-ink flex items-center gap-2">
-                  <Filter size={18} className="text-primary" /> Advance Filter
+            <div className="bg-white rounded-2xl border border-ink/5 shadow-sm overflow-hidden">
+              {/* Sidebar Header */}
+              <div className="px-5 py-4 border-b border-ink/5 flex items-center justify-between bg-gradient-to-r from-primary/5 to-transparent">
+                <h2 className="text-sm font-display font-black text-ink flex items-center gap-2">
+                  <Filter size={16} className="text-primary" /> Advance Filter
                 </h2>
                 {hasActiveFilters && (
                   <button
@@ -309,236 +275,200 @@ export default function Jobs() {
                   </button>
                 )}
               </div>
-              
-              {/* Search By Keyword / Job ID */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-primary uppercase flex items-center justify-between">
-                  <span>Search Job</span>
-                  {searchId && <button onClick={() => setSearchId('')} className="text-[10px] text-ink-muted hover:text-rose-500 font-bold cursor-pointer">Clear</button>}
-                </label>
-                <div className="relative">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink/40" size={14} />
-                  <input 
-                    type="text"
-                    placeholder="Search by ID, Subject, Area..."
-                    value={searchId}
-                    onChange={(e) => setSearchId(e.target.value)}
-                    className="w-full pl-9 pr-8 py-2.5 rounded-xl bg-background border border-ink/10 text-xs font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all placeholder:text-ink/30"
-                  />
-                  {searchId && (
-                    <button
-                      onClick={() => setSearchId('')}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted hover:text-ink cursor-pointer"
-                    >
-                      <X size={14} />
-                    </button>
-                  )}
-                </div>
-              </div>
 
-              {/* Tutor Preference */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-primary uppercase">Tutor Preference</label>
-                <div className="flex bg-background p-1 rounded-xl border border-ink/10">
-                  {['All', 'Male', 'Female'].map((g) => (
-                    <button
-                      key={g}
-                      onClick={() => {
-                        setGenderPref(g);
-                        setCurrentPage(1);
-                      }}
-                      className={cn(
-                        "flex-1 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
-                        genderPref === g ? "bg-primary text-white shadow-sm" : "text-ink-muted hover:text-ink"
-                      )}
-                    >
-                      {g}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <div className="p-5 space-y-5">
+                {/* Search */}
+                <FilterSection label="Search Job">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/40" size={13} />
+                    <input
+                      type="text"
+                      placeholder="Search by ID, Subject, Area..."
+                      value={searchId}
+                      onChange={(e) => setSearchId(e.target.value)}
+                      className="w-full pl-9 pr-8 py-2.5 rounded-xl bg-[#F8FAFC] border border-ink/10 text-xs font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all placeholder:text-ink/30"
+                    />
+                    {searchId && (
+                      <button onClick={() => setSearchId('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-muted hover:text-ink cursor-pointer">
+                        <X size={13} />
+                      </button>
+                    )}
+                  </div>
+                </FilterSection>
 
-              {/* Select District */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-primary uppercase">Select District</label>
-                <div className="relative">
-                  <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 text-primary" size={16} />
-                  <select 
+                {/* Tutor Preference */}
+                <FilterSection label="Tutor Preference">
+                  <div className="flex bg-[#F8FAFC] p-1 rounded-xl border border-ink/10 gap-1">
+                    {['All', 'Male', 'Female'].map((g) => (
+                      <button
+                        key={g}
+                        onClick={() => { setGenderPref(g); setCurrentPage(1); }}
+                        className={cn(
+                          "flex-1 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                          genderPref === g ? "bg-primary text-white shadow-sm" : "text-ink-muted hover:text-ink"
+                        )}
+                      >
+                        {g}
+                      </button>
+                    ))}
+                  </div>
+                </FilterSection>
+
+                {/* District */}
+                <FilterSection label="Select District">
+                  <SelectField
+                    icon={<MapPin size={14} className="text-primary" />}
                     value={district}
-                    onChange={(e) => handleDistrictChange(e.target.value)}
-                    className="w-full pl-10 pr-8 py-2.5 rounded-xl bg-background border border-ink/10 text-xs focus:ring-2 focus:ring-primary/20 outline-none appearance-none font-bold cursor-pointer"
+                    onChange={(v) => handleDistrictChange(v)}
                   >
                     <option value="All">All Districts ({DISTRICTS.length})</option>
-                    {DISTRICTS.map((d) => (
-                      <option key={d} value={d}>{d}</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 text-ink-muted pointer-events-none" size={14} />
-                </div>
-              </div>
+                    {DISTRICTS.map((d) => <option key={d} value={d}>{d}</option>)}
+                  </SelectField>
+                </FilterSection>
 
-              {/* Select Area (District-Aware) */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-primary uppercase">
-                  Select Area {district !== 'All' ? `(${district})` : ''}
-                </label>
-                <div className="relative">
-                  <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 text-primary" size={16} />
-                  <select 
+                {/* Area */}
+                <FilterSection label={`Select Area${district !== 'All' ? ` (${district})` : ''}`}>
+                  <SelectField
+                    icon={<MapPin size={14} className="text-primary" />}
                     value={area}
-                    onChange={(e) => {
-                      setArea(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                    className="w-full pl-10 pr-8 py-2.5 rounded-xl bg-background border border-ink/10 text-xs focus:ring-2 focus:ring-primary/20 outline-none appearance-none font-bold cursor-pointer"
+                    onChange={(v) => { setArea(v); setCurrentPage(1); }}
                   >
                     <option value="All">All Areas</option>
-                    {availableAreas.map((a) => (
-                      <option key={a} value={a}>{a}</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 text-ink-muted pointer-events-none" size={14} />
-                </div>
-              </div>
+                    {availableAreas.map((a) => <option key={a} value={a}>{a}</option>)}
+                  </SelectField>
+                </FilterSection>
 
-              {/* Select Categories / Subjects */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-primary uppercase">Category / Subject</label>
-                <div className="relative">
-                  <Layout className="absolute left-3.5 top-1/2 -translate-y-1/2 text-primary" size={16} />
-                  <select 
+                {/* Category */}
+                <FilterSection label="Category / Subject">
+                  <SelectField
+                    icon={<Layout size={14} className="text-primary" />}
                     value={category}
-                    onChange={(e) => handleCategoryChange(e.target.value)}
-                    className="w-full pl-10 pr-8 py-2.5 rounded-xl bg-background border border-ink/10 text-xs focus:ring-2 focus:ring-primary/20 outline-none appearance-none font-bold cursor-pointer"
+                    onChange={handleCategoryChange}
                   >
                     <option value="All">All Categories</option>
-                    {CATEGORIES_DATA.map((c) => (
-                      <option key={c.title} value={c.title}>{c.title}</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 text-ink-muted pointer-events-none" size={14} />
-                </div>
-              </div>
+                    {CATEGORIES_DATA.map((c) => <option key={c.title} value={c.title}>{c.title}</option>)}
+                  </SelectField>
+                </FilterSection>
 
-              {/* Select Class */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-primary uppercase">Student Class</label>
-                <div className="relative">
-                  <GraduationCap className="absolute left-3.5 top-1/2 -translate-y-1/2 text-primary" size={16} />
-                  <select 
+                {/* Class */}
+                <FilterSection label="Student Class">
+                  <SelectField
+                    icon={<GraduationCap size={14} className="text-primary" />}
                     value={studentClass}
-                    onChange={(e) => {
-                      setStudentClass(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                    className="w-full pl-10 pr-8 py-2.5 rounded-xl bg-background border border-ink/10 text-xs focus:ring-2 focus:ring-primary/20 outline-none appearance-none font-bold cursor-pointer"
+                    onChange={(v) => { setStudentClass(v); setCurrentPage(1); }}
                   >
                     <option value="All">All Classes</option>
-                    {CLASSES.map((c) => (
-                      <option key={c} value={c}>{c}</option>
+                    {CLASSES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </SelectField>
+                </FilterSection>
+
+                {/* Salary */}
+                <FilterSection label="Salary Budget">
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {[
+                      { id: 'All', label: 'All Budgets' },
+                      { id: '< 3000', label: '< 3,000 ৳' },
+                      { id: '3000-5000', label: '3k – 5k ৳' },
+                      { id: '5000-8000', label: '5k – 8k ৳' },
+                      { id: '8000-12000', label: '8k – 12k ৳' },
+                      { id: '12000+', label: '12k+ ৳' },
+                    ].map((sal) => (
+                      <button
+                        key={sal.id}
+                        onClick={() => { setSalaryRange(sal.id); setCurrentPage(1); }}
+                        className={cn(
+                          "py-2 px-2 rounded-xl text-[11px] font-bold border transition-all cursor-pointer text-center",
+                          salaryRange === sal.id
+                            ? "bg-primary text-white border-primary shadow-sm"
+                            : "bg-[#F8FAFC] border-ink/10 text-ink-muted hover:border-primary/40 hover:text-ink"
+                        )}
+                      >
+                        {sal.label}
+                      </button>
                     ))}
-                  </select>
-                  <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 text-ink-muted pointer-events-none" size={14} />
-                </div>
-              </div>
+                  </div>
+                </FilterSection>
 
-              {/* Salary Range Filter */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-primary uppercase">Salary Budget</label>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {[
-                    { id: 'All', label: 'All Budgets' },
-                    { id: '< 3000', label: '< 3,000 ৳' },
-                    { id: '3000-5000', label: '3k - 5k ৳' },
-                    { id: '5000-8000', label: '5k - 8k ৳' },
-                    { id: '8000-12000', label: '8k - 12k ৳' },
-                    { id: '12000+', label: '12,000+ ৳' },
-                  ].map((sal) => (
-                    <button
-                      key={sal.id}
-                      onClick={() => {
-                        setSalaryRange(sal.id);
-                        setCurrentPage(1);
-                      }}
-                      className={cn(
-                        "py-2 px-2.5 rounded-xl text-[11px] font-bold border transition-all cursor-pointer text-center",
-                        salaryRange === sal.id
-                          ? "bg-primary text-white border-primary shadow-sm"
-                          : "bg-background border-ink/10 text-ink-muted hover:border-primary/40 hover:text-ink"
-                      )}
-                    >
-                      {sal.label}
-                    </button>
-                  ))}
-                </div>
+                {/* Tuition Type */}
+                <FilterSection label="Tuition Type">
+                  <div className="space-y-1.5">
+                    {[
+                      { id: 'All', label: 'All Tuition Types', icon: LayoutGrid },
+                      { id: 'Home Tuition', label: 'Home Tuition', icon: Home },
+                      { id: 'Online Tuition', label: 'Online Tuition', icon: Monitor },
+                    ].map((type) => {
+                      const Icon = type.icon;
+                      return (
+                        <button
+                          key={type.id}
+                          onClick={() => { setTuitionType(type.id); setCurrentPage(1); }}
+                          className={cn(
+                            "flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer text-left border",
+                            tuitionType === type.id
+                              ? "bg-primary/10 border-primary/30 text-primary"
+                              : "bg-[#F8FAFC] border-ink/5 text-ink-muted hover:text-ink hover:border-ink/20"
+                          )}
+                        >
+                          <Icon size={14} className={tuitionType === type.id ? 'text-primary' : 'text-ink-muted'} />
+                          <span className="flex-1">{type.label}</span>
+                          {tuitionType === type.id && (
+                            <div className="w-4 h-4 rounded-full bg-primary flex items-center justify-center shrink-0">
+                              <Check size={10} className="text-white" />
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </FilterSection>
               </div>
-
-              {/* Tuition Type */}
-              <div className="space-y-2 pt-2">
-                <label className="text-xs font-bold text-primary uppercase">Tuition Type</label>
-                <div className="space-y-1.5">
-                  {[
-                    { id: 'All', label: 'All Tuition Types' },
-                    { id: 'Home Tuition', label: 'Home Tuition' },
-                    { id: 'Online Tuition', label: 'Online Tuition' }
-                  ].map((type) => (
-                    <button
-                      key={type.id}
-                      onClick={() => {
-                        setTuitionType(type.id);
-                        setCurrentPage(1);
-                      }}
-                      className={cn(
-                        "flex items-center gap-2.5 w-full p-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer text-left",
-                        tuitionType === type.id ? "bg-primary text-white shadow-sm" : "bg-background border border-ink/5 text-ink-muted hover:text-ink"
-                      )}
-                    >
-                      <div className={cn(
-                        "w-4 h-4 rounded flex items-center justify-center transition-colors",
-                        tuitionType === type.id ? "bg-white text-primary" : "bg-white border border-ink/20"
-                      )}>
-                        {tuitionType === type.id && <CheckSquare size={12} />}
-                      </div>
-                      <span>{type.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
             </div>
           </aside>
 
-          {/* Job Listings - 2-Column Grid Layout */}
-          <main className="flex-grow w-full space-y-6">
-            
-            {/* Loading State with Skeleton Cards */}
+          {/* ── Job Listings ─────────────────────────────── */}
+          <main className="flex-1 w-full min-w-0 space-y-5">
+
+            {/* Loading Skeletons */}
             {(isLoading || isFetching) ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {[1, 2, 3, 4].map((n) => (
-                  <div key={n} className="bg-white rounded-3xl border border-ink/10 p-6 space-y-4 animate-pulse">
-                    <div className="flex justify-between items-center pb-3 border-b border-ink/5">
-                      <div className="h-4 bg-ink/10 rounded w-1/3" />
-                      <div className="h-4 bg-ink/10 rounded w-1/4" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {[1, 2, 3, 4, 5, 6].map((n) => (
+                  <div key={n} className="bg-white rounded-2xl border border-ink/5 p-5 space-y-4 animate-pulse">
+                    <div className="flex justify-between items-center">
+                      <div className="h-3.5 bg-ink/10 rounded-full w-2/5" />
+                      <div className="h-6 bg-ink/10 rounded-xl w-1/4" />
                     </div>
-                    <div className="h-6 bg-ink/10 rounded w-3/4" />
+                    <div className="h-5 bg-ink/10 rounded-full w-3/4" />
+                    <div className="flex gap-2">
+                      <div className="h-6 bg-primary/10 rounded-lg w-24" />
+                      <div className="h-6 bg-emerald-100 rounded-lg w-20" />
+                    </div>
                     <div className="grid grid-cols-2 gap-3 pt-2">
-                      <div className="h-10 bg-ink/5 rounded-xl" />
-                      <div className="h-10 bg-ink/5 rounded-xl" />
-                      <div className="h-10 bg-ink/5 rounded-xl" />
-                      <div className="h-10 bg-ink/5 rounded-xl" />
+                      {[1, 2, 3, 4].map(i => (
+                        <div key={i} className="space-y-1">
+                          <div className="h-2.5 bg-ink/10 rounded w-16" />
+                          <div className="h-4 bg-ink/10 rounded w-24" />
+                        </div>
+                      ))}
                     </div>
-                    <div className="h-10 bg-primary/10 rounded-xl" />
+                    <div className="flex gap-1.5 pt-2 border-t border-ink/5">
+                      {[1, 2, 3].map(i => <div key={i} className="h-5 bg-ink/10 rounded-lg w-16" />)}
+                    </div>
+                    <div className="flex justify-between items-center pt-1">
+                      <div className="h-3 bg-ink/10 rounded w-20" />
+                      <div className="h-8 bg-primary/20 rounded-xl w-28" />
+                    </div>
                   </div>
                 ))}
               </div>
+
             ) : activeJobs.length === 0 ? (
-              <div className="text-center py-20 bg-white rounded-3xl border border-ink/5 shadow-sm space-y-4 p-8">
-                <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto">
+              <div className="text-center py-20 bg-white rounded-2xl border border-ink/5 shadow-sm space-y-4 p-8">
+                <div className="w-16 h-16 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mx-auto">
                   <Briefcase size={32} />
                 </div>
                 <h3 className="text-xl font-display font-black text-ink">No Tuition Jobs Found</h3>
                 <p className="text-ink-muted max-w-sm mx-auto text-xs font-medium">
-                  We couldn't find any tuition jobs matching your current filter criteria. Try resetting or adjusting the filters.
+                  We couldn't find jobs matching your filters. Try adjusting or resetting.
                 </p>
                 {hasActiveFilters && (
                   <button
@@ -549,94 +479,102 @@ export default function Jobs() {
                   </button>
                 )}
               </div>
+
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {activeJobs.map((job) => {
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {activeJobs.map((job, idx) => {
                   const locStr = [job.area, job.location].filter(Boolean).join(', ') || 'Location N/A';
+                  const isOnline = job.tuitionType?.toLowerCase().includes('online');
                   return (
                     <motion.div
                       key={job.id}
                       layout
-                      initial={{ opacity: 0, y: 15 }}
+                      initial={{ opacity: 0, y: 16 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="bg-white rounded-3xl border border-ink/10 shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all overflow-hidden group flex flex-col justify-between"
+                      transition={{ delay: idx * 0.04 }}
+                      className="bg-white rounded-2xl border border-ink/8 shadow-sm hover:shadow-lg hover:shadow-primary/8 hover:-translate-y-0.5 transition-all duration-200 overflow-hidden flex flex-col group"
                     >
-                      <div>
-                        {/* Card Header */}
-                        <div className="px-6 py-3.5 flex justify-between items-center border-b border-ink/5 bg-primary/5">
-                          <div className="flex items-center gap-2 text-ink font-bold text-xs truncate max-w-[65%]">
-                            <MapPin size={15} className="text-primary shrink-0" />
-                            <span className="truncate">{locStr}</span>
-                          </div>
-                          <div className="px-2.5 py-1 rounded-lg bg-white border border-primary/20 text-primary font-bold text-[11px] whitespace-nowrap shadow-sm">
-                            ID: {job.customId || `#${job.id.slice(-6)}`}
+                      {/* Card Header */}
+                      <div className="px-5 py-3 flex justify-between items-center border-b border-ink/5">
+                        <div className="flex items-center gap-1.5 text-ink-muted font-bold text-[11px] truncate max-w-[65%]">
+                          <MapPin size={12} className="text-primary shrink-0" />
+                          <span className="truncate">{locStr}</span>
+                        </div>
+                        <span className="px-2.5 py-1 rounded-lg bg-primary/8 text-primary font-black text-[10px] border border-primary/15 whitespace-nowrap">
+                          ID: {job.customId || `#${String(job.id).slice(-6).toUpperCase()}`}
+                        </span>
+                      </div>
+
+                      {/* Card Body */}
+                      <div className="p-5 flex-1 space-y-4">
+                        {/* Title */}
+                        <h3 className="text-base font-display font-black text-ink leading-snug group-hover:text-primary transition-colors line-clamp-2">
+                          Tutor Needed For {job.medium}
+                        </h3>
+
+                        {/* Badges */}
+                        <div className="flex flex-wrap gap-1.5">
+                          <span className={cn(
+                            "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-black",
+                            isOnline ? "bg-blue-50 text-blue-700" : "bg-primary/10 text-primary"
+                          )}>
+                            {isOnline ? <Wifi size={10} /> : <Home size={10} />}
+                            {job.tuitionType}
+                          </span>
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-black bg-emerald-50 text-emerald-700">
+                            <BadgeCheck size={10} /> Active Job
+                          </span>
+                        </div>
+
+                        {/* Info Grid */}
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                          <InfoCell label="Medium" value={job.medium} />
+                          <InfoCell label="Class" value={job.studentClass} />
+                          <InfoCell label="Preferred Tutor" value={job.genderPreference || 'Any'} />
+                          <div className="space-y-0.5">
+                            <span className="text-[10px] font-black uppercase text-ink-muted tracking-wide">Salary</span>
+                            <p className="font-black text-primary text-base leading-none">
+                              {job.salary.toLocaleString()} <span className="text-xs">৳</span>
+                              <span className="text-[10px] font-normal text-ink-muted">/mo</span>
+                            </p>
                           </div>
                         </div>
 
-                        {/* Card Body */}
-                        <div className="p-6 space-y-4">
-                          <h3 className="text-lg font-display font-black text-ink leading-tight group-hover:text-primary transition-colors line-clamp-1">
-                            Tutor Needed For {job.medium}
-                          </h3>
-
-                          {/* Badges */}
-                          <div className="flex flex-wrap gap-2">
-                            <div className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-lg text-xs font-bold">
-                              <Home size={12} />
-                              {job.tuitionType}
-                            </div>
-                            <div className="flex items-center gap-1.5 bg-secondary/10 text-secondary px-3 py-1 rounded-lg text-xs font-bold">
-                              <Clock size={12} />
-                              Active Job
-                            </div>
-                          </div>
-
-                          {/* Details Grid */}
-                          <div className="grid grid-cols-2 gap-3 pt-2 text-xs">
-                            <div className="space-y-1">
-                              <span className="text-[10px] font-bold uppercase text-ink-muted">Medium</span>
-                              <p className="font-bold text-ink truncate">{job.medium}</p>
-                            </div>
-                            <div className="space-y-1">
-                              <span className="text-[10px] font-bold uppercase text-ink-muted">Class</span>
-                              <p className="font-bold text-ink truncate">{job.studentClass}</p>
-                            </div>
-                            <div className="space-y-1">
-                              <span className="text-[10px] font-bold uppercase text-ink-muted">Preferred Tutor</span>
-                              <p className="font-bold text-ink truncate">{job.genderPreference || 'Any'}</p>
-                            </div>
-                            <div className="space-y-1">
-                              <span className="text-[10px] font-bold uppercase text-ink-muted">Salary</span>
-                              <p className="font-black text-primary text-sm">
-                                {job.salary.toLocaleString()} ৳<span className="text-[10px] text-ink-muted font-normal">/mo</span>
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* Subjects */}
-                          <div className="space-y-1.5 pt-2 border-t border-ink/5">
-                            <span className="text-[10px] font-bold uppercase text-ink-muted">Subjects</span>
-                            <div className="flex flex-wrap gap-1">
-                              {job.subjects?.map((sub) => (
-                                <span key={sub} className="bg-secondary text-white px-2 py-0.5 rounded text-[10px] font-bold uppercase shadow-sm">
-                                  {sub}
-                                </span>
-                              ))}
-                            </div>
+                        {/* Subjects */}
+                        <div className="pt-3 border-t border-ink/5 space-y-2">
+                          <span className="text-[10px] font-black uppercase text-ink-muted tracking-wide">Subjects</span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {job.subjects?.slice(0, 5).map((sub, i) => (
+                              <span
+                                key={sub}
+                                className={cn(
+                                  "px-2 py-0.5 rounded-md text-[10px] font-black uppercase border",
+                                  subjectColors[i % subjectColors.length]
+                                )}
+                              >
+                                {sub}
+                              </span>
+                            ))}
+                            {job.subjects?.length > 5 && (
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-black text-ink-muted bg-ink/5">
+                                +{job.subjects.length - 5}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
 
-                      {/* Footer */}
-                      <div className="px-6 py-4 bg-background border-t border-ink/5 flex items-center justify-between gap-4 mt-auto">
-                        <p className="text-[11px] text-ink-muted font-medium">
+                      {/* Card Footer */}
+                      <div className="px-5 py-3.5 bg-[#F8FAFC] border-t border-ink/5 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-1 text-[11px] text-ink-muted font-medium">
+                          <Calendar size={11} />
                           {new Date(job.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                        </p>
-                        <Link 
+                        </div>
+                        <Link
                           to={`/job/${job.id}`}
-                          className="bg-primary text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow-md shadow-primary/20 hover:bg-primary-dark transition-all active:scale-95 text-center flex items-center gap-1.5"
+                          className="inline-flex items-center gap-1.5 bg-primary text-white px-4 py-2 rounded-xl font-bold text-xs shadow-md shadow-primary/20 hover:bg-primary-dark hover:gap-2.5 transition-all active:scale-95 whitespace-nowrap"
                         >
-                          View Details <ArrowRight size={14} />
+                          View Details <ArrowRight size={13} />
                         </Link>
                       </div>
                     </motion.div>
@@ -645,56 +583,114 @@ export default function Jobs() {
               </div>
             )}
 
-            {/* Pagination Controls */}
-            {!isLoading && activeJobs.length > 0 && (
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-ink/5">
-                <p className="text-xs font-bold text-ink-muted order-2 sm:order-1">
-                  Page <span className="text-ink font-black">{currentPage}</span> of <span className="text-ink font-black">{totalPages}</span> ({totalItems} total tuitions)
+            {/* ── Pagination ─────────────────────────────── */}
+            {!isLoading && activeJobs.length > 0 && totalPages > 1 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-ink/5">
+                <p className="text-xs font-medium text-ink-muted order-2 sm:order-1">
+                  Page <span className="font-black text-ink">{currentPage}</span> of{' '}
+                  <span className="font-black text-ink">{totalPages}</span>
+                  <span className="text-ink-muted"> · {totalItems} total</span>
                 </p>
-                
-                <div className="flex items-center gap-2 order-1 sm:order-2">
-                  <button 
+
+                <div className="flex items-center gap-1.5 order-1 sm:order-2">
+                  {/* Prev */}
+                  <button
                     onClick={() => handlePageChange(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className="w-10 h-10 rounded-xl border border-ink/10 flex items-center justify-center text-ink hover:bg-primary hover:text-white hover:border-primary transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer bg-white shadow-sm"
+                    className="w-9 h-9 rounded-xl border border-ink/10 flex items-center justify-center text-ink-muted hover:bg-primary hover:text-white hover:border-primary transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer bg-white shadow-sm"
                   >
-                    <ChevronLeft size={18} />
+                    <ChevronLeft size={16} />
                   </button>
 
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      const pageNum = i + 1;
-                      return (
-                        <button
-                          key={pageNum}
-                          onClick={() => handlePageChange(pageNum)}
-                          className={cn(
-                            "w-10 h-10 rounded-xl font-bold text-xs transition-all cursor-pointer",
-                            currentPage === pageNum
-                              ? "bg-primary text-white shadow-md shadow-primary/20"
-                              : "bg-white border border-ink/10 text-ink hover:bg-ink/5"
-                          )}
-                        >
-                          {pageNum}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  {/* Page numbers */}
+                  {getPageNumbers().map((pg, i) =>
+                    pg === '...' ? (
+                      <span key={`ellipsis-${i}`} className="w-9 h-9 flex items-center justify-center text-xs text-ink-muted font-bold">
+                        ···
+                      </span>
+                    ) : (
+                      <button
+                        key={pg}
+                        onClick={() => handlePageChange(pg as number)}
+                        className={cn(
+                          "w-9 h-9 rounded-xl font-black text-xs transition-all cursor-pointer shadow-sm",
+                          currentPage === pg
+                            ? "bg-primary text-white shadow-md shadow-primary/25 scale-105"
+                            : "bg-white border border-ink/10 text-ink hover:bg-primary/10 hover:text-primary hover:border-primary/30"
+                        )}
+                      >
+                        {pg}
+                      </button>
+                    )
+                  )}
 
-                  <button 
+                  {/* Next */}
+                  <button
                     onClick={() => handlePageChange(currentPage + 1)}
                     disabled={currentPage >= totalPages}
-                    className="w-10 h-10 rounded-xl border border-ink/10 flex items-center justify-center text-ink hover:bg-primary hover:text-white hover:border-primary transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer bg-white shadow-sm"
+                    className="w-9 h-9 rounded-xl border border-ink/10 flex items-center justify-center text-ink-muted hover:bg-primary hover:text-white hover:border-primary transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer bg-white shadow-sm"
                   >
-                    <ChevronRight size={18} />
+                    <ChevronRight size={16} />
                   </button>
                 </div>
               </div>
             )}
           </main>
-
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── Helper sub-components ────────────────────────────────────
+function FilterBadge({ label, onRemove }: { label: string; onRemove: () => void }) {
+  return (
+    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-primary/10 text-primary rounded-lg text-[11px] font-bold">
+      {label}
+      <button onClick={onRemove} className="hover:text-primary-dark cursor-pointer ml-0.5">
+        <X size={11} />
+      </button>
+    </span>
+  );
+}
+
+function FilterSection({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-2">
+      <label className="text-[10px] font-black text-ink uppercase tracking-wider">{label}</label>
+      {children}
+    </div>
+  );
+}
+
+function SelectField({
+  icon, value, onChange, children
+}: {
+  icon: React.ReactNode;
+  value: string;
+  onChange: (v: string) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="relative">
+      <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">{icon}</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full pl-9 pr-8 py-2.5 rounded-xl bg-[#F8FAFC] border border-ink/10 text-xs font-bold focus:ring-2 focus:ring-primary/20 outline-none appearance-none cursor-pointer"
+      >
+        {children}
+      </select>
+      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted pointer-events-none" size={13} />
+    </div>
+  );
+}
+
+function InfoCell({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="space-y-0.5">
+      <span className="text-[10px] font-black uppercase text-ink-muted tracking-wide">{label}</span>
+      <p className="font-bold text-ink text-xs truncate">{value}</p>
     </div>
   );
 }

@@ -69,10 +69,20 @@ export default function NotificationBell({ role }: { role?: string }) {
         auth: { token },
         extraHeaders: { Authorization: `Bearer ${token}` },
         transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 2000,
+        reconnectionDelayMax: 10000,
+        timeout: 10000,
       });
 
       socket.on('connect', () => {
         console.log('⚡ Socket.IO notification listener connected!');
+      });
+
+      socket.on('connect_error', (err) => {
+        // Suppress noisy connection errors (e.g. server restart) — fallback polling handles it
+        console.debug('🔌 Socket connect_error (polling fallback active):', err.message);
       });
 
       socket.on('newNotification', (notif: NotificationRecord) => {
@@ -88,7 +98,11 @@ export default function NotificationBell({ role }: { role?: string }) {
     }
 
     return () => {
-      if (socket) socket.disconnect();
+      if (socket) {
+        socket.off('newNotification');
+        socket.off('connect_error');
+        socket.disconnect();
+      }
     };
   }, [triggerToast]);
 
@@ -101,8 +115,96 @@ export default function NotificationBell({ role }: { role?: string }) {
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
+  /**
+   * Production-level smart routing:
+   * Every role × every notification type → correct destination page.
+   *
+   * Notification types emitted by backend:
+   *  application        – tutor applied to a tuition job
+   *  job_approval       – tuition match confirmed / accepted
+   *  tuition_job        – new tuition job posted (staff only)
+   *  tutor_verification – tutor/coaching needs admin verification
+   *  user_registration  – new user registered (staff only)
+   *  auto_match         – AI auto-matched tutors for guardian's job
+   *  chat               – new chat message received
+   *  system             – enrollment result / generic system message
+   *  enrollment_result  – coaching enrollment approved / rejected
+   *  hire_request       – student sent hire request (staff only)
+   */
+  const getNotificationRoute = (notifType: string, userRole: string): string => {
+    switch (userRole) {
+
+      // ── ADMIN / SUPER_ADMIN / MODERATOR ──────────────────────────────────
+      case 'admin':
+      case 'super_admin':
+      case 'moderator': {
+        const adminRoutes: Record<string, string> = {
+          application: '/admin/hire-pending',   // tutor applied → review pending
+          job_approval: '/admin/jobs-approve',   // tuition confirmed → pending list
+          hire_request: '/admin/hire-pending',   // hire request from student
+          tuition_job: '/admin/jobs-approve',   // new job posted → approve
+          job_post: '/admin/jobs-approve',
+          tutor_verification: '/admin/all-tutors',     // tutor docs verification
+          tutor_approval: '/admin/all-tutors',
+          user_registration: '/admin/users',          // new user registered
+          chat: '/admin/notifications',  // chat — go to notifications list
+          auto_match: '/admin/all-jobs',       // AI match — view all jobs
+          system: '/admin/notifications',
+          enrollment_result: '/admin/notifications',
+        };
+        return adminRoutes[notifType] ?? '/admin/notifications';
+      }
+
+      // ── TUTOR ─────────────────────────────────────────────────────────────
+      case 'tutor': {
+        const tutorRoutes: Record<string, string> = {
+          job_approval: '/tutor/applied',        // application accepted!
+          application: '/tutor/applied',        // application status update
+          tutor_verification: '/tutor/profile',        // verification status changed
+          auto_match: '/jobs',                 // AI found a matching job
+          chat: '/tutor/dashboard',      // chat notification → dashboard
+          system: '/tutor/notifications',
+          enrollment_result: '/tutor/notifications',
+        };
+        return tutorRoutes[notifType] ?? '/tutor/notifications';
+      }
+
+      // ── STUDENT / GUARDIAN ────────────────────────────────────────────────
+      case 'student':
+      case 'guardian': {
+        const studentRoutes: Record<string, string> = {
+          application: '/student/requests',     // tutor applied to their job
+          job_approval: '/student/requests',     // tuition match confirmed
+          auto_match: '/student/requests',     // AI auto-matched tutors
+          hire_request: '/student/requests',     // hire request sent/updated
+          chat: '/student/dashboard',    // chat notification → dashboard
+          system: '/student/notifications',
+          enrollment_result: '/student/notifications',
+          tutor_verification: '/student/notifications',
+        };
+        return studentRoutes[notifType] ?? '/student/notifications';
+      }
+
+      // ── COACHING ──────────────────────────────────────────────────────────
+      case 'coaching': {
+        const coachingRoutes: Record<string, string> = {
+          system: '/coaching/enrollments', // new enrollment
+          enrollment_result: '/coaching/enrollments',
+          application: '/coaching/enrollments',
+          chat: '/coaching/dashboard',
+        };
+        return coachingRoutes[notifType] ?? '/coaching/enrollments';
+      }
+
+      default:
+        return '/jobs';
+    }
+  };
+
   const handleItemClick = async (notif: NotificationRecord) => {
     const notifId = String(notif._id || notif.id);
+
+    // Mark as read
     if (!notif.isRead && notifId) {
       try {
         await NotificationRepository.remove(notifId);
@@ -110,34 +212,16 @@ export default function NotificationBell({ role }: { role?: string }) {
           prev.map((n) => (String(n._id || n.id) === notifId ? { ...n, isRead: true } : n))
         );
       } catch (err) {
-        console.error(err);
+        console.error('Failed to mark notification as read:', err);
       }
     }
 
     setIsOpen(false);
-    if (role === 'coaching') {
-      navigate('/coaching/enrollments');
-    } else if (role === 'admin') {
-      if (notif.type === 'tutor_approval' || notif.type === 'tutor_verification') {
-        navigate('/admin/all-tutors');
-      } else if (notif.type === 'job_post' || notif.type === 'tuition_job') {
-        navigate('/admin/jobs-approve');
-      } else if (notif.type === 'hire_request') {
-        navigate('/admin/hire-pending');
-      } else if (notif.type === 'application') {
-        navigate('/admin/all-jobs');
-      } else {
-        navigate('/admin/notifications');
-      }
-    } else if (role === 'tutor') {
-      if (notif.type === 'job_approval' || notif.type === 'application') navigate('/tutor/applied');
-      else if (notif.type === 'tutor_verification') navigate('/tutor/profile');
-      else navigate('/tutor/notifications');
-    } else if (role === 'guardian' || role === 'student') {
-      navigate('/student/notifications');
-    } else {
-      navigate('/jobs');
-    }
+
+    // Resolve role — support both direct prop and staff sub-roles
+    const resolvedRole = role ?? 'student';
+    const destination = getNotificationRoute(notif.type ?? '', resolvedRole);
+    navigate(destination);
   };
 
   const handleMarkAllRead = async () => {
@@ -153,10 +237,10 @@ export default function NotificationBell({ role }: { role?: string }) {
     role === 'coaching'
       ? '/coaching/enrollments'
       : role === 'admin'
-      ? '/admin/notifications'
-      : role === 'tutor'
-      ? '/tutor/notifications'
-      : `/${role || 'student'}/dashboard`;
+        ? '/admin/notifications'
+        : role === 'tutor'
+          ? '/tutor/notifications'
+          : `/${role || 'student'}/dashboard`;
 
   return (
     <>
@@ -292,9 +376,9 @@ export default function NotificationBell({ role }: { role?: string }) {
                             <p className="text-[9px] font-bold text-ink-muted/60">
                               {notif.createdAt
                                 ? new Date(String(notif.createdAt)).toLocaleTimeString([], {
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                  })
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })
                                 : 'Just now'}
                             </p>
                           </div>

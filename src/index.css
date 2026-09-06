@@ -76,16 +76,18 @@
 }
 
 /* ==========================================================
-   GLOBAL RESPONSIVE & PADDING FIX FOR ALL DEVICES
+   GLOBAL RESPONSIVE & LAYOUT
    ================================================---------- */
-/* সব পেজের রুট কন্টেইনার বা মেইন সেকশন থেকে অতিরিক্ত টপ গ্যাপ ওভাররাইড করে ফিক্স করা হলো */
-div[class*="min-h-screen"] {
-  padding-top: 1rem !important; /* সব ডিভাইসে ওপরের প্যাডিং একদম স্মুথ ও প্রোপার রাখা হলো */
-}
 
-@media (max-width: 768px) {
-  /* মোবাইল ডিভাইসে অতিরিক্ত গ্যাপ বা প্যাডিং স্বয়ংক্রিয়ভাবে জিরো বা মিনিমাল হয়ে যাবে */
-  div[class*="min-h-screen"] {
-    padding-top: 0.5rem !important;
-  }
+
+/* ── Global Broken Image Fallback ──────────────────────────────────────────
+   When a Cloudinary (or any) image fails to load (403, 404, deleted),
+   hide the broken icon and show a soft grey background so the UI stays clean.
+   The onError handlers in components swap the src to a DiceBear fallback.
+────────────────────────────────────────────────────────────────────────── */
+img:not([src]):not([alt*="logo"]),
+img[src=""],
+img[src="undefined"],
+img[src="null"] {
+  visibility: hidden;
 }

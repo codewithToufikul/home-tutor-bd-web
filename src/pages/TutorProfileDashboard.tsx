@@ -255,13 +255,13 @@ export default function TutorProfileDashboard() {
 
   return (
     <TutorLayout>
-      <div className="max-w-6xl mx-auto space-y-6 pb-20">
+      <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6 pb-24 sm:pb-20">
         
         {/* Profile Completion Header Card */}
-        <div className="bg-white border border-ink/10 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row items-center gap-6">
+        <div className="bg-white/85 backdrop-blur-xl border border-ink/10 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm flex flex-col md:flex-row items-center gap-4 sm:gap-6">
           {/* Avatar with Camera Upload */}
           <div className="relative group shrink-0">
-            <div className="w-24 h-24 rounded-full border-2 border-primary p-1">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-2 border-primary p-1">
               <div className="w-full h-full rounded-full overflow-hidden bg-slate-100 flex items-center justify-center">
                 <img
                   src={profileData.photoUrl || `https://api.dicebear.com/7.x/personas/svg?seed=${encodeURIComponent(user?.name || 'tutor')}&backgroundColor=b6e3f4`}
@@ -270,8 +270,8 @@ export default function TutorProfileDashboard() {
                 />
               </div>
             </div>
-            <label className="absolute bottom-0 right-0 w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white cursor-pointer hover:bg-primary-dark transition-colors">
-              <Camera size={14} />
+            <label className="absolute bottom-0 right-0 w-7 h-7 sm:w-8 sm:h-8 bg-primary text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white cursor-pointer hover:bg-primary-dark transition-colors active:scale-95">
+              <Camera size={13} />
               <input type="file" accept="image/*" onChange={handleProfilePhotoUpload} className="hidden" />
             </label>
             {uploadingPhoto && (
@@ -282,19 +282,19 @@ export default function TutorProfileDashboard() {
           </div>
 
           {/* Progress Bar & Missing Fields */}
-          <div className="flex-grow space-y-3 w-full text-center md:text-left">
+          <div className="flex-grow space-y-2.5 sm:space-y-3 w-full text-center md:text-left">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <AlertCircle size={18} className="text-amber-500" />
-                <h3 className="font-bold text-ink text-sm">প্রোফাইল সম্পূর্ণ করুন</h3>
-                <span className="text-xs text-ink-muted hidden sm:inline">— সম্পূর্ণ করলে ৩ গুণ বেশি টিউশন অফার পাবেন।</span>
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <AlertCircle size={16} className="text-amber-500 shrink-0" />
+                <h3 className="font-bold text-ink text-xs sm:text-sm">প্রোফাইল সম্পূর্ণ করুন</h3>
+                <span className="text-[11px] text-ink-muted hidden sm:inline">— সম্পূর্ণ করলে ৩ গুণ বেশি টিউশন অফার পাবেন।</span>
               </div>
-              <span className="px-3 py-1 bg-rose-50 text-rose-600 font-black text-xs rounded-full border border-rose-100">
+              <span className="px-2.5 py-0.5 sm:px-3 sm:py-1 bg-rose-50 text-rose-600 font-black text-xs rounded-full border border-rose-100">
                 {completion.percentage}%
               </span>
             </div>
 
-            <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+            <div className="w-full h-2 sm:h-2.5 bg-slate-100 rounded-full overflow-hidden">
               <div
                 className="h-full bg-gradient-to-r from-rose-500 to-primary transition-all duration-500"
                 style={{ width: `${completion.percentage}%` }}
@@ -302,9 +302,9 @@ export default function TutorProfileDashboard() {
             </div>
 
             {completion?.missingItems && completion.missingItems.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 pt-1">
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-1 sm:gap-1.5 pt-0.5">
                 {completion.missingItems.slice(0, 4).map((f, idx) => (
-                  <span key={idx} className="text-[10px] font-bold text-rose-600 bg-rose-50/80 px-2.5 py-1 rounded-md border border-rose-100">
+                  <span key={idx} className="text-[9.5px] sm:text-[10px] font-bold text-rose-600 bg-rose-50/80 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md border border-rose-100">
                     ✨ {f.label}
                   </span>
                 ))}
@@ -313,8 +313,8 @@ export default function TutorProfileDashboard() {
           </div>
         </div>
 
-        {/* 5-Tab Navigation Bar */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 bg-white p-2 rounded-2xl border border-ink/10 shadow-sm">
+        {/* 5-Tab Navigation Bar - Horizontal Swipe on Mobile */}
+        <div className="flex items-center gap-1.5 sm:gap-2 bg-white/80 backdrop-blur-xl p-1.5 rounded-xl sm:rounded-2xl border border-ink/10 shadow-sm overflow-x-auto scrollbar-hide snap-x snap-mandatory">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -323,13 +323,13 @@ export default function TutorProfileDashboard() {
                 key={tab.id}
                 onClick={() => handleTabChange(tab.id)}
                 className={cn(
-                  "flex items-center justify-center gap-2 py-3.5 px-3 rounded-xl font-bold text-xs transition-all cursor-pointer",
+                  "snap-start flex-1 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 py-2.5 sm:py-3.5 px-3 sm:px-4 rounded-lg sm:rounded-xl font-bold text-[11px] sm:text-xs transition-all cursor-pointer whitespace-nowrap active:scale-95",
                   isActive
                     ? "bg-primary text-white shadow-md shadow-primary/20"
                     : "text-slate-600 hover:bg-slate-50 hover:text-ink"
                 )}
               >
-                <Icon size={16} />
+                <Icon size={15} />
                 <span>{tab.label}</span>
               </button>
             );
@@ -337,54 +337,54 @@ export default function TutorProfileDashboard() {
         </div>
 
         {/* Tab Content Section */}
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           
           {/* 1. EDUCATIONAL INFO TAB */}
           {activeTab === 'educational' && (
-            <div className="bg-white border border-ink/10 rounded-2xl shadow-sm p-6 sm:p-8 space-y-8">
+            <div className="bg-white/90 backdrop-blur-xl border border-ink/10 rounded-2xl sm:rounded-3xl shadow-sm p-4 sm:p-6 md:p-8 space-y-6 sm:space-y-8">
               {/* Secondary (SSC) */}
-              <div className="space-y-4">
-                <h2 className="text-[#001F3F] font-black text-sm uppercase tracking-wider flex items-center gap-2 border-b border-ink/5 pb-2">
-                  <GraduationCap className="text-primary" size={18} /> Secondary (SSC / O-Level)
+              <div className="space-y-3 sm:space-y-4">
+                <h2 className="text-[#001F3F] font-black text-xs sm:text-sm uppercase tracking-wider flex items-center gap-2 border-b border-ink/5 pb-2">
+                  <GraduationCap className="text-primary" size={17} /> Secondary (SSC / O-Level)
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-6">
                   <FormGroup label="Institute Name" placeholder="ex: Govt Laboratory High School" value={profileData.sscInstitute} onChange={(v) => handleChange('sscInstitute', v)} />
                   <FormGroup label="Curriculum" type="select" options={['Bangla Medium', 'English Version', 'English Medium', 'Madrasah']} value={profileData.sscCurriculum} onChange={(v) => handleChange('sscCurriculum', v)} />
                   <FormGroup label="Group" type="select" options={['Science', 'Commerce', 'Humanities']} value={profileData.sscGroup} onChange={(v) => handleChange('sscGroup', v)} />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-6">
                   <FormGroup label="Passing Year" type="select" options={['2026', '2025', '2024', '2023', '2022', '2021', '2020', '2019', '2018']} value={profileData.sscYear} onChange={(v) => handleChange('sscYear', v)} />
                   <FormGroup label="GPA / Result" placeholder="ex: 5.00" value={profileData.sscResult} onChange={(v) => handleChange('sscResult', v)} />
                 </div>
               </div>
 
               {/* Higher Secondary (HSC) */}
-              <div className="space-y-4 pt-6 border-t border-ink/5">
-                <h2 className="text-[#001F3F] font-black text-sm uppercase tracking-wider flex items-center gap-2 border-b border-ink/5 pb-2">
-                  <GraduationCap className="text-primary" size={18} /> Higher Secondary (HSC / A-Level)
+              <div className="space-y-3 sm:space-y-4 pt-4 sm:pt-6 border-t border-ink/5">
+                <h2 className="text-[#001F3F] font-black text-xs sm:text-sm uppercase tracking-wider flex items-center gap-2 border-b border-ink/5 pb-2">
+                  <GraduationCap className="text-primary" size={17} /> Higher Secondary (HSC / A-Level)
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-6">
                   <FormGroup label="Institute Name" placeholder="ex: Dhaka College" value={profileData.hscInstitute} onChange={(v) => handleChange('hscInstitute', v)} />
                   <FormGroup label="Curriculum" type="select" options={['Bangla Medium', 'English Version', 'English Medium', 'Madrasah']} value={profileData.hscCurriculum} onChange={(v) => handleChange('hscCurriculum', v)} />
                   <FormGroup label="Group" type="select" options={['Science', 'Commerce', 'Humanities']} value={profileData.hscGroup} onChange={(v) => handleChange('hscGroup', v)} />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-6">
                   <FormGroup label="Passing Year" type="select" options={['2026', '2025', '2024', '2023', '2022', '2021', '2020', '2019', '2018']} value={profileData.hscYear} onChange={(v) => handleChange('hscYear', v)} />
                   <FormGroup label="GPA / Result" placeholder="ex: 5.00" value={profileData.hscResult} onChange={(v) => handleChange('hscResult', v)} />
                 </div>
               </div>
 
               {/* Graduation / University */}
-              <div className="space-y-4 pt-6 border-t border-ink/5">
-                <h2 className="text-[#001F3F] font-black text-sm uppercase tracking-wider flex items-center gap-2 border-b border-ink/5 pb-2">
-                  <Building2 className="text-primary" size={18} /> Graduation / Current University Study
+              <div className="space-y-3 sm:space-y-4 pt-4 sm:pt-6 border-t border-ink/5">
+                <h2 className="text-[#001F3F] font-black text-xs sm:text-sm uppercase tracking-wider flex items-center gap-2 border-b border-ink/5 pb-2">
+                  <Building2 className="text-primary" size={17} /> Graduation / Current University Study
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-6">
                   <FormGroup label="Institute Type" type="select" options={['Public University', 'Private University', 'National University', 'Medical College', 'Engineering / BUET', 'Other']} value={profileData.gradInstituteType} onChange={(v) => handleChange('gradInstituteType', v)} />
                   <FormGroup label="University Name" placeholder="ex: University of Dhaka" value={profileData.gradInstitute} onChange={(v) => handleChange('gradInstitute', v)} required />
                   <FormGroup label="Department / Major" placeholder="ex: Computer Science & Engineering" value={profileData.gradDept} onChange={(v) => handleChange('gradDept', v)} required />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-6">
                   <FormGroup label="Current Year / Status" type="select" options={['First Year', 'Second Year', 'Third Year', 'Fourth Year', 'Graduated / Completed', 'Masters / Post-Grad']} value={profileData.gradYear} onChange={(v) => handleChange('gradYear', v)} />
                   <FormGroup label="CGPA (Optional)" placeholder="ex: 3.85" value={profileData.gradCgpa} onChange={(v) => handleChange('gradCgpa', v)} />
                 </div>
@@ -394,13 +394,13 @@ export default function TutorProfileDashboard() {
 
           {/* 2. TUITION INFO TAB */}
           {activeTab === 'tuition' && (
-            <div className="bg-white border border-ink/10 rounded-2xl shadow-sm p-6 sm:p-8 space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white/90 backdrop-blur-xl border border-ink/10 rounded-2xl sm:rounded-3xl shadow-sm p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-6">
                 <FormGroup label="Tuition District" type="select" options={['Dhaka', 'Chittagong', 'Rajshahi', 'Sylhet', 'Khulna', 'Barishal', 'Rangpur', 'Mymensingh']} value={profileData.tuitionDistrict} onChange={(v) => handleChange('tuitionDistrict', v)} required />
                 <FormGroup label="Preferred Tuition Areas" placeholder="ex: Mirpur, Dhanmondi, Uttara" value={profileData.preferredArea} onChange={(v) => handleChange('preferredArea', v)} required />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-6">
                 <FormGroup label="Preferred Medium" type="select" options={['Bangla Medium', 'English Version', 'English Medium', 'Madrasah', 'All Mediums']} value={profileData.preferredMedium} onChange={(v) => handleChange('preferredMedium', v)} required />
                 <FormGroup label="Days Per Week" type="select" options={['2 Days/Week', '3 Days/Week', '4 Days/Week', '5 Days/Week', '6 Days/Week']} value={profileData.daysPerWeek} onChange={(v) => handleChange('daysPerWeek', v)} />
                 <FormGroup label="Expected Monthly Salary (BDT)" placeholder="ex: 6000" value={profileData.expectedSalary} onChange={(v) => handleChange('expectedSalary', v)} required />
@@ -408,7 +408,7 @@ export default function TutorProfileDashboard() {
 
               <div className="space-y-2">
                 <label className="text-xs font-bold text-[#001F3F] block">Select Preferred Subjects to Teach</label>
-                <div className="flex flex-wrap gap-2 pt-1">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2 pt-0.5">
                   {SUBJECTS.slice(0, 16).map((sub) => {
                     const isSelected = profileData.preferredSubjects?.includes(sub);
                     return (
@@ -421,7 +421,7 @@ export default function TutorProfileDashboard() {
                           handleChange('preferredSubjects', next);
                         }}
                         className={cn(
-                          "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border",
+                          "px-2.5 sm:px-3.5 py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer border active:scale-95",
                           isSelected
                             ? "bg-primary text-white border-primary shadow-xs"
                             : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
@@ -434,7 +434,7 @@ export default function TutorProfileDashboard() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-ink/5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-6 pt-3 sm:pt-4 border-t border-ink/5">
                 <FormGroup label="Tutoring Style" type="select" options={['Private Tutoring (One to One)', 'Online Tutoring', 'Group Tutoring', 'All Types']} value={profileData.tutoringStyle} onChange={(v) => handleChange('tutoringStyle', v)} />
                 <FormGroup label="Total Teaching Experience" type="select" options={['0 year(s)', '1 year(s)', '2 year(s)', '3 year(s)', '4 year(s)', '5+ year(s)']} value={profileData.experienceYears} onChange={(v) => handleChange('experienceYears', v)} />
               </div>
@@ -443,33 +443,33 @@ export default function TutorProfileDashboard() {
 
           {/* 3. PERSONAL INFO TAB */}
           {activeTab === 'personal' && (
-            <div className="bg-white border border-ink/10 rounded-2xl shadow-sm p-6 sm:p-8 space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white/90 backdrop-blur-xl border border-ink/10 rounded-2xl sm:rounded-3xl shadow-sm p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-6">
                 <FormGroup label="E-Mail" value={user?.email || ''} required disabled />
                 <FormGroup label="Phone Number" value={profileData.phone} onChange={(v) => handleChange('phone', v)} required disabled />
                 <FormGroup label="Additional Phone Number" placeholder="ex: 017..." value={profileData.altPhone} onChange={(v) => handleChange('altPhone', v)} />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-6">
                 <div className="md:col-span-2">
                   <FormGroup label="Full Name" value={profileData.fullName} onChange={(v) => handleChange('fullName', v)} required />
                 </div>
                 <FormGroup label="Gender" type="select" options={['Male', 'Female']} value={profileData.gender} onChange={(v) => handleChange('gender', v)} required />
               </div>
 
-              <div className="space-y-4 pt-6 border-t border-ink/5">
-                <h2 className="text-[#001F3F] font-black text-sm uppercase tracking-wider flex items-center gap-2">
-                  <MapPin size={18} className="text-primary" /> Present & Permanent Address
+              <div className="space-y-3 sm:space-y-4 pt-4 sm:pt-6 border-t border-ink/5">
+                <h2 className="text-[#001F3F] font-black text-xs sm:text-sm uppercase tracking-wider flex items-center gap-2">
+                  <MapPin size={17} className="text-primary" /> Present & Permanent Address
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-6">
                   <FormGroup label="Current City" type="select" options={['Dhaka', 'Chittagong', 'Rajshahi', 'Sylhet', 'Khulna', 'Barishal', 'Rangpur', 'Mymensingh']} value={profileData.currentCity} onChange={(v) => handleChange('currentCity', v)} />
                   <FormGroup label="Current Area" placeholder="ex: Mirpur-1, Dhaka" value={profileData.currentArea} onChange={(v) => handleChange('currentArea', v)} />
                 </div>
                 <FormGroup label="Permanent Address" type="textarea" placeholder="Village/Road, Thana, District" value={profileData.permanentAddress} onChange={(v) => handleChange('permanentAddress', v)} />
               </div>
 
-              <div className="space-y-4 pt-6 border-t border-ink/5">
-                <h2 className="text-[#001F3F] font-black text-sm uppercase tracking-wider">About Yourself (Bio)</h2>
+              <div className="space-y-3 sm:space-y-4 pt-4 sm:pt-6 border-t border-ink/5">
+                <h2 className="text-[#001F3F] font-black text-xs sm:text-sm uppercase tracking-wider">About Yourself (Bio)</h2>
                 <FormGroup label="Bio / Teaching Philosophy" type="textarea" placeholder="Write a short summary about your teaching methodology, strengths, and background..." value={profileData.bio} onChange={(v) => handleChange('bio', v)} />
               </div>
             </div>
@@ -477,16 +477,16 @@ export default function TutorProfileDashboard() {
 
           {/* 4. DOCUMENTS INFO TAB (Cloudinary Direct Upload) */}
           {activeTab === 'documents' && (
-            <div className="bg-white border border-ink/10 rounded-2xl shadow-sm p-6 sm:p-8 space-y-8">
+            <div className="bg-white/90 backdrop-blur-xl border border-ink/10 rounded-2xl sm:rounded-3xl shadow-sm p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-8">
               <div>
-                <h2 className="text-lg font-black text-ink">Upload Verification & Educational Documents</h2>
-                <p className="text-xs text-ink-muted mt-1">
+                <h2 className="text-base sm:text-lg font-black text-ink">Upload Verification & Educational Documents</h2>
+                <p className="text-xs text-ink-muted mt-0.5 sm:mt-1">
                   Upload your National ID card and Student ID card to get verified. Documents are securely encrypted via Cloudinary.
                 </p>
               </div>
 
               {/* NID Number Input */}
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <label className="block text-xs font-bold text-ink uppercase tracking-wider">
                   National ID (NID) Number / Smart Card No
                 </label>
@@ -495,12 +495,12 @@ export default function TutorProfileDashboard() {
                   value={profileData.nid || ''}
                   onChange={(e) => handleChange('nid', e.target.value)}
                   placeholder="e.g. 1998261234567890"
-                  className="w-full bg-slate-50 border border-ink/10 rounded-2xl p-4 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all"
+                  className="w-full bg-slate-50 border border-ink/10 rounded-xl sm:rounded-2xl p-3 sm:p-4 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all"
                 />
               </div>
 
               {/* Document Upload Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 
                 {/* 1. NID Card Box */}
                 <DocumentUploadCard
@@ -543,9 +543,9 @@ export default function TutorProfileDashboard() {
               </div>
 
               {/* Next Step Callout */}
-              <div className="p-4 bg-primary/5 border border-primary/20 rounded-2xl flex items-center justify-between gap-4">
+              <div className="p-3.5 sm:p-4 bg-primary/5 border border-primary/20 rounded-xl sm:rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
                 <div className="flex items-center gap-3">
-                  <ShieldCheck className="text-primary shrink-0" size={24} />
+                  <ShieldCheck className="text-primary shrink-0" size={22} />
                   <div>
                     <h4 className="text-xs font-bold text-ink">ডকুমেন্ট আপলোড শেষ হয়েছে?</h4>
                     <p className="text-[11px] text-ink-muted">পরবর্তী ধাপে Verification ট্যাবে গিয়ে তথ্য রিভিয়ু করে অ্যাডমিনের কাছে সাবমিট করুন।</p>
@@ -554,7 +554,7 @@ export default function TutorProfileDashboard() {
                 <button
                   type="button"
                   onClick={() => handleTabChange('verification')}
-                  className="px-5 py-2.5 bg-primary text-white rounded-xl text-xs font-bold hover:bg-primary-dark transition-all shrink-0 cursor-pointer"
+                  className="w-full sm:w-auto text-center px-4 sm:px-5 py-2.5 bg-primary text-white rounded-xl text-xs font-bold hover:bg-primary-dark transition-all shrink-0 cursor-pointer active:scale-95"
                 >
                   Go to Verification Tab →
                 </button>
@@ -564,55 +564,55 @@ export default function TutorProfileDashboard() {
 
           {/* 5. VERIFICATION INFO TAB (Full Review & Submit for Approval) */}
           {activeTab === 'verification' && (
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               
               {/* Live Verification Status Card */}
               {isVerified || verificationStatus === 'Approved' ? (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-3xl p-6 sm:p-8 flex items-start gap-4 shadow-sm">
-                  <div className="w-14 h-14 bg-emerald-500 text-white rounded-2xl flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/20">
-                    <CheckCircle2 size={32} />
+                <div className="bg-emerald-50 border border-emerald-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 flex items-start gap-3 sm:gap-4 shadow-sm">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-emerald-500 text-white rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/20">
+                    <CheckCircle2 size={28} />
                   </div>
                   <div className="space-y-1">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-900 border border-emerald-300">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-black bg-emerald-100 text-emerald-900 border border-emerald-300">
                       ★ শতভাগ অনুমোদিত ও ভেরিফাইড প্রোফাইল
                     </span>
-                    <h3 className="text-xl font-display font-black text-emerald-950 pt-1">অভিনন্দন! আপনার প্রোফাইল ভেরিফাইড 🎉</h3>
+                    <h3 className="text-base sm:text-xl font-display font-black text-emerald-950 pt-1">অভিনন্দন! আপনার প্রোফাইল ভেরিফাইড 🎉</h3>
                     <p className="text-xs text-emerald-800 leading-relaxed max-w-2xl">
                       অ্যাডমিন আপনার NID ও স্টুডেন্ট আইডি কার্ড যাচাই করে অনুমোদন করেছেন। আপনার প্রোফাইল এখন পাবলিক টিউটর তালিকায় দৃশ্যমান এবং আপনি প্ল্যাটফর্মের যেকোনো টিউশন জবে সরাসরি আবেদন করতে পারবেন।
                     </p>
-                    <div className="pt-3">
-                      <Link to="/jobs" className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm">
+                    <div className="pt-2 sm:pt-3">
+                      <Link to="/jobs" className="inline-flex items-center gap-1.5 px-4 py-2 sm:px-5 sm:py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm active:scale-95">
                         <span>Browse Available Tuition Jobs</span>
-                        <ChevronRight size={15} />
+                        <ChevronRight size={14} />
                       </Link>
                     </div>
                   </div>
                 </div>
               ) : verificationStatus === 'Pending' ? (
-                <div className="bg-amber-50 border border-amber-200 rounded-3xl p-6 sm:p-8 flex items-start gap-4 shadow-sm">
-                  <div className="w-14 h-14 bg-amber-500 text-white rounded-2xl flex items-center justify-center shrink-0 shadow-md shadow-amber-500/20">
-                    <Clock size={32} />
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 flex items-start gap-3 sm:gap-4 shadow-sm">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-amber-500 text-white rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 shadow-md shadow-amber-500/20">
+                    <Clock size={28} />
                   </div>
                   <div className="space-y-1">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-amber-100 text-amber-900 border border-amber-300 animate-pulse">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-black bg-amber-100 text-amber-900 border border-amber-300 animate-pulse">
                       ⏳ পর্যালোচনায় রয়েছে (Under Review)
                     </span>
-                    <h3 className="text-xl font-display font-black text-amber-950 pt-1">ভেরিফিকেশন আবেদন জমা হয়েছে</h3>
+                    <h3 className="text-base sm:text-xl font-display font-black text-amber-950 pt-1">ভেরিফিকেশন আবেদন জমা হয়েছে</h3>
                     <p className="text-xs text-amber-800 leading-relaxed max-w-2xl">
                       আপনার আপলোডকৃত NID ও স্টুডেন্ট আইডি কার্ড অ্যাডমিন ও মডারেটরদের কাছে পর্যালোচনার জন্য জমা রয়েছে। খুব দ্রুত যাচাই শেষে অনুমোদন দেওয়া হবে এবং আপনার ড্যাশবোর্ডে নোটিফিকেশন পাঠানো হবে।
                     </p>
                   </div>
                 </div>
               ) : verificationStatus === 'Rejected' ? (
-                <div className="bg-rose-50 border border-rose-200 rounded-3xl p-6 sm:p-8 flex items-start gap-4 shadow-sm">
-                  <div className="w-14 h-14 bg-rose-500 text-white rounded-2xl flex items-center justify-center shrink-0 shadow-md shadow-rose-500/20">
-                    <XCircle size={32} />
+                <div className="bg-rose-50 border border-rose-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 flex items-start gap-3 sm:gap-4 shadow-sm">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-rose-500 text-white rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 shadow-md shadow-rose-500/20">
+                    <XCircle size={28} />
                   </div>
                   <div className="space-y-1">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-rose-100 text-rose-900 border border-rose-300">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-black bg-rose-100 text-rose-900 border border-rose-300">
                       ❌ ভেরিফিকেশন আবেদন প্রত্যাখ্যাত
                     </span>
-                    <h3 className="text-xl font-display font-black text-rose-950 pt-1">ডকুমেন্টে সমস্যা পাওয়া গেছে</h3>
+                    <h3 className="text-base sm:text-xl font-display font-black text-rose-950 pt-1">ডকুমেন্টে সমস্যা পাওয়া গেছে</h3>
                     <p className="text-xs text-rose-800 leading-relaxed max-w-2xl">
                       {rejectionReason ? (
                         <><strong>অ্যাডমিন মন্তব্য:</strong> {rejectionReason}</>
@@ -623,15 +623,15 @@ export default function TutorProfileDashboard() {
                   </div>
                 </div>
               ) : (
-                <div className="bg-blue-50/80 border border-blue-200 rounded-3xl p-6 sm:p-8 flex items-start gap-4 shadow-sm">
-                  <div className="w-14 h-14 bg-primary text-white rounded-2xl flex items-center justify-center shrink-0 shadow-md shadow-primary/20">
-                    <Info size={32} />
+                <div className="bg-blue-50/80 border border-blue-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 flex items-start gap-3 sm:gap-4 shadow-sm">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-primary text-white rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 shadow-md shadow-primary/20">
+                    <Info size={28} />
                   </div>
                   <div className="space-y-1">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-blue-100 text-primary border border-blue-300">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-black bg-blue-100 text-primary border border-blue-300">
                       ⚠️ ভেরিফিকেশন প্রয়োজন
                     </span>
-                    <h3 className="text-xl font-display font-black text-slate-900 pt-1">প্রোফাইল ভেরিফিকেশন সাবমিট করুন</h3>
+                    <h3 className="text-base sm:text-xl font-display font-black text-slate-900 pt-1">প্রোফাইল ভেরিফিকেশন সাবমিট করুন</h3>
                     <p className="text-xs text-slate-700 leading-relaxed max-w-2xl">
                       টিউশন জবে আবেদন করতে এবং পাবলিক টিউটর তালিকায় নাম দেখাতে আপনার প্রোফাইল ভেরিফাই করা বাধ্যতামূলক। নিচের আপলোডকৃত ডকুমেন্টস যাচাই করে সাবমিট করুন।
                     </p>
@@ -640,14 +640,14 @@ export default function TutorProfileDashboard() {
               )}
 
               {/* Uploaded Documents Review Grid */}
-              <div className="bg-white border border-ink/10 rounded-2xl shadow-sm p-6 sm:p-8 space-y-6">
-                <h3 className="text-sm font-black text-ink uppercase tracking-wider border-b border-ink/5 pb-3">
+              <div className="bg-white/90 backdrop-blur-xl border border-ink/10 rounded-2xl sm:rounded-3xl shadow-sm p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6">
+                <h3 className="text-xs sm:text-sm font-black text-ink uppercase tracking-wider border-b border-ink/5 pb-2.5 sm:pb-3">
                   📄 আপলোডকৃত ডকুমেন্ট ও প্রোফাইল সারাংশ
                 </h3>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   {/* NID Card Summary */}
-                  <div className="border border-ink/10 rounded-2xl p-4 bg-slate-50 space-y-3">
+                  <div className="border border-ink/10 rounded-xl sm:rounded-2xl p-3.5 sm:p-4 bg-slate-50 space-y-2.5 sm:space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-slate-700">1. National ID (NID) Card</span>
                       {profileData.nidCard && (
@@ -662,14 +662,14 @@ export default function TutorProfileDashboard() {
                     </div>
 
                     {profileData.nidCard ? (
-                      <div className="h-32 rounded-xl overflow-hidden border border-ink/10 bg-white relative group">
+                      <div className="h-28 sm:h-32 rounded-xl overflow-hidden border border-ink/10 bg-white relative group">
                         <img src={profileData.nidCard} alt="NID Card" className="w-full h-full object-cover" />
                         <span className="absolute bottom-2 right-2 bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
                           <Check size={11} /> Uploaded
                         </span>
                       </div>
                     ) : (
-                      <div className="h-32 rounded-xl border border-dashed border-rose-300 bg-rose-50/50 flex flex-col items-center justify-center p-4 text-center">
+                      <div className="h-28 sm:h-32 rounded-xl border border-dashed border-rose-300 bg-rose-50/50 flex flex-col items-center justify-center p-3 text-center">
                         <p className="text-xs font-bold text-rose-600">NID Card Not Uploaded</p>
                         <button
                           type="button"
@@ -684,7 +684,7 @@ export default function TutorProfileDashboard() {
                   </div>
 
                   {/* Student ID Card Summary */}
-                  <div className="border border-ink/10 rounded-2xl p-4 bg-slate-50 space-y-3">
+                  <div className="border border-ink/10 rounded-xl sm:rounded-2xl p-3.5 sm:p-4 bg-slate-50 space-y-2.5 sm:space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-slate-700">2. Student ID / University ID</span>
                       {profileData.studentIdCard && (
@@ -699,14 +699,14 @@ export default function TutorProfileDashboard() {
                     </div>
 
                     {profileData.studentIdCard ? (
-                      <div className="h-32 rounded-xl overflow-hidden border border-ink/10 bg-white relative group">
+                      <div className="h-28 sm:h-32 rounded-xl overflow-hidden border border-ink/10 bg-white relative group">
                         <img src={profileData.studentIdCard} alt="Student ID" className="w-full h-full object-cover" />
                         <span className="absolute bottom-2 right-2 bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
                           <Check size={11} /> Uploaded
                         </span>
                       </div>
                     ) : (
-                      <div className="h-32 rounded-xl border border-dashed border-rose-300 bg-rose-50/50 flex flex-col items-center justify-center p-4 text-center">
+                      <div className="h-28 sm:h-32 rounded-xl border border-dashed border-rose-300 bg-rose-50/50 flex flex-col items-center justify-center p-3 text-center">
                         <p className="text-xs font-bold text-rose-600">Student ID Not Uploaded</p>
                         <button
                           type="button"
@@ -722,12 +722,12 @@ export default function TutorProfileDashboard() {
                 </div>
 
                 {/* Final Submit Button */}
-                <div className="pt-4 border-t border-ink/10 space-y-2">
+                <div className="pt-3 sm:pt-4 border-t border-ink/10 space-y-2">
                   <button
                     type="button"
                     onClick={handleFinalVerificationSubmit}
                     disabled={isSubmittingVerification || !profileData.nidCard || !profileData.studentIdCard}
-                    className="w-full py-4 px-6 rounded-2xl bg-primary text-white font-bold text-sm shadow-xl shadow-primary/20 hover:bg-primary-dark transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
+                    className="w-full py-3.5 sm:py-4 px-6 rounded-xl sm:rounded-2xl bg-primary text-white font-bold text-xs sm:text-sm shadow-xl shadow-primary/20 hover:bg-primary-dark transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                   >
                     {isSubmittingVerification ? (
                       <>
@@ -741,7 +741,7 @@ export default function TutorProfileDashboard() {
                       </>
                     )}
                   </button>
-                  <p className="text-[11px] text-center text-slate-400">
+                  <p className="text-[10.5px] sm:text-[11px] text-center text-slate-400">
                     📢 সাবমিট করার সাথে সাথে Super Admin, Admin ও Moderator ড্যাশবোর্ডে রিয়েল-টাইম নোটিফিকেশন পৌঁছে যাবে।
                   </p>
                 </div>
@@ -753,7 +753,7 @@ export default function TutorProfileDashboard() {
 
           {/* Next Button for Forms */}
           {activeTab !== 'verification' && (
-            <div className="flex flex-col items-center gap-2 pt-4">
+            <div className="flex flex-col items-center gap-2 pt-3 sm:pt-4">
               {successMsg && (
                 <p className="text-emerald-600 text-xs font-bold flex items-center gap-1">
                   <CheckCircle2 size={16} /> {successMsg}
@@ -762,14 +762,14 @@ export default function TutorProfileDashboard() {
               <button
                 onClick={handleSaveAndNext}
                 disabled={saving}
-                className="bg-primary text-white px-12 py-3.5 rounded-xl font-bold flex items-center gap-2 hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 active:scale-95 disabled:opacity-50 cursor-pointer"
+                className="w-full sm:w-auto bg-primary text-white px-8 sm:px-12 py-3 sm:py-3.5 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 active:scale-95 disabled:opacity-50 cursor-pointer"
               >
                 {saving ? (
-                  <Loader2 className="animate-spin" size={20} />
+                  <Loader2 className="animate-spin" size={18} />
                 ) : (
                   <>
                     Save & Next
-                    <ChevronRight size={20} />
+                    <ChevronRight size={18} />
                   </>
                 )}
               </button>
@@ -845,7 +845,7 @@ function DocumentUploadCard({
       {isUploading ? (
         <div className="space-y-3 py-6 flex flex-col items-center justify-center">
           <Loader2 className="animate-spin text-primary" size={32} />
-          <p className="text-xs font-bold text-primary">Uploading to Cloudinary...</p>
+          <p className="text-xs font-bold text-primary">Uploading to R2...</p>
         </div>
       ) : docUrl ? (
         <div className="space-y-3 w-full flex flex-col items-center">

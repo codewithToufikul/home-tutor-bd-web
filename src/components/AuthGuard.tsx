@@ -77,8 +77,11 @@ export function GuestOnly({ children }: { children: React.ReactNode }) {
 
   if (isLoading) return <LoadingState />;
   if (user) {
-    const fallbackPath = roleHomeMap[user.role] ?? '/';
-    const redirectPath = location.state?.from?.pathname || fallbackPath;
+    const fallbackPath = roleHomeMap[user.role] ?? '/student/dashboard';
+    const fromPath = location.state?.from?.pathname;
+    const redirectPath = fromPath && fromPath !== '/' && fromPath !== '/login' && fromPath !== '/register' && fromPath !== '/admin/login'
+      ? fromPath
+      : fallbackPath;
     return <Navigate to={redirectPath} replace />;
   }
 

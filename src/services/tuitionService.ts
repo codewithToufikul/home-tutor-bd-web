@@ -23,25 +23,19 @@ export const TuitionService = {
       : {
           district: payload['district'] || payload['location'] || 'Dhaka',
           area: payload['area'] || 'All Areas',
+          detailedAddress: payload['detailedAddress'] || '',
         };
 
     const body: Record<string, unknown> = {
-      studentClass: payload['studentClass'],
-      subjects: payload['subjects'],
+      ...payload,
       location,
       salary: typeof payload['salary'] === 'number' ? payload['salary'] : parseInt(String(payload['salary'] || 5000), 10) || 5000,
-      medium: payload['medium'],
-      genderPreference: payload['genderPreference'] || 'Any',
-      tutoringDays: Array.isArray(payload['tutoringDays']) ? payload['tutoringDays'] : (payload['tutoringDays'] ? [payload['tutoringDays']] : []),
+      tutoringDays: Array.isArray(payload['tutoringDays']) ? payload['tutoringDays'] : (payload['tutoringDays'] ? [payload['tutoringDays']] : ['3 Days/Week']),
       numStudents: payload['numStudents'] || 1,
       tuitionType: payload['tuitionType'] || 'Home Tuition',
       studentGender: payload['studentGender'] || 'Any',
       duration: payload['duration'] || '1.5 Hours',
       startTime: payload['startTime'] || 'Evening',
-      schoolName: payload['schoolName'] || '',
-      description: payload['description'] || '',
-      phone: payload['phone'] || '',
-      name: payload['name'] || '',
       status: payload['status'] || 'Open',
       approvalStatus: payload['approvalStatus'] || 'Approved',
     };

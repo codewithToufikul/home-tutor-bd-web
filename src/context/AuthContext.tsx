@@ -7,6 +7,7 @@ import {
   useLogoutUserMutation,
   useRegisterMutation,
 } from '../services/authApi';
+import { initOneSignal, setOneSignalUser, logoutOneSignal } from '../services/onesignal.service';
 
 export type AuthRole = 'super_admin' | 'admin' | 'moderator' | 'tutor' | 'student' | 'guardian' | 'coaching';
 
@@ -103,6 +104,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     : null;
 
+  // Initialize OneSignal once
+  useEffect(() => {
+    initOneSignal();
+  }, []);
+
+  // Sync logged in user with OneSignal (Unified identity for Web & Mobile)
+  useEffect(() => {
+    if (appUser?._id) {
+      setOneSignalUser(appUser._id, appUser.role, appUser.email);
+    }
+  }, [appUser?._id, appUser?.role, appUser?.email]);
+
   const login = async (email: string, password: string, _role?: AuthRole) => {
     try {
       const response = await loginMutation({ email, password }).unwrap();
@@ -125,6 +138,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           },
         }),
       );
+      return user;
     } catch (err: unknown) {
       const errorMsg =
         err && typeof err === 'object' && 'data' in err
@@ -166,6 +180,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       console.warn('Logout API failed, forcing local logout:', err);
     } finally {
+      logoutOneSignal();
       dispatch(logoutAction());
       localStorage.removeItem('accessToken');
       localStorage.removeItem('user');

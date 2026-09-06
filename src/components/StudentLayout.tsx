@@ -19,16 +19,20 @@ import {
   Heart,
   Building2,
   Home,
-  BookOpen
+  BookOpen,
+  FileDown
 } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/src/context/AuthContext.tsx';
+import { useGetMeQuery } from '@/src/services/authApi';
+import SafeAvatar from '@/src/components/SafeAvatar.tsx';
 import logoImage from '@/src/lib/Home.png';
 
 const SIDEBAR_ITEMS = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/student/dashboard' },
   { icon: BookOpen, label: 'Active Tuitions', href: '/student/active-tuitions' },
+  { icon: FileDown, label: 'Download & PDF Zone', href: '/student/downloads' },
   { icon: Building2, label: 'Coaching Centers', href: '/student/coaching-centers' },
   { icon: PlusCircle, label: 'Post a Job', href: '/request-tutor' },
   { icon: History, label: 'My Requests', href: '/student/requests' },
@@ -45,6 +49,9 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { data: meData } = useGetMeQuery(undefined);
+
+  const currentUser = (meData?.data as any)?.user || meData?.data || user;
 
   const handleLogout = () => {
     logout();
@@ -143,29 +150,113 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
             
             <div className="h-10 w-[1px] bg-ink/5 hidden sm:block" />
 
-            <div className="flex items-center gap-3 group cursor-pointer">
+            <div 
+              onClick={() => navigate('/student/settings')}
+              className="flex items-center gap-2 sm:gap-3 group cursor-pointer active:scale-95 transition-transform"
+              title="Profile & Settings"
+            >
               <div className="text-right hidden sm:block">
-                <p className="text-sm font-black text-ink leading-none">{user?.name || 'Student'}</p>
+                <p className="text-sm font-black text-ink leading-none">{currentUser?.name || 'Student'}</p>
                 <p className="text-[10px] font-bold text-secondary uppercase tracking-wider mt-1">Active Student</p>
               </div>
-              <div className="w-12 h-12 rounded-2xl bg-secondary/10 border-2 border-white shadow-lg overflow-hidden group-hover:border-secondary/20 transition-all">
-                <img 
-                  src={`https://api.dicebear.com/7.x/personas/svg?seed=${encodeURIComponent(user?.name || user?.email || 'student')}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`} 
-                  alt="Avatar"
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-secondary/10 border-2 border-white shadow-md overflow-hidden group-hover:border-secondary/30 transition-all flex items-center justify-center shrink-0">
+                <SafeAvatar 
+                  src={currentUser?.avatar} 
+                  name={currentUser?.name || 'Student'} 
                   className="w-full h-full object-cover"
                 />
               </div>
-              <ChevronDown size={16} className="text-ink-muted group-hover:text-secondary transition-colors" />
+              <ChevronDown size={15} className="text-ink-muted group-hover:text-secondary transition-colors" />
             </div>
           </div>
         </header>
 
         {/* Page Content */}
-        <div className="flex-grow overflow-y-auto p-6 lg:p-12 scrollbar-hide">
-          <div className="max-w-7xl mx-auto">
-            {children}
-          </div>
-        </div>
+        {(() => {
+          const isMessagesPage = location.pathname.includes('/messages') || location.pathname.includes('/chat');
+          return (
+            <div className={cn(
+              "flex-grow min-h-0",
+              isMessagesPage 
+                ? "overflow-hidden p-2 lg:p-4 h-[calc(100vh-5rem)] flex flex-col pb-20 lg:pb-4" 
+                : "overflow-y-auto p-4 sm:p-6 lg:p-10 scrollbar-hide pb-24 lg:pb-10"
+            )}>
+              <div className={cn("mx-auto", isMessagesPage ? "w-full h-full" : "max-w-7xl")}>
+                {children}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* 📱 Mobile Native App Bottom Navigation Bar */}
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-lg border-t border-slate-200/80 px-2 py-1.5 flex items-center justify-around shadow-2xl safe-area-bottom">
+          {/* 1. Dashboard */}
+          <Link
+            to="/student/dashboard"
+            className={cn(
+              "flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all active:scale-90",
+              location.pathname === '/student/dashboard'
+                ? "text-secondary font-black"
+                : "text-slate-400 hover:text-slate-600 font-medium"
+            )}
+          >
+            <LayoutDashboard size={19} strokeWidth={location.pathname === '/student/dashboard' ? 2.5 : 2} />
+            <span className="text-[10px] mt-0.5 leading-none">Home</span>
+          </Link>
+
+          {/* 2. My Requests */}
+          <Link
+            to="/student/requests"
+            className={cn(
+              "flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all active:scale-90",
+              location.pathname === '/student/requests'
+                ? "text-secondary font-black"
+                : "text-slate-400 hover:text-slate-600 font-medium"
+            )}
+          >
+            <History size={19} strokeWidth={location.pathname === '/student/requests' ? 2.5 : 2} />
+            <span className="text-[10px] mt-0.5 leading-none">Requests</span>
+          </Link>
+
+          {/* 3. Center Elevated Post Job Button */}
+          <Link
+            to="/request-tutor"
+            className="flex flex-col items-center justify-center -mt-5 transition-transform active:scale-90"
+          >
+            <div className="w-12 h-12 rounded-full bg-secondary hover:bg-emerald-600 text-white flex items-center justify-center shadow-lg shadow-secondary/30 border-4 border-white">
+              <PlusCircle size={24} strokeWidth={2.5} />
+            </div>
+            <span className="text-[10px] font-black text-secondary mt-0.5 leading-none">Post Job</span>
+          </Link>
+
+          {/* 4. Active Tuitions */}
+          <Link
+            to="/student/active-tuitions"
+            className={cn(
+              "flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all active:scale-90",
+              location.pathname === '/student/active-tuitions'
+                ? "text-secondary font-black"
+                : "text-slate-400 hover:text-slate-600 font-medium"
+            )}
+          >
+            <BookOpen size={19} strokeWidth={location.pathname === '/student/active-tuitions' ? 2.5 : 2} />
+            <span className="text-[10px] mt-0.5 leading-none">Tuitions</span>
+          </Link>
+
+          {/* 5. Messages / Chat */}
+          <Link
+            to="/student/messages"
+            className={cn(
+              "flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all active:scale-90 relative",
+              location.pathname.includes('/messages')
+                ? "text-secondary font-black"
+                : "text-slate-400 hover:text-slate-600 font-medium"
+            )}
+          >
+            <MessageSquare size={19} strokeWidth={location.pathname.includes('/messages') ? 2.5 : 2} />
+            <span className="text-[10px] mt-0.5 leading-none">Chat</span>
+          </Link>
+        </nav>
       </main>
 
       {/* Mobile Sidebar Overlay */}
@@ -177,7 +268,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsMobileMenuOpen(false)}
-              className="fixed inset-0 bg-ink/20 backdrop-blur-sm z-[60] lg:hidden"
+              className="fixed inset-0 bg-ink/30 backdrop-blur-sm z-[60] lg:hidden"
             />
             <motion.aside 
               initial={{ x: '-100%' }}
@@ -187,14 +278,24 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
               className="fixed inset-y-0 left-0 w-80 max-w-[85vw] bg-white z-[70] lg:hidden flex flex-col shadow-2xl h-full"
             >
               {/* Mobile Drawer Header */}
-              <div className="p-6 border-b border-ink/5 flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-secondary shadow-md shadow-secondary/20 flex items-center justify-center bg-white shrink-0">
-                    <img src={logoImage} alt="Logo" className="w-full h-full object-cover" />
+              <div className="p-5 border-b border-ink/5 flex items-center justify-between shrink-0">
+                <div 
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    navigate('/student/settings');
+                  }}
+                  className="flex items-center gap-3 cursor-pointer"
+                >
+                  <div className="w-10 h-10 rounded-2xl overflow-hidden border-2 border-secondary shadow-md shadow-secondary/20 flex items-center justify-center bg-white shrink-0">
+                    <SafeAvatar 
+                      src={currentUser?.avatar} 
+                      name={currentUser?.name || 'Student'} 
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                   <div>
-                    <span className="text-base font-display font-black text-ink block leading-tight">StudentPanel</span>
-                    <span className="text-[10px] font-bold text-ink-muted">{user?.name || 'Student'}</span>
+                    <span className="text-sm font-display font-black text-ink block leading-tight">{currentUser?.name || 'Student'}</span>
+                    <span className="text-[10px] font-bold text-secondary">Student Settings</span>
                   </div>
                 </div>
                 <button 
@@ -206,7 +307,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
               </div>
 
               {/* Mobile Drawer Scrollable Navigation */}
-              <nav className="flex-grow px-3 py-3 space-y-1 overflow-y-auto custom-scrollbar">
+              <nav className="flex-grow px-3 py-3 space-y-1 overflow-y-auto custom-scrollbar pb-20">
                 {SIDEBAR_ITEMS.map((item) => (
                   <Link
                     key={item.href}

@@ -12,15 +12,12 @@ import {
   ChevronRight,
   ArrowLeft,
   AlertCircle,
-  ShieldCheck,
-  Zap,
-  Star,
-  CheckCircle2,
-  LockKeyhole
+  ShieldCheck
 } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/src/context/AuthContext.tsx';
 import { cn } from '@/src/lib/utils';
+import authIllustration from '@/src/lib/auth-illustration.png';
 
 export default function Login() {
   const [userType, setUserType] = useState<'tutor' | 'student' | 'guardian' | 'coaching'>('tutor');
@@ -49,19 +46,27 @@ export default function Login() {
     setIsSubmitting(true);
 
     try {
-      await login(formData.email.trim(), formData.password, userType);
+      const loggedUser: any = await login(formData.email.trim(), formData.password, userType);
 
-      if (userType === 'guardian') {
+      // Determine true role from login response, falling back to selected userType
+      const role = loggedUser?.role || userType;
+
+      if (role === 'guardian') {
         navigate('/guardian/dashboard', { replace: true });
-      } else if (userType === 'coaching') {
-        navigate('/coaching/dashboard', { replace: true });
-      } else if (userType === 'tutor') {
+      } else if (role === 'coaching') {
+        if (loggedUser && !loggedUser.isApproved) {
+          navigate('/pending-approval', { replace: true });
+        } else {
+          navigate('/coaching/dashboard', { replace: true });
+        }
+      } else if (role === 'tutor') {
         navigate('/tutor/dashboard', { replace: true });
-      } else if (userType === 'student') {
+      } else if (role === 'student') {
         navigate('/student/dashboard', { replace: true });
+      } else if (role === 'admin' || role === 'super_admin' || role === 'moderator') {
+        navigate('/admin', { replace: true });
       } else {
-        const from = location.state?.from?.pathname || '/';
-        navigate(from, { replace: true });
+        navigate('/student/dashboard', { replace: true });
       }
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : 'Login failed';
@@ -75,111 +80,46 @@ export default function Login() {
     }
   };
 
-  const inputClasses = "block w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-ink/10 rounded-2xl text-ink placeholder:text-ink-muted/50 focus:ring-2 focus:ring-primary/20 focus:border-primary/40 focus:bg-white outline-none transition-all text-sm font-medium";
-  const labelClasses = "text-xs font-bold text-slate-800 tracking-wide mb-1.5 block";
+  const inputClasses = "block w-full pl-11 pr-4 py-3 sm:py-3.5 bg-slate-50 border border-slate-200 rounded-xl sm:rounded-2xl text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-primary/20 focus:border-primary/40 focus:bg-white outline-none transition-all text-sm font-medium";
+  const labelClasses = "text-xs font-bold text-slate-700 tracking-wide mb-1.5 block";
 
   return (
-    <div className="min-h-screen bg-slate-50/50 flex flex-col justify-center py-8 lg:py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+    <div className="min-h-screen bg-slate-50/50 flex flex-col justify-center pt-4 sm:pt-8 pb-36 sm:pb-16 px-3.5 sm:px-6 lg:px-8 relative overflow-hidden">
       {/* Background Decorative Glow Orbs */}
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/10 blur-[140px] rounded-full pointer-events-none -translate-y-1/3 translate-x-1/3" />
-      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-teal-400/10 blur-[140px] rounded-full pointer-events-none translate-y-1/3 -translate-x-1/3" />
+      <div className="absolute top-0 right-0 w-[350px] sm:w-[500px] h-[350px] sm:h-[500px] bg-primary/10 blur-[100px] sm:blur-[140px] rounded-full pointer-events-none -translate-y-1/3 translate-x-1/3" />
+      <div className="absolute bottom-0 left-0 w-[350px] sm:w-[500px] h-[350px] sm:h-[500px] bg-teal-400/10 blur-[100px] sm:blur-[140px] rounded-full pointer-events-none translate-y-1/3 -translate-x-1/3" />
 
-      <div className="max-w-6xl w-full mx-auto relative z-10">
+      <div className="max-w-7xl w-full mx-auto relative z-10 px-0 sm:px-4">
         {/* Main 2-Column Split Container */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
 
-          {/* ─── LEFT SIDE: Welcome Back & Trust Section ──────────────────────── */}
-          <div className="lg:col-span-5 hidden lg:block space-y-8 text-center lg:text-left">
-            <div>
-              {/* Mini Brand Badge */}
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold mb-4 shadow-sm">
-                <ShieldCheck size={15} />
-                <span>#1 Verified Tutor Platform in Bangladesh</span>
-              </div>
-
-              <h1 className="text-3xl sm:text-4xl lg:text-4xl font-display font-black text-ink leading-tight">
-                Welcome Back to Your <span className="text-primary bg-gradient-to-r from-primary to-teal-600 bg-clip-text text-transparent">Learning</span> Portal.
-              </h1>
-
-              <p className="mt-3 text-sm sm:text-base text-ink-muted leading-relaxed max-w-md mx-auto lg:mx-0">
-                Log in to manage your active tuitions, browse new teaching opportunities, chat in real-time, and track student progress.
-              </p>
-            </div>
-
-            {/* Feature Highlights */}
-            <div className="space-y-3.5 text-left max-w-md mx-auto lg:mx-0">
-              <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-white/80 border border-ink/5 shadow-sm backdrop-blur-sm">
-                <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 shadow-sm">
-                  <Zap size={20} />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-ink">Real-time Tuition Notifications</h4>
-                  <p className="text-[11px] text-ink-muted leading-tight mt-0.5">Receive instant alerts when new matched tuition jobs are posted near your area.</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-white/80 border border-ink/5 shadow-sm backdrop-blur-sm">
-                <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 shadow-sm">
-                  <LockKeyhole size={20} />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-ink">Bank-Grade Secure Portal</h4>
-                  <p className="text-[11px] text-ink-muted leading-tight mt-0.5">Your personal information and communication are protected with 256-bit encryption.</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-white/80 border border-ink/5 shadow-sm backdrop-blur-sm">
-                <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0 shadow-sm">
-                  <CheckCircle2 size={20} />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-ink">Direct Salary & Tracking</h4>
-                  <p className="text-[11px] text-ink-muted leading-tight mt-0.5">Direct guardian payment without middleman deductions or commission loss.</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Testimonial Quote Box */}
-            <div className="bg-gradient-to-br from-ink to-slate-900 text-white p-5 rounded-3xl shadow-xl space-y-3 max-w-md mx-auto lg:mx-0 text-left">
-              <div className="flex items-center gap-1 text-amber-400">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} size={14} fill="currentColor" />
-                ))}
-                <span className="text-xs font-bold text-white ml-2">Verified Tutor Review</span>
-              </div>
-              <p className="text-xs text-slate-300 italic leading-relaxed">
-                "Home Tutor Provider BD transformed my tutoring career. I got hired for 3 regular tuitions in Dhanmondi within the first week of verification!"
-              </p>
-              <div className="flex items-center gap-3 pt-1 border-t border-white/10">
-                <div className="w-7 h-7 rounded-full bg-emerald-500 flex items-center justify-center text-xs font-black text-white">
-                  T
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-white">Tanvir Ahmed</p>
-                  <p className="text-[10px] text-slate-400">CSE Department, University of Dhaka</p>
-                </div>
-              </div>
+          {/* ─── LEFT SIDE: Illustration (Desktop Only) ─────────────────────── */}
+          <div className="lg:col-span-6 hidden lg:flex flex-col items-center justify-center p-0 lg:pr-4">
+            <div className="relative w-full flex items-center justify-center">
+              <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 via-teal-400/15 to-emerald-300/10 rounded-full blur-3xl -z-10 scale-100" />
+              <img
+                src={authIllustration}
+                alt="Home Tutor Provider BD - Login Illustration"
+                className="w-full max-w-[640px] 2xl:max-w-[720px] h-auto object-contain drop-shadow-md select-none pointer-events-none transition-transform hover:scale-[1.02] duration-500"
+              />
             </div>
           </div>
 
           {/* ─── RIGHT SIDE: Login Form ─────────────────────────────────────────── */}
-          <div className="lg:col-span-7">
-            <div className="bg-white py-8 px-6 sm:px-10 shadow-2xl shadow-ink/5 rounded-[2.5rem] border border-ink/10 relative">
+          <div className="lg:col-span-6 w-full max-w-xl mx-auto lg:mx-0">
+            <div className="bg-white py-6 px-4 sm:py-8 sm:px-10 shadow-xl sm:shadow-2xl shadow-slate-900/5 rounded-2xl sm:rounded-[2.5rem] border border-slate-200/80 relative">
 
               {/* Header Title */}
-              <div className="text-center sm:text-left mb-6">
-                <h2 className="text-2xl sm:text-3xl font-display font-black text-ink">
+              <div className="text-center sm:text-left mb-5 sm:mb-6">
+                <h2 className="text-xl sm:text-3xl font-display font-black text-slate-900 tracking-tight">
                   Sign in to your account
                 </h2>
-                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs sm:text-sm text-ink-muted justify-center sm:justify-start">
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs text-slate-500 justify-center sm:justify-start">
                   <span>Don't have an account?</span>
                   <Link to="/register" className="font-bold text-primary hover:underline">
                     Create one for free
                   </Link>
                   <span className="text-slate-300">•</span>
-                  <Link to="/admin/login" className="font-bold text-slate-500 hover:text-primary transition-colors">
-                    Admin Login
-                  </Link>
                 </div>
               </div>
 
@@ -188,59 +128,40 @@ export default function Login() {
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="mb-6 p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 text-rose-600 text-xs sm:text-sm font-bold"
+                  className="mb-5 p-3.5 sm:p-4 bg-rose-50 border border-rose-100 rounded-xl sm:rounded-2xl flex items-center gap-2.5 text-rose-600 text-xs sm:text-sm font-bold shadow-2xs"
                 >
-                  <AlertCircle size={18} className="shrink-0" />
+                  <AlertCircle size={17} className="shrink-0" />
                   <span>{error}</span>
                 </motion.div>
               )}
 
               {/* Role Toggle Bar */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-slate-100/80 p-1.5 rounded-2xl mb-6 border border-ink/5">
-                <button
-                  type="button"
-                  onClick={() => setUserType('tutor')}
-                  className={cn(
-                    "flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer",
-                    userType === 'tutor' ? "bg-white text-primary shadow-md shadow-primary/10 border border-primary/20" : "text-ink-muted hover:text-ink"
-                  )}
-                >
-                  <GraduationCap size={15} />
-                  <span>Tutor</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setUserType('student')}
-                  className={cn(
-                    "flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer",
-                    userType === 'student' ? "bg-white text-blue-600 shadow-md shadow-blue-600/10 border border-blue-200" : "text-ink-muted hover:text-ink"
-                  )}
-                >
-                  <User size={15} />
-                  <span>Student</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setUserType('guardian')}
-                  className={cn(
-                    "flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer",
-                    userType === 'guardian' ? "bg-white text-emerald-600 shadow-md shadow-emerald-600/10 border border-emerald-200" : "text-ink-muted hover:text-ink"
-                  )}
-                >
-                  <UserCircle size={15} />
-                  <span>Guardian</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setUserType('coaching')}
-                  className={cn(
-                    "flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer",
-                    userType === 'coaching' ? "bg-white text-purple-600 shadow-md shadow-purple-600/10 border border-purple-200" : "text-ink-muted hover:text-ink"
-                  )}
-                >
-                  <Building2 size={15} />
-                  <span>Coaching</span>
-                </button>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-slate-100 p-1.5 rounded-xl sm:rounded-2xl mb-5 sm:mb-6 border border-slate-200/60">
+                {[
+                  { id: 'tutor', label: 'Tutor', icon: GraduationCap, activeColor: 'text-emerald-700 border-emerald-400 shadow-emerald-600/10' },
+                  { id: 'student', label: 'Student', icon: User, activeColor: 'text-blue-700 border-blue-400 shadow-blue-600/10' },
+                  { id: 'guardian', label: 'Guardian', icon: UserCircle, activeColor: 'text-teal-700 border-teal-400 shadow-teal-600/10' },
+                  { id: 'coaching', label: 'Coaching', icon: Building2, activeColor: 'text-purple-700 border-purple-400 shadow-purple-600/10' },
+                ].map((role) => {
+                  const Icon = role.icon;
+                  const isActive = userType === role.id;
+                  return (
+                    <button
+                      key={role.id}
+                      type="button"
+                      onClick={() => setUserType(role.id as any)}
+                      className={cn(
+                        "flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-lg sm:rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95",
+                        isActive
+                          ? `bg-white ${role.activeColor} shadow-xs border font-black`
+                          : "text-slate-500 hover:text-slate-900 hover:bg-white/50"
+                      )}
+                    >
+                      <Icon size={14} className={isActive ? "shrink-0" : "opacity-70 shrink-0"} />
+                      <span>{role.label}</span>
+                    </button>
+                  );
+                })}
               </div>
 
               {/* Login Form */}
@@ -251,8 +172,8 @@ export default function Login() {
                     Email Address or Phone Number *
                   </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
-                      <Mail size={18} />
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                      <Mail size={17} />
                     </div>
                     <input
                       id="email"
@@ -270,7 +191,7 @@ export default function Login() {
                 {/* Password Input */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label htmlFor="password" className="text-xs font-bold text-slate-800 tracking-wide">
+                    <label htmlFor="password" className="text-xs font-bold text-slate-700 tracking-wide">
                       Password *
                     </label>
                     <Link to="/forgot-password" className="text-xs font-bold text-primary hover:underline">
@@ -278,8 +199,8 @@ export default function Login() {
                     </Link>
                   </div>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
-                      <Lock size={18} />
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                      <Lock size={17} />
                     </div>
                     <input
                       id="password"
@@ -294,7 +215,8 @@ export default function Login() {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
+                      className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer active:scale-90 transition-transform"
+                      title={showPassword ? "Hide password" : "Show password"}
                     >
                       {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                     </button>
@@ -310,23 +232,23 @@ export default function Login() {
                       type="checkbox"
                       checked={formData.rememberMe}
                       onChange={(e) => setFormData({ ...formData, rememberMe: e.target.checked })}
-                      className="w-4 h-4 rounded text-primary focus:ring-primary/20 border-slate-300 cursor-pointer"
+                      className="w-4 h-4 rounded text-primary focus:ring-primary/20 border-slate-300 cursor-pointer accent-primary"
                     />
                     <span className="text-xs font-medium text-slate-600">Remember this device</span>
                   </label>
                 </div>
 
                 {/* Submit Button */}
-                <div className="pt-2">
+                <div className="pt-1 sm:pt-2">
                   <button
                     type="submit"
                     disabled={isSubmitting}
                     className={cn(
-                      "w-full flex justify-center items-center gap-2 py-4 px-4 rounded-2xl shadow-xl font-bold text-white text-sm transition-all active:scale-[0.99] disabled:opacity-50 cursor-pointer",
-                      userType === 'tutor' ? "bg-primary hover:bg-primary-dark shadow-primary/25" :
-                        userType === 'student' ? "bg-blue-600 hover:bg-blue-700 shadow-blue-600/25" :
-                          userType === 'guardian' ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/25" :
-                            "bg-purple-600 hover:bg-purple-700 shadow-purple-600/25"
+                      "w-full flex justify-center items-center gap-2 py-3.5 sm:py-4 px-4 rounded-xl sm:rounded-2xl shadow-lg font-bold text-white text-sm transition-all active:scale-98 disabled:opacity-50 cursor-pointer",
+                      userType === 'tutor' ? "bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 shadow-emerald-600/25" :
+                        userType === 'student' ? "bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 shadow-blue-600/25" :
+                          userType === 'guardian' ? "bg-gradient-to-r from-teal-600 to-emerald-700 hover:from-teal-700 hover:to-emerald-800 shadow-teal-600/25" :
+                            "bg-gradient-to-r from-purple-600 to-indigo-700 hover:from-purple-700 hover:to-indigo-800 shadow-purple-600/25"
                     )}
                   >
                     {isSubmitting ? (
@@ -353,8 +275,8 @@ export default function Login() {
         </div>
 
         {/* Back to Home Link */}
-        <div className="mt-8 text-center">
-          <Link to="/" className="inline-flex items-center gap-2 text-xs font-bold text-ink-muted hover:text-primary transition-colors">
+        <div className="mt-6 sm:mt-8 text-center">
+          <Link to="/" className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-primary transition-colors py-1 px-3 rounded-lg hover:bg-slate-100">
             <ArrowLeft size={14} />
             Back to Home
           </Link>

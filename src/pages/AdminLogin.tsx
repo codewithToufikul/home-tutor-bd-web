@@ -16,7 +16,8 @@ export default function AdminLogin() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const from = location.state?.from?.pathname || "/admin";
+  const fromPath = location.state?.from?.pathname;
+  const targetPath = fromPath && fromPath !== '/' && fromPath !== '/login' && fromPath !== '/admin/login' ? fromPath : '/admin';
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,7 +26,7 @@ export default function AdminLogin() {
     
     try {
       await login(email, password, 'admin');
-      navigate(from, { replace: true });
+      navigate(targetPath, { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {

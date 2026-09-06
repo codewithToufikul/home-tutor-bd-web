@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { 
-  PlusCircle, 
-  History, 
-  Heart, 
-  MessageSquare, 
+import {
+  PlusCircle,
+  History,
+  Heart,
+  MessageSquare,
   Search,
   MapPin,
   ChevronRight,
@@ -28,6 +28,8 @@ import { TuitionService } from '@/src/services/tuitionService.ts';
 import { TuitionRepository } from '@/src/repositories/tuitionRepository.ts';
 import { SavedTutorsService } from '@/src/services/savedTutorsService.ts';
 import { NoticeService } from '@/src/services/noticeService.ts';
+import NoticeBoard from '@/src/components/NoticeBoard.tsx';
+import DownloadZone from '@/src/components/DownloadZone.tsx';
 import { ApplicationRepository } from '@/src/repositories/applicationRepository.ts';
 import { TutorProfileRepository } from '@/src/repositories/tutorProfileRepository.ts';
 import { DEFAULT_PROFILE_IMAGE } from '@/src/constants';
@@ -217,10 +219,10 @@ export default function StudentDashboard() {
   return (
     <StudentLayout>
       <div className="space-y-8 relative">
-        
+
         {/* Toast / Alert Notification (প্রোফাইল আপডেট না থাকলে বারবার দেখাবে, আপডেট হলে আর দেখাবে না) */}
         {showAlert && !profile.isUpdated && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
@@ -233,7 +235,7 @@ export default function StudentDashboard() {
 
         {/* Success Toast when updated */}
         {showAlert && profile.isUpdated && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
@@ -245,59 +247,77 @@ export default function StudentDashboard() {
         )}
 
         {/* Welcome Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-1">
-            <h1 className="text-3xl font-display font-black text-ink tracking-tight">
-              Student Dashboard
-            </h1>
-            <p className="text-sm font-medium text-ink-muted">
-              Manage your tutor requests and find the perfect teacher for your needs.
-            </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-6 bg-white/90 backdrop-blur-md p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-2xl bg-secondary/10 border-2 border-white shadow-sm overflow-hidden shrink-0">
+              <img 
+                src={profile.avatar} 
+                alt="Student Avatar" 
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg sm:text-2xl lg:text-3xl font-display font-black text-[#001F3F] tracking-tight">
+                  Welcome, {profile.name || user?.name || 'Student'}!
+                </h1>
+                <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
+                  <CheckCircle2 size={11} /> Verified
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm font-medium text-slate-500">
+                Manage your tutor requests and track shortlisted teachers.
+              </p>
+            </div>
           </div>
-          <Link to="/request-tutor" className="bg-secondary text-white px-8 py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-secondary/20 hover:bg-secondary-dark transition-all active:scale-95 flex items-center justify-center gap-2 text-center">
-            <PlusCircle size={18} />
-            Post New Job
+
+          <Link 
+            to="/request-tutor" 
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 sm:px-7 py-3 sm:py-3.5 bg-secondary hover:bg-emerald-600 text-white rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider shadow-md shadow-secondary/20 transition-all active:scale-95 shrink-0"
+          >
+            <PlusCircle size={16} strokeWidth={2.5} />
+            <span>Post New Job</span>
           </Link>
         </div>
 
         {/* Modal: Job Applicants List */}
         {selectedApplicants && (
-          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-[32px] p-8 max-w-xl w-full shadow-2xl space-y-6 relative max-h-[80vh] overflow-y-auto">
-              <button onClick={() => setSelectedApplicants(null)} className="absolute top-6 right-6 p-2 bg-ink/5 rounded-full hover:bg-ink/10 cursor-pointer">
-                <X size={20} />
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-3xl p-5 sm:p-7 max-w-xl w-full shadow-2xl space-y-4 relative max-h-[85vh] overflow-y-auto">
+              <button onClick={() => setSelectedApplicants(null)} className="absolute top-4 right-4 p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors cursor-pointer">
+                <X size={18} />
               </button>
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-black text-ink">Job Applicants List</h3>
-                <span className="text-[10px] font-bold bg-amber-50 text-amber-600 px-3 py-1 rounded-full flex items-center gap-1">
-                  <Lock size={12} /> Contact Numbers Secured by Admin
+              <div className="flex items-center justify-between pr-8">
+                <h3 className="text-base sm:text-lg font-black text-[#001F3F]">Job Applicants List</h3>
+                <span className="text-[9px] sm:text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                  <Lock size={10} /> Contact Secured
                 </span>
               </div>
-              
-              <div className="space-y-3">
+
+              <div className="space-y-2.5">
                 {selectedApplicants.length > 0 ? (
                   selectedApplicants.map((tutor) => (
-                    <div key={tutor.id} className="p-4 bg-gray-50 rounded-2xl border border-ink/10 flex items-center justify-between gap-4">
+                    <div key={tutor.id} className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
-                        <img src={(tutor.image ?? '').trim() || DEFAULT_PROFILE_IMAGE} alt={tutor.name || 'Tutor'} className="w-12 h-12 rounded-xl object-cover" />
+                        <img src={(tutor.image ?? '').trim() || DEFAULT_PROFILE_IMAGE} alt={tutor.name || 'Tutor'} className="w-11 h-11 rounded-xl object-cover border border-slate-200" />
                         <div>
-                          <h4 className="font-black text-ink text-sm">{tutor.name}</h4>
-                          <p className="text-xs text-secondary font-bold">{tutor.university} • {tutor.department}</p>
-                          <p className="text-[10px] text-ink-muted flex items-center gap-1 mt-0.5">
+                          <h4 className="font-black text-[#001F3F] text-xs sm:text-sm">{tutor.name}</h4>
+                          <p className="text-[11px] text-secondary font-bold">{tutor.university} • {tutor.department}</p>
+                          <p className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5">
                             <Lock size={10} className="text-amber-500" /> Phone: {tutor.phone}
                           </p>
                         </div>
                       </div>
-                      <button 
+                      <button
                         onClick={() => setSelectedTutor(tutor)}
-                        className="px-4 py-2 bg-secondary text-white rounded-xl font-bold text-xs uppercase hover:bg-emerald-600 transition-all cursor-pointer"
+                        className="w-full sm:w-auto px-4 py-2 bg-secondary text-white rounded-xl font-bold text-xs uppercase hover:bg-emerald-600 transition-all cursor-pointer text-center"
                       >
                         View Profile
                       </button>
                     </div>
                   ))
                 ) : (
-                  <p className="text-xs text-ink-muted text-center py-6">No applicants found for this job yet.</p>
+                  <p className="text-xs text-slate-500 text-center py-6">No applicants found for this job yet.</p>
                 )}
               </div>
             </motion.div>
@@ -306,24 +326,24 @@ export default function StudentDashboard() {
 
         {/* Modal: Tutor Detailed Profile */}
         {selectedTutor && (
-          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-[32px] p-8 max-w-sm w-full shadow-2xl space-y-5 relative text-center">
-              <button onClick={() => setSelectedTutor(null)} className="absolute top-6 right-6 p-2 bg-ink/5 rounded-full hover:bg-ink/10 cursor-pointer">
-                <X size={20} />
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4 relative text-center">
+              <button onClick={() => setSelectedTutor(null)} className="absolute top-4 right-4 p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors cursor-pointer">
+                <X size={18} />
               </button>
-              <img src={selectedTutor.image} alt={selectedTutor.name} className="w-20 h-20 rounded-full object-cover mx-auto shadow-md" />
+              <img src={selectedTutor.image} alt={selectedTutor.name} className="w-18 h-18 rounded-full object-cover mx-auto shadow-md border-2 border-secondary" />
               <div>
-                <h4 className="text-lg font-black text-ink">{selectedTutor.name}</h4>
+                <h4 className="text-base font-black text-[#001F3F]">{selectedTutor.name}</h4>
                 <p className="text-xs font-bold text-secondary">{selectedTutor.university}</p>
-                <p className="text-[11px] text-ink-muted">{selectedTutor.department}</p>
+                <p className="text-[11px] text-slate-500">{selectedTutor.department}</p>
               </div>
-              <div className="bg-gray-50 p-3 rounded-2xl text-left text-xs space-y-1">
+              <div className="bg-slate-50 p-3 rounded-2xl text-left text-xs space-y-1.5 border border-slate-200/60">
                 <p><strong>Experience:</strong> {selectedTutor.experience}</p>
                 <p><strong>Rating:</strong> ⭐ {selectedTutor.rating} / 5.0</p>
-                <p className="text-amber-600 font-bold"><strong>Phone:</strong> {selectedTutor.phone}</p>
+                <p className="text-amber-700 font-bold"><strong>Phone:</strong> {selectedTutor.phone}</p>
               </div>
-              <button 
-                onClick={handleConfirmHire} 
+              <button
+                onClick={handleConfirmHire}
                 disabled={isHiring}
                 className="w-full py-3 bg-secondary text-white rounded-xl font-bold text-xs uppercase cursor-pointer hover:bg-emerald-600 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
               >
@@ -334,95 +354,115 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* 📊 Compact App-Style Stats Grid (2x2 on Mobile, 4 Columns on Desktop) */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 lg:gap-6">
           {stats.map((stat) => (
             <Link
               key={stat.label}
               to={stat.path}
-              className="bg-white/60 backdrop-blur-xl p-6 rounded-[32px] border border-white/40 shadow-xl shadow-ink/5 group hover:bg-white transition-all block cursor-pointer"
+              className="bg-white/95 backdrop-blur-md p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-2xs hover:shadow-md hover:border-secondary/30 transition-all block cursor-pointer group active:scale-95"
             >
-              <div className="flex items-center justify-between mb-4">
-                <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg transition-transform group-hover:scale-110", stat.color)}>
-                  <stat.icon size={24} />
+              <div className="flex items-center justify-between mb-2">
+                <div className={cn("w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-white shadow-2xs transition-transform group-hover:scale-105", stat.color)}>
+                  <stat.icon size={16} className="sm:hidden" />
+                  <stat.icon size={20} className="hidden sm:block" />
                 </div>
-                <span className="text-[10px] font-black text-secondary bg-secondary/5 px-2 py-1 rounded-lg">
+                <span className="text-[9px] sm:text-[10px] font-black text-secondary bg-secondary/10 px-2 py-0.5 rounded-md">
                   {stat.trend}
                 </span>
               </div>
-              <div className="space-y-1">
-                <p className="text-2xl font-black text-ink">{stat.value}</p>
-                <p className="text-xs font-bold text-ink-muted uppercase tracking-wider">{stat.label}</p>
+              <div className="space-y-0.5">
+                <p className="text-lg sm:text-2xl font-black text-[#001F3F] leading-tight">{stat.value}</p>
+                <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider truncate">{stat.label}</p>
               </div>
             </Link>
           ))}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
           {/* My Tutor Requests & Applicants View */}
           <div className="lg:col-span-2 space-y-6">
-            <div className="flex items-center justify-between px-2">
-              <h2 className="text-xl font-display font-black text-ink">My Tutor Requests & Applicants</h2>
-              <Link to="/student/requests" className="text-sm font-black text-secondary hover:underline">View All</Link>
+            <div className="flex items-center justify-between px-1">
+              <h2 className="text-base sm:text-xl font-display font-black text-[#001F3F]">My Tutor Requests</h2>
+              <Link to="/student/requests" className="text-xs sm:text-sm font-black text-secondary hover:underline">View All</Link>
             </div>
-            
-            <div className="bg-white/60 backdrop-blur-xl rounded-[32px] border border-white/40 shadow-xl shadow-ink/5 overflow-hidden">
-              <div className="divide-y divide-ink/5">
-                {myRequests.map((req) => (
-                  <div key={req.id} className="p-6 hover:bg-white/40 transition-colors group">
-                    <div className="flex flex-wrap items-center justify-between gap-4">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-secondary/5 rounded-2xl flex items-center justify-center text-secondary group-hover:bg-secondary group-hover:text-white transition-all">
-                          <BookOpen size={24} />
-                        </div>
-                        <div className="space-y-1">
-                          <h3 className="font-black text-ink group-hover:text-secondary transition-colors">{req.title}</h3>
-                          <div className="flex items-center gap-3 text-xs font-bold text-ink-muted">
-                            <span className="flex items-center gap-1"><MapPin size={12} /> {req.location}</span>
-                            <span className="flex items-center gap-1"><Clock size={12} /> {req.date}</span>
+
+            <div className="bg-white/90 backdrop-blur-md rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-2xs overflow-hidden">
+              <div className="divide-y divide-slate-100">
+                {myRequests.length > 0 ? (
+                  myRequests.map((req) => (
+                    <div key={req.id} className="p-4 sm:p-5 hover:bg-slate-50/70 transition-colors group">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-start sm:items-center gap-3">
+                          <div className="w-10 h-10 bg-secondary/10 rounded-xl flex items-center justify-center text-secondary shrink-0 mt-0.5 sm:mt-0">
+                            <BookOpen size={18} />
+                          </div>
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-black text-[#001F3F] text-xs sm:text-sm group-hover:text-secondary transition-colors line-clamp-1">{req.title}</h3>
+                              <span className={cn(
+                                "text-[9px] font-black px-2 py-0.5 rounded-full uppercase shrink-0",
+                                req.status === 'Matched' ? "bg-emerald-100 text-emerald-800" : "bg-teal-100 text-teal-800"
+                              )}>
+                                {req.status}
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2 text-[11px] font-medium text-slate-500">
+                              <span className="flex items-center gap-1"><MapPin size={11} className="text-secondary" /> {req.location}</span>
+                              <span>•</span>
+                              <span className="flex items-center gap-1"><Clock size={11} /> {req.date}</span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <div className="text-right">
-                          <p className="text-sm font-black text-secondary">{req.budget}</p>
-                          <p className="text-[10px] font-bold text-ink-muted uppercase tracking-widest">{req.id}</p>
+
+                        <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                          <div className="text-left sm:text-right">
+                            <p className="text-xs sm:text-sm font-black text-secondary">{req.budget}</p>
+                          </div>
+
+                          {/* Applicants View Button */}
+                          <button
+                            onClick={() => {
+                              setSelectedJobId(req.id);
+                              setSelectedApplicants(req.applicantsList);
+                            }}
+                            className="px-3.5 py-1.5 sm:py-2 bg-secondary/10 hover:bg-secondary text-secondary hover:text-white rounded-xl font-bold text-xs uppercase transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+                          >
+                            <Users size={13} /> <span>Applicants ({req.applicants})</span>
+                          </button>
                         </div>
-                        
-                        {/* Applicants View Button */}
-                        <button 
-                          onClick={() => {
-                            setSelectedJobId(req.id);
-                            setSelectedApplicants(req.applicantsList);
-                          }}
-                          className="px-4 py-2.5 bg-secondary/10 text-secondary hover:bg-secondary hover:text-white rounded-xl font-black text-xs uppercase transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
-                        >
-                          <Users size={14} /> Applicants ({req.applicants})
-                        </button>
                       </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="text-center py-10 px-4 space-y-2">
+                    <p className="text-xs text-slate-500 font-medium">You haven't posted any tutor requests yet.</p>
+                    <Link to="/request-tutor" className="inline-flex items-center gap-1 text-xs font-bold text-secondary hover:underline">
+                      <span>Post your first job</span>
+                      <ChevronRight size={13} />
+                    </Link>
                   </div>
-                ))}
+                )}
               </div>
             </div>
 
             {/* Profile & Image Update Section */}
-            <div className="bg-white/60 backdrop-blur-xl p-8 rounded-[32px] border border-white/40 shadow-xl shadow-ink/5 space-y-6 mt-8">
+            <div className="bg-white/90 backdrop-blur-md p-4 sm:p-7 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-2xs space-y-4 sm:space-y-6">
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-display font-black text-ink">Update Profile & Upload Image</h3>
+                <h3 className="text-base sm:text-lg font-display font-black text-[#001F3F]">Update Profile</h3>
                 {!profile.isUpdated && (
-                  <span className="text-[10px] font-black bg-amber-100 text-amber-700 px-3 py-1 rounded-full uppercase">
-                    Profile Incomplete
+                  <span className="text-[10px] font-black bg-amber-100 text-amber-700 px-2.5 py-0.5 rounded-full uppercase">
+                    Incomplete
                   </span>
                 )}
               </div>
 
-              <form onSubmit={handleProfileSave} className="space-y-6">
-                <div className="flex items-center gap-6">
+              <form onSubmit={handleProfileSave} className="space-y-4">
+                <div className="flex items-center gap-4">
                   <div className="relative">
-                    <img src={profile.avatar} alt="Profile" className="w-24 h-24 rounded-3xl object-cover border-4 border-white shadow-md" />
-                    <label className="absolute -bottom-2 -right-2 w-9 h-9 bg-secondary text-white rounded-xl flex items-center justify-center shadow-lg hover:bg-emerald-600 transition-all cursor-pointer">
-                      <Camera size={16} />
+                    <img src={profile.avatar} alt="Profile" className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border-2 border-secondary shadow-sm" />
+                    <label className="absolute -bottom-1 -right-1 w-7 h-7 sm:w-8 sm:h-8 bg-secondary text-white rounded-xl flex items-center justify-center shadow-md hover:bg-emerald-600 transition-all cursor-pointer">
+                      <Camera size={14} />
                       <input type="file" accept="image/*" className="hidden" onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
@@ -434,80 +474,90 @@ export default function StudentDashboard() {
                     </label>
                   </div>
                   <div>
-                    <h4 className="font-black text-ink text-lg">{profile.name}</h4>
-                    <p className="text-xs text-ink-muted">Click camera icon to upload profile picture.</p>
+                    <h4 className="font-black text-[#001F3F] text-sm sm:text-base">{profile.name || 'Your Name'}</h4>
+                    <p className="text-[11px] text-slate-500">Tap camera icon to change photo.</p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-ink-muted uppercase mb-1">Full Name</label>
-                    <input type="text" value={profile.name} onChange={(e) => setProfile({...profile, name: e.target.value})} required className="w-full bg-white border border-ink/10 rounded-2xl p-3.5 text-xs font-bold text-ink" />
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Full Name</label>
+                    <input type="text" value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} required className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-bold text-[#001F3F] outline-none focus:border-secondary focus:bg-white transition-all" />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-ink-muted uppercase mb-1">Phone Number</label>
-                    <input type="text" value={profile.phone} onChange={(e) => setProfile({...profile, phone: e.target.value})} required className="w-full bg-white border border-ink/10 rounded-2xl p-3.5 text-xs font-bold text-ink" />
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Phone Number</label>
+                    <input type="text" value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} required className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-bold text-[#001F3F] outline-none focus:border-secondary focus:bg-white transition-all" />
                   </div>
                 </div>
 
-                <div className="flex justify-end">
-                  <button type="submit" disabled={isSaving} className="bg-secondary text-white px-8 py-3.5 rounded-2xl font-black text-xs uppercase shadow-lg shadow-secondary/20 hover:bg-emerald-600 transition-all flex items-center gap-2 cursor-pointer">
-                    {isSaving ? 'Saving...' : <><Save size={16} /> Save Changes</>}
+                <div className="flex justify-end pt-1">
+                  <button type="submit" disabled={isSaving} className="w-full sm:w-auto bg-secondary text-white px-6 py-3 rounded-xl font-black text-xs uppercase shadow-md shadow-secondary/20 hover:bg-emerald-600 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95">
+                    {isSaving ? 'Saving...' : <><Save size={14} /> Save Profile</>}
                   </button>
                 </div>
               </form>
             </div>
+
+            {/* Notice Board Section */}
+            <div className="pt-2">
+              <NoticeBoard userRole="student" />
+            </div>
+
+            {/* Download Zone Section */}
+            <div className="bg-white/90 backdrop-blur-md rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-2xs p-4 sm:p-6">
+              <DownloadZone />
+            </div>
           </div>
 
           {/* Quick Actions & Search */}
-          <div className="space-y-8">
-            <div className="bg-secondary rounded-[32px] p-8 text-white shadow-2xl shadow-secondary/20 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-700" />
-              <div className="relative z-10 space-y-6">
-                <div className="space-y-2">
-                  <h3 className="text-xl font-display font-black">Find a Tutor</h3>
-                  <p className="text-sm text-white/80 font-medium">Browse through 5,000+ verified expert tutors.</p>
+          <div className="space-y-6">
+            <div className="bg-gradient-to-br from-[#001F3F] via-[#0A2E5C] to-[#001F3F] rounded-2xl sm:rounded-3xl p-5 sm:p-7 text-white shadow-xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2" />
+              <div className="relative z-10 space-y-4">
+                <div className="space-y-1">
+                  <h3 className="text-base sm:text-lg font-display font-black text-white">Find a Tutor</h3>
+                  <p className="text-xs text-slate-300 font-medium">Browse 5,000+ verified expert university tutors.</p>
                 </div>
                 <div className="relative">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/60" size={18} />
-                  <input 
-                    type="text" 
-                    placeholder="Subject or Area..." 
-                    className="w-full bg-white/10 border border-white/20 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold placeholder:text-white/40 focus:outline-none focus:bg-white/20 transition-all"
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                  <input
+                    type="text"
+                    placeholder="Subject or Area..."
+                    className="w-full bg-white/10 border border-white/20 rounded-xl py-3 pl-10 pr-4 text-xs font-bold placeholder:text-white/40 focus:outline-none focus:bg-white/20 transition-all text-white"
                   />
                 </div>
-                <Link to="/tutors" className="w-full bg-white text-secondary py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg hover:bg-ink hover:text-white transition-all active:scale-95 flex items-center justify-center">
+                <Link to="/tutors" className="w-full bg-secondary text-white py-3 rounded-xl font-black text-xs uppercase tracking-wider shadow-md hover:bg-emerald-600 transition-all active:scale-95 flex items-center justify-center">
                   Search Tutors
                 </Link>
               </div>
             </div>
 
-            <div className="bg-white/60 backdrop-blur-xl p-8 rounded-[32px] border border-white/40 shadow-xl shadow-ink/5 space-y-6">
-              <h3 className="text-lg font-display font-black text-ink">Quick Actions</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <Link to="/student/saved" className="flex flex-col items-center gap-3 p-4 bg-ink/5 rounded-2xl hover:bg-secondary hover:text-white transition-all group">
-                  <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-secondary shadow-sm group-hover:scale-110 transition-transform">
-                    <Heart size={20} />
+            <div className="bg-white/90 backdrop-blur-md p-5 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-2xs space-y-4">
+              <h3 className="text-sm sm:text-base font-display font-black text-[#001F3F]">Quick Shortcuts</h3>
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+                <Link to="/student/saved" className="flex flex-col items-center gap-2 p-3 bg-slate-50 rounded-xl hover:bg-secondary hover:text-white transition-all group active:scale-95">
+                  <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center text-secondary shadow-2xs group-hover:scale-105 transition-transform">
+                    <Heart size={18} />
                   </div>
-                  <span className="text-[10px] font-black uppercase tracking-widest">Saved</span>
+                  <span className="text-[10px] font-black uppercase tracking-wider">Saved</span>
                 </Link>
-                <Link to="/student/requests" className="flex flex-col items-center gap-3 p-4 bg-ink/5 rounded-2xl hover:bg-secondary hover:text-white transition-all group">
-                  <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-secondary shadow-sm group-hover:scale-110 transition-transform">
-                    <Bell size={20} />
+                <Link to="/student/requests" className="flex flex-col items-center gap-2 p-3 bg-slate-50 rounded-xl hover:bg-secondary hover:text-white transition-all group active:scale-95">
+                  <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center text-secondary shadow-2xs group-hover:scale-105 transition-transform">
+                    <Bell size={18} />
                   </div>
-                  <span className="text-[10px] font-black uppercase tracking-widest">Alerts</span>
+                  <span className="text-[10px] font-black uppercase tracking-wider">Alerts</span>
                 </Link>
-                <Link to="/student/messages" className="flex flex-col items-center gap-3 p-4 bg-ink/5 rounded-2xl hover:bg-secondary hover:text-white transition-all group">
-                  <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-secondary shadow-sm group-hover:scale-110 transition-transform">
-                    <MessageSquare size={20} />
+                <Link to="/student/messages" className="flex flex-col items-center gap-2 p-3 bg-slate-50 rounded-xl hover:bg-secondary hover:text-white transition-all group active:scale-95">
+                  <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center text-secondary shadow-2xs group-hover:scale-105 transition-transform">
+                    <MessageSquare size={18} />
                   </div>
-                  <span className="text-[10px] font-black uppercase tracking-widest">Chat</span>
+                  <span className="text-[10px] font-black uppercase tracking-wider">Chat</span>
                 </Link>
-                <Link to="/student/profile" className="flex flex-col items-center gap-3 p-4 bg-ink/5 rounded-2xl hover:bg-secondary hover:text-white transition-all group">
-                  <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-secondary shadow-sm group-hover:scale-110 transition-transform">
-                    <Settings size={20} />
+                <Link to="/student/settings" className="flex flex-col items-center gap-2 p-3 bg-slate-50 rounded-xl hover:bg-secondary hover:text-white transition-all group active:scale-95">
+                  <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center text-secondary shadow-2xs group-hover:scale-105 transition-transform">
+                    <Settings size={18} />
                   </div>
-                  <span className="text-[10px] font-black uppercase tracking-widest">Settings</span>
+                  <span className="text-[10px] font-black uppercase tracking-wider">Settings</span>
                 </Link>
               </div>
             </div>

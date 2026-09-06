@@ -1,15 +1,15 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  LayoutDashboard, 
-  User, 
-  Briefcase, 
-  CreditCard, 
-  Settings, 
-  LogOut, 
-  Bell, 
-  Menu, 
-  X, 
+import {
+  LayoutDashboard,
+  User,
+  Briefcase,
+  CreditCard,
+  Settings,
+  LogOut,
+  Bell,
+  Menu,
+  X,
   Search,
   ChevronDown,
   GraduationCap,
@@ -18,11 +18,14 @@ import {
   Home,
   BookOpen,
   MessageSquare,
-  ShieldCheck
+  ShieldCheck,
+  FileDown
 } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/src/context/AuthContext.tsx';
+import { useGetMeQuery } from '@/src/services/authApi';
+import SafeAvatar from '@/src/components/SafeAvatar.tsx';
 import NotificationBell from '@/src/components/NotificationBell.tsx';
 import MessageBell from '@/src/components/MessageBell.tsx';
 import logoImage from '@/src/lib/Home.png';
@@ -30,16 +33,15 @@ import logoImage from '@/src/lib/Home.png';
 const SIDEBAR_ITEMS = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/tutor/dashboard' },
   { icon: BookOpen, label: 'Active Tuitions', href: '/tutor/active-tuitions' },
+  { icon: CheckCircle2, label: 'My Apply Status', href: '/tutor/applied' },
   { icon: MessageSquare, label: 'Messages & Support', href: '/tutor/messages' },
   { icon: Briefcase, label: 'Job Board', href: '/jobs' },
   { icon: Bell, label: 'Notification', href: '/tutor/notifications' },
   { icon: User, label: 'Update Profile', href: '/tutor/profile' },
   { icon: ShieldCheck, label: 'Profile Verification', href: '/tutor/profile?tab=verification' },
   { icon: CreditCard, label: 'Payment Section', href: '/tutor/payments' },
-  { icon: CreditCard, label: 'My Balance', href: '/tutor/balance' },
-  { icon: CheckCircle2, label: 'My Apply Status', href: '/tutor/applied' },
+  { icon: FileDown, label: 'Download & PDF Zone', href: '/tutor/downloads' },
   { icon: Settings, label: 'Settings', href: '/tutor/settings' },
-  { icon: Settings, label: 'Security', href: '/tutor/security' },
   { icon: Home, label: 'Home', href: '/' },
 ];
 
@@ -49,6 +51,9 @@ export default function TutorLayout({ children }: { children: React.ReactNode })
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { data: meData } = useGetMeQuery(undefined);
+
+  const currentUser = (meData?.data as any)?.user || meData?.data || user;
 
   const handleLogout = () => {
     logout();
@@ -58,7 +63,7 @@ export default function TutorLayout({ children }: { children: React.ReactNode })
   return (
     <div className="h-screen bg-[#F8FAFC] flex relative overflow-hidden">
       {/* Sidebar - Desktop */}
-      <motion.aside 
+      <motion.aside
         initial={false}
         animate={{ width: isSidebarOpen ? 300 : 100 }}
         className="hidden lg:flex flex-col bg-white border-r border-ink/10 relative z-50 transition-all duration-300"
@@ -68,8 +73,8 @@ export default function TutorLayout({ children }: { children: React.ReactNode })
           <div className="relative">
             <div className="w-28 h-28 rounded-full border-2 border-[#6B21A8] p-1">
               <div className="w-full h-full rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
-                <img 
-                  src={`https://api.dicebear.com/7.x/personas/svg?seed=${encodeURIComponent(user?.name || user?.email || 'tutor')}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`} 
+                <img
+                  src={`https://api.dicebear.com/7.x/personas/svg?seed=${encodeURIComponent(user?.name || user?.email || 'tutor')}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`}
                   alt="Avatar"
                   className="w-full h-full object-cover"
                 />
@@ -100,8 +105,8 @@ export default function TutorLayout({ children }: { children: React.ReactNode })
                 to={item.href}
                 className={cn(
                   "flex items-center gap-3 px-6 py-3 transition-all group relative border-b border-ink/5",
-                  isActive 
-                    ? "bg-[#9D174D] text-white" 
+                  isActive
+                    ? "bg-[#9D174D] text-white"
                     : "text-ink-muted hover:bg-gray-50 hover:text-ink"
                 )}
               >
@@ -113,7 +118,7 @@ export default function TutorLayout({ children }: { children: React.ReactNode })
         </nav>
 
         <div className="p-4 border-t border-ink/5">
-          <button 
+          <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-6 py-3 text-rose-500 hover:bg-rose-50 transition-all font-bold text-xs"
           >
@@ -123,7 +128,7 @@ export default function TutorLayout({ children }: { children: React.ReactNode })
         </div>
 
         {/* Toggle Button */}
-        <button 
+        <button
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
           className="absolute -right-4 top-10 w-8 h-8 bg-white border border-ink/5 rounded-full flex items-center justify-center text-ink-muted hover:text-primary shadow-sm z-50 transition-colors"
         >
@@ -136,7 +141,7 @@ export default function TutorLayout({ children }: { children: React.ReactNode })
         {/* Top Header */}
         <header className="h-20 bg-white/80 backdrop-blur-md border-b border-ink/5 px-6 lg:px-12 flex items-center justify-between sticky top-0 z-40">
           <div className="flex items-center gap-4">
-            <button 
+            <button
               onClick={() => setIsMobileMenuOpen(true)}
               className="lg:hidden p-2 text-ink-muted hover:text-primary transition-colors"
             >
@@ -151,46 +156,58 @@ export default function TutorLayout({ children }: { children: React.ReactNode })
           <div className="flex items-center gap-3 lg:gap-6">
             <MessageBell />
             <NotificationBell role="tutor" />
-            
+
             <div className="h-10 w-[1px] bg-ink/5 hidden sm:block" />
 
-            <div className="flex items-center gap-3 group cursor-pointer">
+            <div 
+              onClick={() => navigate('/tutor/profile')}
+              className="flex items-center gap-2 sm:gap-3 group cursor-pointer active:scale-95 transition-transform"
+              title="Profile & Settings"
+            >
               <div className="text-right hidden sm:block">
-                <p className="text-sm font-black text-ink leading-none">{user?.name || 'Tutor'}</p>
+                <p className="text-sm font-black text-ink leading-none">{currentUser?.name || 'Tutor'}</p>
                 <p className="text-[10px] font-bold text-primary uppercase mt-1">Premium Tutor</p>
               </div>
-              <div className="w-12 h-12 rounded-2xl bg-primary/10 border-2 border-white shadow-lg overflow-hidden group-hover:border-primary/20 transition-all">
-                <img 
-                  src={`https://api.dicebear.com/7.x/personas/svg?seed=${encodeURIComponent(user?.name || user?.email || 'tutor')}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`} 
-                  alt="Avatar"
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-primary/10 border-2 border-white shadow-md overflow-hidden group-hover:border-primary/30 transition-all flex items-center justify-center shrink-0">
+                <SafeAvatar
+                  src={currentUser?.avatar}
+                  name={currentUser?.name || 'Tutor'}
                   className="w-full h-full object-cover"
                 />
               </div>
-              <ChevronDown size={16} className="text-ink-muted group-hover:text-primary transition-colors" />
+              <ChevronDown size={15} className="text-ink-muted group-hover:text-primary transition-colors" />
             </div>
           </div>
         </header>
 
         {/* Page Content */}
-        <div className="flex-grow overflow-y-auto p-6 lg:p-12 scrollbar-hide">
-          <div className="max-w-7xl mx-auto">
-            {children}
-          </div>
-        </div>
+        {(() => {
+          const isMessagesPage = location.pathname.includes('/messages') || location.pathname.includes('/chat');
+          return (
+            <div className={cn(
+              "flex-grow min-h-0",
+              isMessagesPage ? "overflow-hidden p-2 lg:p-4 h-[calc(100vh-5rem)] flex flex-col" : "overflow-y-auto p-6 lg:p-12 scrollbar-hide"
+            )}>
+              <div className={cn("mx-auto", isMessagesPage ? "w-full h-full" : "max-w-7xl")}>
+                {children}
+              </div>
+            </div>
+          );
+        })()}
       </main>
 
       {/* Mobile Sidebar Overlay */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <>
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsMobileMenuOpen(false)}
               className="fixed inset-0 bg-ink/20 backdrop-blur-sm z-[60] lg:hidden"
             />
-            <motion.aside 
+            <motion.aside
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
@@ -198,18 +215,28 @@ export default function TutorLayout({ children }: { children: React.ReactNode })
               className="fixed inset-y-0 left-0 w-80 max-w-[85vw] bg-white z-[70] lg:hidden flex flex-col shadow-2xl h-full"
             >
               {/* Mobile Drawer Header */}
-              <div className="p-6 border-b border-ink/5 flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-primary shadow-md shadow-primary/20 flex items-center justify-center bg-white shrink-0">
-                    <img src={logoImage} alt="Logo" className="w-full h-full object-cover" />
+              <div className="p-5 border-b border-ink/5 flex items-center justify-between shrink-0">
+                <div 
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    navigate('/tutor/profile');
+                  }}
+                  className="flex items-center gap-3 cursor-pointer"
+                >
+                  <div className="w-10 h-10 rounded-2xl overflow-hidden border-2 border-primary shadow-md shadow-primary/20 flex items-center justify-center bg-white shrink-0">
+                    <SafeAvatar 
+                      src={currentUser?.avatar} 
+                      name={currentUser?.name || 'Tutor'} 
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                   <div>
-                    <span className="text-base font-display font-black text-ink block leading-tight">TutorPanel</span>
-                    <span className="text-[10px] font-bold text-ink-muted">{user?.name || 'Tutor'}</span>
+                    <span className="text-sm font-display font-black text-ink block leading-tight">{currentUser?.name || 'Tutor'}</span>
+                    <span className="text-[10px] font-bold text-primary">Tutor Profile</span>
                   </div>
                 </div>
-                <button 
-                  onClick={() => setIsMobileMenuOpen(false)} 
+                <button
+                  onClick={() => setIsMobileMenuOpen(false)}
                   className="p-2 text-ink-muted hover:text-ink rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   <X size={20} />
@@ -231,8 +258,8 @@ export default function TutorLayout({ children }: { children: React.ReactNode })
                       onClick={() => setIsMobileMenuOpen(false)}
                       className={cn(
                         "flex items-center gap-3.5 px-4 py-3 rounded-2xl transition-all font-bold text-xs",
-                        isActive 
-                          ? "bg-primary text-white shadow-md shadow-primary/20" 
+                        isActive
+                          ? "bg-primary text-white shadow-md shadow-primary/20"
                           : "text-slate-600 hover:bg-slate-50 hover:text-ink"
                       )}
                     >
@@ -245,7 +272,7 @@ export default function TutorLayout({ children }: { children: React.ReactNode })
 
               {/* Mobile Drawer Sticky Logout Footer */}
               <div className="p-4 border-t border-ink/5 bg-slate-50/80 shrink-0">
-                <button 
+                <button
                   onClick={() => {
                     setIsMobileMenuOpen(false);
                     handleLogout();

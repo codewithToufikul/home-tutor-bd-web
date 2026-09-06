@@ -36,6 +36,7 @@ export default function MessageBell({ className }: { className?: string }) {
     senderName: string;
     senderAvatar: string;
     senderRole: string;
+    senderId?: string;
     message: string;
     conversationId: string;
   } | null>(null);
@@ -91,6 +92,7 @@ export default function MessageBell({ className }: { className?: string }) {
       senderName,
       senderAvatar,
       senderRole,
+      senderId: senderIdStr,
       message: msg.message || 'You received a new message',
       conversationId: convId,
     });
@@ -133,11 +135,15 @@ export default function MessageBell({ className }: { className?: string }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleOpenConversation = (convId?: string) => {
+  const handleOpenConversation = (convId?: string, targetUserId?: string) => {
     setIsOpen(false);
     setActiveToast(null);
     setUnreadCount(0);
-    navigate(messagesUrl);
+    const params = new URLSearchParams();
+    if (convId) params.set('conversationId', convId);
+    if (targetUserId) params.set('userId', targetUserId);
+    const qs = params.toString();
+    navigate(qs ? `${messagesUrl}?${qs}` : messagesUrl);
   };
 
   return (
@@ -218,12 +224,13 @@ export default function MessageBell({ className }: { className?: string }) {
                   conversations.slice(0, 5).map((conv) => {
                     const other = conv.participants.find((p) => extractId(p) !== currentUserId) || conv.participants[0];
                     if (!other) return null;
+                    const targetUserId = extractId(other);
                     const badge = ROLE_BADGES[other.role] || ROLE_BADGES.student;
 
                     return (
                       <div
                         key={conv._id}
-                        onClick={() => handleOpenConversation(conv._id)}
+                        onClick={() => handleOpenConversation(conv._id, targetUserId)}
                         className="p-2.5 rounded-2xl hover:bg-gray-50 flex items-center gap-3 cursor-pointer transition-all"
                       >
                         <div className="relative shrink-0">
@@ -337,7 +344,7 @@ export default function MessageBell({ className }: { className?: string }) {
                 Dismiss
               </button>
               <button
-                onClick={() => handleOpenConversation(activeToast.conversationId)}
+                onClick={() => handleOpenConversation(activeToast.conversationId, activeToast.senderId)}
                 className="px-4 py-1.5 bg-primary hover:bg-primary-dark text-white rounded-xl text-[11px] font-black uppercase flex items-center gap-1 shadow-md shadow-primary/20 transition-all cursor-pointer"
               >
                 <span>Reply / Open</span>

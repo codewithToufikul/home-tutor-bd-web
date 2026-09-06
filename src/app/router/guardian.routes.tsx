@@ -7,6 +7,8 @@ import GuardianMessages from '@/src/pages/GuardianMessages.tsx';
 import GuardianProfile from '@/src/pages/GuardianProfile.tsx';
 import GuardianRequests from '@/src/pages/GuardianRequests.tsx';
 import GuardianSavedTutors from '@/src/pages/GuardianSavedTutors.tsx';
+import GuardianNotices from '@/src/pages/GuardianNotices.tsx';
+import GuardianDownloads from '@/src/pages/GuardianDownloads.tsx';
 
 import StudentJobApplications from '@/src/pages/StudentJobApplications.tsx';
 
@@ -16,6 +18,8 @@ export const guardianRoutes: RouteObject[] = [
   { path: 'guardian/requests', element: <AuthGuard allowedRoles={['guardian']}><GuardianRequests /></AuthGuard> },
   { path: 'guardian/requests/:jobId/applications', element: <AuthGuard allowedRoles={['guardian', 'student']}><StudentJobApplications /></AuthGuard> },
   { path: 'guardian/saved', element: <AuthGuard allowedRoles={['guardian']}><GuardianSavedTutors /></AuthGuard> },
+  { path: 'guardian/notices', element: <AuthGuard allowedRoles={['guardian']}><GuardianNotices /></AuthGuard> },
+  { path: 'guardian/downloads', element: <AuthGuard allowedRoles={['guardian']}><GuardianDownloads /></AuthGuard> },
   { path: 'guardian/messages', element: <AuthGuard allowedRoles={['guardian']}><GuardianMessages /></AuthGuard> },
   { path: 'guardian/profile', element: <AuthGuard allowedRoles={['guardian']}><GuardianProfile /></AuthGuard> },
 ];

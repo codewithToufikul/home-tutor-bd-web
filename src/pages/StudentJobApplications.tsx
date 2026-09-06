@@ -290,93 +290,92 @@ export default function StudentJobApplications() {
         )}
       </AnimatePresence>
 
-      <div className="space-y-6 max-w-5xl mx-auto pb-20">
+      <div className="space-y-4 sm:space-y-6 max-w-5xl mx-auto pb-28 lg:pb-16">
         
         {/* Back Link */}
         <div>
           <button
             onClick={() => navigate(backPath)}
-            className="inline-flex items-center gap-2 text-xs font-bold text-ink-muted hover:text-ink transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors cursor-pointer py-1"
           >
-            <ArrowLeft size={16} /> Back to My Requests
+            <ArrowLeft size={15} /> <span>Back to My Requests</span>
           </button>
         </div>
 
         {/* Job Header Card */}
         {job && (
-          <div className="bg-white p-6 sm:p-8 rounded-[32px] border border-ink/10 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <div className="bg-white p-4 sm:p-6 lg:p-7 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-2xs space-y-3 sm:space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2.5">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-black text-secondary bg-secondary/10 px-3 py-1 rounded-full uppercase">
+                <span className="text-[11px] font-black text-secondary bg-secondary/10 px-2.5 py-0.5 rounded-full uppercase">
                   Job ID: {job.customId || `#${String(job._id || job.id).slice(-6)}`}
                 </span>
-                <span className={`px-3 py-1 rounded-full text-xs font-black uppercase ${
+                <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase ${
                   job.status === 'Matched' ? 'bg-purple-100 text-purple-700' : 'bg-emerald-100 text-emerald-700'
                 }`}>
                   Status: {job.status || 'Open'}
                 </span>
               </div>
-              <span className="text-sm font-black text-emerald-700 bg-emerald-50 px-3.5 py-1.5 rounded-xl border border-emerald-200">
+              <span className="text-xs sm:text-sm font-black text-emerald-700 bg-emerald-50 px-3 py-1 rounded-xl border border-emerald-200">
                 বেতন: ৳ {job.salary ? job.salary.toLocaleString() : 'Negotiable'} / মাস
               </span>
             </div>
 
-            <div>
-              <h1 className="text-xl sm:text-2xl font-black text-[#001F3F]">
+            <div className="space-y-1">
+              <h1 className="text-base sm:text-xl font-display font-black text-[#001F3F] leading-tight">
                 Tutor Needed for {subjectsStr} ({job.studentClass || 'Class N/A'})
               </h1>
-              <div className="flex flex-wrap items-center gap-4 text-xs font-semibold text-ink-muted mt-2">
-                <span className="flex items-center gap-1 font-bold text-ink">
-                  <BookOpen size={15} className="text-secondary" /> {job.medium} Medium
+              <div className="flex flex-wrap items-center gap-2.5 sm:gap-4 text-xs font-semibold text-slate-500 pt-0.5">
+                <span className="flex items-center gap-1 font-bold text-slate-700">
+                  <BookOpen size={14} className="text-secondary" /> {job.medium ? (job.medium.toLowerCase().includes('medium') || job.medium.toLowerCase().includes('version') ? job.medium : `${job.medium} Medium`) : 'General'}
                 </span>
                 <span className="flex items-center gap-1">
-                  <MapPin size={15} className="text-secondary" /> {locStr}
+                  <MapPin size={14} className="text-secondary" /> {locStr}
                 </span>
                 <span className="flex items-center gap-1">
-                  <Clock size={15} className="text-secondary" /> {job.tutoringDays?.join(', ') || 'Negotiable days'}
+                  <Clock size={14} className="text-secondary" /> {job.tutoringDays?.join(', ') || 'Negotiable days'}
                 </span>
               </div>
             </div>
 
-            {/* Privacy Notice Banner */}
-            <div className="bg-amber-50/80 border border-amber-200/80 p-4 rounded-2xl flex items-start gap-3 text-xs text-amber-900 leading-relaxed">
-              <ShieldCheck size={20} className="text-amber-600 shrink-0 mt-0.5" />
+            {/* Privacy Notice Banner (No Emojis) */}
+            <div className="bg-amber-50/90 border border-amber-200 p-3 sm:p-4 rounded-xl sm:rounded-2xl flex items-start gap-2.5 text-xs text-amber-900 leading-relaxed">
+              <ShieldCheck size={18} className="text-amber-600 shrink-0 mt-0.5" />
               <div>
-                <strong className="block font-black mb-0.5">🛡️ ব্যক্তিগত তথ্যের সুরক্ষা নীতি (Privacy Policy):</strong>
-                টিউশন নিশ্চিত (Accept) করার পূর্বে টিউটরের যোগ্যতা, অভিজ্ঞতা ও ম্যাচ স্কোর দেখা যাবে; কিন্তু ফোন নম্বর বা ব্যক্তিগত ছবি গোপন থাকবে। 
-                টিউটর নির্বাচন (Accept) করার সাথে সাথে পূর্ণ যোগাযোগের তথ্য উন্মুক্ত হবে।
+                <strong className="block font-black mb-0.5 text-[#001F3F]">আবেদনকারী টিউটর প্রোফাইল তথ্য:</strong>
+                টিউটরের আসল নাম, ছবি, শিক্ষা প্রতিষ্ঠান, যোগ্যতা ও অভিজ্ঞতা সরাসরি দেখা যাবে। শুধুমাত্র ব্যক্তিগত ফোন নম্বর ও ইমেইল টিউটর নিশ্চিত (Accept) করার পর উন্মুক্ত হবে।
               </div>
             </div>
           </div>
         )}
 
-        {/* Tab Navigation */}
-        <div className="flex items-center gap-2 border-b border-ink/10 pb-1">
+        {/* Tab Navigation (No Emojis, Clean Lucide Icons) */}
+        <div className="flex items-center gap-2 border-b border-slate-200/80 pb-2 overflow-x-auto no-scrollbar">
           <button
             onClick={() => setActiveTab('applications')}
-            className={`px-5 py-2.5 rounded-2xl text-xs font-black flex items-center gap-2 transition-all cursor-pointer ${
+            className={`px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
               activeTab === 'applications'
-                ? 'bg-secondary text-white shadow-md'
-                : 'bg-white text-ink-muted hover:text-ink border border-ink/5'
+                ? 'bg-secondary text-white shadow-xs'
+                : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200/80'
             }`}
           >
-            <Users size={16} /> Received Applications ({applications.length})
+            <Users size={15} /> <span>Received Applications ({applications.length})</span>
           </button>
           <button
             onClick={() => setActiveTab('matches')}
-            className={`px-5 py-2.5 rounded-2xl text-xs font-black flex items-center gap-2 transition-all cursor-pointer ${
+            className={`px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
               activeTab === 'matches'
-                ? 'bg-purple-600 text-white shadow-md'
-                : 'bg-white text-ink-muted hover:text-ink border border-ink/5'
+                ? 'bg-purple-600 text-white shadow-xs'
+                : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200/80'
             }`}
           >
-            <Sparkles size={16} /> 🤖 AI Matched Tutors ({shortlisted.length})
+            <Sparkles size={15} /> <span>AI Matched Tutors ({shortlisted.length})</span>
           </button>
         </div>
 
         {/* Tab 1: Applications */}
         {loading ? (
-          <div className="py-20 text-center text-xs font-bold text-ink-muted animate-pulse">
+          <div className="py-16 text-center text-xs font-bold text-slate-400 animate-pulse">
             লোড হচ্ছে... অনুগ্রহ করে অপেক্ষা করুন...
           </div>
         ) : activeTab === 'applications' ? (
@@ -393,6 +392,18 @@ export default function StudentJobApplications() {
                 const isAccepted = app.status === 'Accepted';
                 const tutorUser = app.tutorId || {};
                 const tutorProfile = app.tutorProfile || {};
+                const tutorSnapshot = app.tutorSnapshot || {};
+
+                const tutorName = tutorUser.name || tutorSnapshot.name || 'Registered Tutor';
+                const tutorAvatar = tutorUser.avatar || tutorSnapshot.avatar;
+                const university = tutorProfile.university || tutorSnapshot.university || '';
+                const department = tutorProfile.department || tutorSnapshot.department || '';
+                const qualification = tutorProfile.qualification || tutorSnapshot.qualification || '';
+                const experience = tutorProfile.experience || tutorSnapshot.experience || '';
+                const isVerified = tutorProfile.isVerified !== undefined ? tutorProfile.isVerified : true;
+                const rating = Number(tutorProfile.rating || 0);
+                const reviewCount = Number(tutorProfile.reviewCount || 0);
+                const totalCompleted = Number(tutorProfile.totalTuitionsCompleted || 0);
 
                 return (
                   <motion.div
@@ -402,63 +413,100 @@ export default function StudentJobApplications() {
                     className={`p-6 rounded-3xl border transition-all space-y-4 ${
                       isAccepted
                         ? 'bg-emerald-50/70 border-emerald-300 shadow-md ring-2 ring-emerald-500/20'
-                        : 'bg-white border-ink/10 shadow-sm'
+                        : 'bg-white border-ink/10 shadow-sm hover:border-ink/20'
                     }`}
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="flex items-center gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                      <div className="flex items-start gap-4">
                         {/* Avatar */}
-                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl overflow-hidden border shadow-sm ${
-                          isAccepted ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-ink-muted'
+                        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center font-black text-xl overflow-hidden border shadow-sm shrink-0 ${
+                          isAccepted ? 'bg-emerald-600 text-white border-emerald-300' : 'bg-slate-100 text-ink-muted border-slate-200'
                         }`}>
-                          {isAccepted && tutorUser.avatar ? (
-                            <img src={tutorUser.avatar} alt="" className="w-full h-full object-cover" />
+                          {tutorAvatar ? (
+                            <img 
+                              src={tutorAvatar} 
+                              alt={tutorName} 
+                              className="w-full h-full object-cover" 
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(tutorName || 'tutor')}`;
+                              }}
+                            />
                           ) : (
-                            <User size={24} />
+                            <img 
+                              src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(tutorName || 'tutor')}`} 
+                              alt={tutorName} 
+                              className="w-full h-full object-cover" 
+                            />
                           )}
                         </div>
 
                         {/* Title & Info */}
-                        <div className="space-y-1">
+                        <div className="space-y-1.5">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="text-base font-black text-[#001F3F]">
-                              {tutorUser.name || 'Candidate Tutor'}
+                            <h3 className="text-base sm:text-lg font-black text-[#001F3F]">
+                              {tutorName}
                             </h3>
-                            {tutorProfile.isVerified && (
-                              <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-black rounded-full flex items-center gap-1">
-                                <ShieldCheck size={12} /> Verified
+                            {isVerified && (
+                              <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-black rounded-full flex items-center gap-1 border border-emerald-200">
+                                <ShieldCheck size={12} className="text-emerald-700" /> Verified Tutor
                               </span>
                             )}
                             {(app.isAutoShortlisted || (app.matchScore && app.matchScore >= 85)) && (
-                              <span className="px-2.5 py-0.5 bg-purple-100 text-purple-700 text-[10px] font-black rounded-full flex items-center gap-1">
-                                <Sparkles size={12} /> 🤖 AI Matched
+                              <span className="px-2.5 py-0.5 bg-purple-100 text-purple-700 text-[10px] font-black rounded-full flex items-center gap-1 border border-purple-200">
+                                <Sparkles size={12} className="text-purple-600" /> AI Matched ({app.matchScore || 90}%)
                               </span>
                             )}
                           </div>
 
-                          <p className="text-xs text-ink-muted font-bold">
-                            🎓 {tutorProfile.university || 'University Student / Graduate'}
-                            {tutorProfile.department ? ` • ${tutorProfile.department}` : ''}
-                            {tutorProfile.experience ? ` • ${tutorProfile.experience} অভিজ্ঞতা` : ''}
-                          </p>
+                          {/* Academic Credentials & Performance Badges */}
+                          <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-slate-700">
+                            {/* Rating badge */}
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-900 rounded-lg border border-amber-200">
+                              <Star size={13} className="text-amber-500 fill-amber-400" />
+                              <span>{rating > 0 ? rating.toFixed(1) : '5.0'}</span>
+                              {reviewCount > 0 && <span className="text-[10px] text-amber-700 font-semibold">({reviewCount})</span>}
+                            </span>
+
+                            {/* Total Tuitions Completed */}
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-800 rounded-lg border border-emerald-200">
+                              <CheckCircle2 size={13} className="text-emerald-600" />
+                              <span>{totalCompleted > 0 ? `${totalCompleted} টি সফল টিউশন` : 'নতুন ভেরিফাইড শিক্ষক'}</span>
+                            </span>
+
+                            {university && (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 rounded-lg text-slate-800">
+                                <BookOpen size={13} className="text-secondary" /> {university}
+                              </span>
+                            )}
+                            {department && (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-800 rounded-lg border border-blue-100">
+                                {department}
+                              </span>
+                            )}
+                            {qualification && (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-teal-50 text-teal-800 rounded-lg border border-teal-100">
+                                {qualification}
+                              </span>
+                            )}
+                            {experience && (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-800 rounded-lg border border-purple-100">
+                                <Clock size={13} className="text-purple-700" /> {experience}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
 
-                      {/* Status */}
-                      <div className="text-right flex sm:flex-col items-center sm:items-end justify-between gap-2">
-                        {(app.isAutoShortlisted || (app.matchScore && app.matchScore >= 85)) && (
-                          <span className="px-3 py-1 bg-purple-50 text-purple-700 border border-purple-200 rounded-xl text-xs font-black">
-                            🤖 AI Recommended
-                          </span>
-                        )}
-                        <span className={`px-3 py-1 rounded-full text-[11px] font-black uppercase ${
+                      {/* Status & Match badge */}
+                      <div className="text-right flex sm:flex-col items-center sm:items-end justify-between gap-2 shrink-0">
+                        <span className={`px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider ${
                           isAccepted 
                             ? 'bg-emerald-600 text-white shadow-sm' 
                             : app.status === 'Rejected' 
                               ? 'bg-rose-100 text-rose-700' 
                               : 'bg-amber-100 text-amber-800'
                         }`}>
-                          {app.status}
+                          {isAccepted ? 'CONFIRMED' : app.status}
                         </span>
                       </div>
                     </div>
@@ -471,43 +519,49 @@ export default function StudentJobApplications() {
                         </p>
                         <div className="flex flex-wrap gap-4 text-xs font-bold text-emerald-950 pt-1">
                           {tutorUser.phone && (
-                            <a href={`tel:${tutorUser.phone}`} className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-emerald-300 hover:bg-emerald-50 transition-all">
+                            <a href={`tel:${tutorUser.phone}`} className="flex items-center gap-1.5 bg-white px-3.5 py-2 rounded-xl border border-emerald-300 hover:bg-emerald-50 transition-all shadow-sm">
                               <Phone size={14} className="text-emerald-700" /> {tutorUser.phone}
                             </a>
                           )}
                           {tutorUser.email && (
-                            <a href={`mailto:${tutorUser.email}`} className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-emerald-300 hover:bg-emerald-50 transition-all">
+                            <a href={`mailto:${tutorUser.email}`} className="flex items-center gap-1.5 bg-white px-3.5 py-2 rounded-xl border border-emerald-300 hover:bg-emerald-50 transition-all shadow-sm">
                               <Mail size={14} className="text-emerald-700" /> {tutorUser.email}
                             </a>
                           )}
                         </div>
                       </div>
                     ) : (
-                      /* Masked Contact Info */
-                      <div className="bg-gray-50 border border-ink/5 p-3 rounded-2xl text-xs text-ink-muted font-medium flex items-center justify-between gap-2 flex-wrap">
-                        <span className="flex items-center gap-1.5">
-                          <Phone size={14} className="text-ink-muted/50" /> {tutorUser.phone || '🔒 টিউশন নিশ্চিত করার পর দৃশ্যমান হবে'}
+                      /* Masked Contact Info with clear note */
+                      <div className="bg-slate-50 border border-slate-200/80 p-3.5 rounded-2xl text-xs text-slate-600 font-medium flex items-center justify-between gap-2 flex-wrap">
+                        <span className="flex items-center gap-2 font-bold text-slate-700">
+                          <Lock size={14} className="text-amber-600" /> যোগাযোগ নম্বর: <span className="text-slate-500 font-normal">টিউশন নিশ্চিত (Accept) করার পর উন্মুক্ত হবে</span>
                         </span>
-                        <span className="flex items-center gap-1.5">
-                          <Mail size={14} className="text-ink-muted/50" /> {tutorUser.email || '🔒 Hidden'}
+                        <span className="flex items-center gap-1.5 text-slate-400">
+                          <Mail size={14} /> ইমেইল: সুরক্ষিত (Hidden)
                         </span>
                       </div>
                     )}
 
                     {/* Cover letter */}
                     {app.coverLetter && (
-                      <div className="bg-gray-50/70 p-3.5 rounded-2xl border border-ink/5 text-xs text-ink leading-relaxed">
-                        <strong className="block text-[11px] font-black text-ink-muted uppercase mb-1">টিউটরের বার্তা / আবেদনপত্র:</strong>
+                      <div className="bg-slate-50/70 p-3.5 rounded-2xl border border-slate-200/60 text-xs text-slate-800 leading-relaxed">
+                        <strong className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1">টিউটরের বার্তা / আবেদনপত্র:</strong>
                         "{app.coverLetter}"
                       </div>
                     )}
 
                     {/* Details row & Actions */}
-                    <div className="flex flex-wrap items-center justify-between gap-4 pt-2 border-t border-ink/5 text-xs">
-                      <div className="flex items-center gap-4 text-ink-muted font-bold">
-                        {app.expectedSalary ? <span>প্রত্যাশিত বেতন: ৳{app.expectedSalary}</span> : null}
+                    <div className="flex flex-wrap items-center justify-between gap-4 pt-3 border-t border-ink/5 text-xs">
+                      <div className="flex items-center gap-4 text-slate-600 font-bold flex-wrap">
+                        {app.expectedSalary ? (
+                          <span className="px-2.5 py-1 bg-emerald-50 text-emerald-800 rounded-lg border border-emerald-100">
+                            প্রত্যাশিত বেতন: ৳{app.expectedSalary}
+                          </span>
+                        ) : null}
                         {app.availableTime && app.availableTime.length > 0 && (
-                          <span>পড়ানোর সময়: {app.availableTime.join(', ')}</span>
+                          <span className="px-2.5 py-1 bg-slate-100 text-slate-700 rounded-lg">
+                            পড়ানোর সময়: {app.availableTime.join(', ')}
+                          </span>
                         )}
                       </div>
 
@@ -534,9 +588,9 @@ export default function StudentJobApplications() {
                             Reject
                           </button>
                           <button
-                            onClick={() => handleAcceptApp(appId, tutorUser.name || 'Candidate Tutor')}
+                            onClick={() => handleAcceptApp(appId, tutorName)}
                             disabled={actionLoading}
-                            className="px-5 py-2 bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl text-xs font-black shadow-md shadow-emerald-600/20 transition-all cursor-pointer flex items-center gap-1.5"
+                            className="px-5 py-2.5 bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl text-xs font-black shadow-md shadow-emerald-600/20 transition-all cursor-pointer flex items-center gap-1.5"
                           >
                             <Check size={15} /> Accept & Confirm Tutor
                           </button>
@@ -561,6 +615,11 @@ export default function StudentJobApplications() {
               shortlisted.map((item, idx) => {
                 const tutor = item.tutorId || {};
                 const tutorUser = tutor.userId || {};
+                const tutorName = tutorUser.name || 'Registered Tutor';
+                const tutorAvatar = tutorUser.avatar;
+                const rating = Number(tutor.rating || 0);
+                const reviewCount = Number(tutor.reviewCount || 0);
+                const totalCompleted = Number(tutor.totalTuitionsCompleted || 0);
 
                 // Check if this tutor already has an application for this job
                 const existingApp = applications.find(
@@ -571,31 +630,81 @@ export default function StudentJobApplications() {
                 return (
                   <div
                     key={idx}
-                    className="bg-white p-6 rounded-3xl border border-purple-200/80 shadow-sm space-y-4"
+                    className="bg-white p-6 rounded-3xl border border-purple-200/80 shadow-sm space-y-4 hover:border-purple-300 transition-all"
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center font-black text-xl border border-purple-200">
-                          <User size={24} />
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                      <div className="flex items-start gap-4">
+                        <div className="w-16 h-16 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center font-black text-xl border border-purple-200 overflow-hidden shrink-0">
+                          {tutorAvatar ? (
+                            <img 
+                              src={tutorAvatar} 
+                              alt={tutorName} 
+                              className="w-full h-full object-cover" 
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(tutorName || 'tutor')}`;
+                              }}
+                            />
+                          ) : (
+                            <img 
+                              src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(tutorName || 'tutor')}`} 
+                              alt={tutorName} 
+                              className="w-full h-full object-cover" 
+                            />
+                          )}
                         </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-base font-black text-ink">
-                              {tutorUser.name || 'Candidate Tutor'}
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="text-base sm:text-lg font-black text-[#001F3F]">
+                              {tutorName}
                             </h3>
-                            {tutor.isVerified && <ShieldCheck size={16} className="text-emerald-600" />}
+                            {tutor.isVerified && (
+                              <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-black rounded-full flex items-center gap-1 border border-emerald-200">
+                                <ShieldCheck size={12} className="text-emerald-700" /> Verified Tutor
+                              </span>
+                            )}
                           </div>
-                          <p className="text-xs text-ink-muted font-bold mt-0.5">
-                            🎓 {tutor.university || tutor.qualification || 'University Student'}
-                            {tutor.department ? ` • ${tutor.department}` : ''}
-                            {tutor.experience ? ` • ${tutor.experience} অভিজ্ঞতা` : ''}
-                          </p>
+                          
+                          <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-slate-700">
+                            {/* Rating badge */}
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-900 rounded-lg border border-amber-200">
+                              <Star size={13} className="text-amber-500 fill-amber-400" />
+                              <span>{rating > 0 ? rating.toFixed(1) : '5.0'}</span>
+                              {reviewCount > 0 && <span className="text-[10px] text-amber-700 font-semibold">({reviewCount})</span>}
+                            </span>
+
+                            {/* Total Tuitions Completed */}
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-800 rounded-lg border border-emerald-200">
+                              <CheckCircle2 size={13} className="text-emerald-600" />
+                              <span>{totalCompleted > 0 ? `${totalCompleted} টি সফল টিউশন` : 'নতুন ভেরিফাইড শিক্ষক'}</span>
+                            </span>
+
+                            {tutor.university && (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 rounded-lg text-slate-800">
+                                <BookOpen size={13} className="text-secondary" /> {tutor.university}
+                              </span>
+                            )}
+                            {tutor.department && (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-800 rounded-lg border border-blue-100">
+                                {tutor.department}
+                              </span>
+                            )}
+                            {tutor.qualification && (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-teal-50 text-teal-800 rounded-lg border border-teal-100">
+                                {tutor.qualification}
+                              </span>
+                            )}
+                            {tutor.experience && (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-800 rounded-lg border border-purple-100">
+                                <Clock size={13} className="text-purple-700" /> {tutor.experience}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
 
-                      <div className="text-right">
+                      <div className="text-right shrink-0">
                         <span className="inline-flex items-center gap-1 px-3.5 py-1.5 bg-purple-600 text-white rounded-xl text-xs font-black shadow-md">
-                          <Sparkles size={13} /> 🤖 AI Matched
+                          <Sparkles size={13} /> AI Matched ({item.score || 90}%)
                         </span>
                       </div>
                     </div>
@@ -608,30 +717,30 @@ export default function StudentJobApplications() {
                         </p>
                         <div className="flex flex-wrap gap-4 text-xs font-bold text-emerald-950 pt-1">
                           {tutorUser.phone && (
-                            <a href={`tel:${tutorUser.phone}`} className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-emerald-300 hover:bg-emerald-50 transition-all">
+                            <a href={`tel:${tutorUser.phone}`} className="flex items-center gap-1.5 bg-white px-3.5 py-2 rounded-xl border border-emerald-300 hover:bg-emerald-50 transition-all">
                               <Phone size={14} className="text-emerald-700" /> {tutorUser.phone}
                             </a>
                           )}
                           {tutorUser.email && (
-                            <a href={`mailto:${tutorUser.email}`} className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-emerald-300 hover:bg-emerald-50 transition-all">
+                            <a href={`mailto:${tutorUser.email}`} className="flex items-center gap-1.5 bg-white px-3.5 py-2 rounded-xl border border-emerald-300 hover:bg-emerald-50 transition-all">
                               <Mail size={14} className="text-emerald-700" /> {tutorUser.email}
                             </a>
                           )}
                         </div>
                       </div>
                     ) : (
-                      <div className="bg-gray-50 border border-ink/5 p-3 rounded-2xl text-xs text-ink-muted font-medium flex items-center justify-between gap-2 flex-wrap">
-                        <span className="flex items-center gap-1.5">
-                          <Phone size={14} className="text-ink-muted/50" /> {tutorUser.phone || '🔒 টিউশন নিশ্চিত করার পর দৃশ্যমান হবে'}
+                      <div className="bg-slate-50 border border-slate-200/80 p-3.5 rounded-2xl text-xs text-slate-600 font-medium flex items-center justify-between gap-2 flex-wrap">
+                        <span className="flex items-center gap-2 font-bold text-slate-700">
+                          <Lock size={14} className="text-amber-600" /> যোগাযোগ নম্বর: <span className="text-slate-500 font-normal">টিউশন নিশ্চিত (Accept) করার পর উন্মুক্ত হবে</span>
                         </span>
-                        <span className="flex items-center gap-1.5">
-                          <Mail size={14} className="text-ink-muted/50" /> {tutorUser.email || '🔒 Hidden'}
+                        <span className="flex items-center gap-1.5 text-slate-400">
+                          <Mail size={14} /> ইমেইল: সুরক্ষিত (Hidden)
                         </span>
                       </div>
                     )}
 
                     {/* Action buttons */}
-                    <div className="flex items-center justify-between gap-3 pt-2 border-t border-ink/5">
+                    <div className="flex items-center justify-between gap-3 pt-3 border-t border-ink/5">
                       <span className="text-xs font-bold text-purple-700 bg-purple-50 px-3 py-1 rounded-xl">
                         AI Recommended for your job requirements
                       </span>
@@ -648,9 +757,9 @@ export default function StudentJobApplications() {
                                 Reject
                               </button>
                               <button
-                                onClick={() => handleAcceptApp(String(existingApp._id || existingApp.id), tutorUser.name || 'Candidate Tutor')}
+                                onClick={() => handleAcceptApp(String(existingApp._id || existingApp.id), tutorName)}
                                 disabled={actionLoading}
-                                className="px-5 py-2 bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl text-xs font-black shadow-md shadow-emerald-600/20 transition-all cursor-pointer flex items-center gap-1.5"
+                                className="px-5 py-2.5 bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl text-xs font-black shadow-md shadow-emerald-600/20 transition-all cursor-pointer flex items-center gap-1.5"
                               >
                                 <Check size={15} /> Accept & Confirm Tutor
                               </button>
@@ -658,7 +767,7 @@ export default function StudentJobApplications() {
                           ) : (
                             <Link
                               to={`/tutor/${tutor._id || tutor.id}`}
-                              className="px-5 py-2 bg-purple-600 text-white hover:bg-purple-700 rounded-xl text-xs font-black shadow-md shadow-purple-600/20 transition-all flex items-center gap-1.5"
+                              className="px-5 py-2.5 bg-purple-600 text-white hover:bg-purple-700 rounded-xl text-xs font-black shadow-md shadow-purple-600/20 transition-all flex items-center gap-1.5"
                             >
                               <Check size={15} /> View Full Profile & Hire
                             </Link>

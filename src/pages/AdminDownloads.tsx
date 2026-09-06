@@ -1,148 +1,167 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Search, Download, FileText, Trash2, PlusCircle, 
-  ChevronLeft, ChevronRight, FileDown, Calendar, 
-  HardDrive, Eye, AlertCircle, Filter, X, Upload
+import {
+  Search, Download, FileText, Trash2, PlusCircle,
+  ChevronLeft, ChevronRight, FileDown, Calendar,
+  HardDrive, Eye, AlertCircle, X, Upload, Users,
+  EyeOff, Check, Loader2, CloudUpload
 } from 'lucide-react';
 import AdminLayout from '@/src/components/AdminLayout.tsx';
-import { DownloadService } from '@/src/services/downloadService';
-import { StorageService } from '@/src/services/storageService.ts';
-import { useAuth } from '@/src/context/AuthContext.tsx';
+import {
+  useGetAdminDownloadsQuery,
+  useUploadDownloadFileMutation,
+  useDeleteDownloadFileMutation,
+  useToggleDownloadPublishedMutation,
+  type DownloadFile,
+} from '@/src/services/downloadApi';
 import { cn } from '@/src/lib/utils';
 
-const ITEMS_PER_PAGE = 5;
+const ITEMS_PER_PAGE = 8;
+
+const CATEGORIES = ['Lecture Notes', 'Syllabus', 'E-Book', 'Question Bank', 'Lab Manual', 'Diagrams', 'Study Guide', 'General'];
+const ROLES = [
+  { value: 'all', label: 'All Users', color: 'bg-violet-100 text-violet-700' },
+  { value: 'student', label: 'Students', color: 'bg-blue-100 text-blue-700' },
+  { value: 'tutor', label: 'Tutors', color: 'bg-emerald-100 text-emerald-700' },
+  { value: 'coaching', label: 'Coaching', color: 'bg-amber-100 text-amber-700' },
+  { value: 'guardian', label: 'Guardians', color: 'bg-rose-100 text-rose-700' },
+];
+
+function RoleBadge({ role }: { role: string }) {
+  const r = ROLES.find(x => x.value === role);
+  return (
+    <span className={cn('px-2 py-0.5 rounded-full text-[9px] font-black uppercase', r?.color ?? 'bg-ink/5 text-ink-muted')}>
+      {r?.label ?? role}
+    </span>
+  );
+}
 
 export default function AdminDownloads() {
-  const { user } = useAuth();
+  const { data: rawFiles, isLoading } = useGetAdminDownloadsQuery();
+  const [uploadFile] = useUploadDownloadFileMutation();
+  const [deleteFile] = useDeleteDownloadFileMutation();
+  const [togglePublished] = useToggleDownloadPublishedMutation();
+
+  const files: DownloadFile[] = useMemo(() => {
+    if (Array.isArray(rawFiles)) return rawFiles;
+    if (Array.isArray((rawFiles as any)?.data)) return (rawFiles as any).data;
+    if (Array.isArray((rawFiles as any)?.files)) return (rawFiles as any).files;
+    return [];
+  }, [rawFiles]);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
-  const [downloads, setDownloads] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
-  
-  // 🌟 নতুন ফাইল আপলোড মোডালের স্টেট
-  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [newFileTitle, setNewFileTitle] = useState('');
-  const [newFileCategory, setNewFileCategory] = useState('Lecture Notes');
-  const [newFileStatus, setNewFileStatus] = useState('Public');
+
+  // Upload modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [category, setCategory] = useState('Lecture Notes');
+  const [targetRoles, setTargetRoles] = useState<string[]>(['all']);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Filtering Logic
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      try {
-        const items = await DownloadService.list();
-        if (!active) return;
-
-        setDownloads((items as any[]).map((item) => ({
-          id: item.id,
-          title: item.title || 'Unnamed File',
-          category: item.category || 'General',
-          type: item.type || 'PDF',
-          size: item.size || '0 MB',
-          date: item.date || String(item.createdAt || new Date().toISOString()).slice(0, 10),
-          downloads: Number(item.downloads || 0),
-          status: item.status || 'Public',
-        })));
-      } catch (err) {
-        console.error('Failed to load downloads:', err);
-      }
-    })();
-
-    return () => { active = false; };
-  }, []);
-
-  const filteredDownloads = useMemo(() => {
-    return downloads.filter(item => {
-      const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                           item.id.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = categoryFilter === 'All' || item.category === categoryFilter;
-      return matchesSearch && matchesCategory;
+  const filtered = useMemo(() => {
+    return files.filter((f: DownloadFile) => {
+      const q = searchQuery.toLowerCase();
+      const matchSearch = f.title?.toLowerCase().includes(q) || f.category?.toLowerCase().includes(q);
+      const matchCat = categoryFilter === 'All' || f.category === categoryFilter;
+      return matchSearch && matchCat;
     });
-  }, [downloads, searchQuery, categoryFilter]);
+  }, [files, searchQuery, categoryFilter]);
 
-  // Pagination Logic
-  const totalPages = Math.ceil(filteredDownloads.length / ITEMS_PER_PAGE);
-  const paginatedDownloads = useMemo(() => {
+  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+  const paginated = useMemo(() => {
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredDownloads.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredDownloads, currentPage]);
+    return filtered.slice(start, start + ITEMS_PER_PAGE);
+  }, [filtered, currentPage]);
 
-  const confirmDelete = async () => {
-    if (!itemToDelete) return;
-
-    try {
-      await DownloadService.remove(itemToDelete);
-      setDownloads(downloads.filter(item => item.id !== itemToDelete));
-      setItemToDelete(null);
-    } catch (err) {
-      console.error('Failed to delete download item:', err);
+  const toggleRole = (role: string) => {
+    if (role === 'all') {
+      setTargetRoles(['all']);
+      return;
     }
+    setTargetRoles(prev => {
+      const without = prev.filter(r => r !== 'all');
+      if (without.includes(role)) {
+        const next = without.filter(r => r !== role);
+        return next.length ? next : ['all'];
+      }
+      return [...without, role];
+    });
   };
 
-  // 🌟 ফাইল হ্যান্ডেল করার এবং লিস্টে যোগ করার ফাংশন
-  const handleUploadSubmit = async (e: React.FormEvent) => {
+  const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    if (!newFileTitle.trim() || !selectedFile || !user?.uid) return;
+    setDragActive(false);
+    const f = e.dataTransfer.files[0];
+    if (f) setSelectedFile(f);
+  };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim() || !selectedFile) return;
     setIsUploading(true);
+    setUploadProgress(0);
 
-    const newEntry = {
-      id: `DL-00${downloads.length + 1}`,
-      title: newFileTitle,
-      category: newFileCategory,
-      type: selectedFile.name.split('.').pop()?.toUpperCase() || 'PDF',
-      size: `${(selectedFile.size / (1024 * 1024)).toFixed(1)} MB`,
-      date: new Date().toLocaleDateString('en-GB'),
-      downloads: 0,
-      status: newFileStatus,
-      storagePath: '',
-      downloadURL: '',
-    };
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+    formData.append('title', title.trim());
+    formData.append('description', description.trim());
+    formData.append('category', category);
+    formData.append('targetRoles', JSON.stringify(targetRoles));
 
     try {
-      const metadata = await StorageService.upload({
-        folder: 'downloads',
-        uid: user.uid,
-        file: selectedFile,
-      });
-
-      const created = await DownloadService.create({
-        title: newEntry.title,
-        category: newEntry.category,
-        type: newEntry.type,
-        size: newEntry.size,
-        date: newEntry.date,
-        downloads: newEntry.downloads,
-        status: newEntry.status,
-        storagePath: metadata.storagePath,
-        downloadURL: metadata.downloadURL,
-      } as any);
-
-      setDownloads([{ ...newEntry, id: created || newEntry.id, storagePath: metadata.storagePath, downloadURL: metadata.downloadURL }, ...downloads]);
-      setNewFileTitle('');
-      setSelectedFile(null);
-      setIsUploadModalOpen(false);
+      // Simulate progress while uploading
+      const interval = setInterval(() => {
+        setUploadProgress(p => Math.min(p + 10, 85));
+      }, 300);
+      await uploadFile(formData).unwrap();
+      clearInterval(interval);
+      setUploadProgress(100);
+      setTimeout(() => {
+        resetModal();
+      }, 800);
     } catch (err) {
-      console.error('Failed to upload file:', err);
-    } finally {
+      console.error('Upload failed:', err);
       setIsUploading(false);
     }
   };
 
-  const categories = ['All', ...new Set(downloads.map(d => d.category))];
+  const resetModal = () => {
+    setIsModalOpen(false);
+    setTitle('');
+    setDescription('');
+    setCategory('Lecture Notes');
+    setTargetRoles(['all']);
+    setSelectedFile(null);
+    setUploadProgress(0);
+    setIsUploading(false);
+  };
+
+  const confirmDelete = async () => {
+    if (!itemToDelete) return;
+    try {
+      await deleteFile(itemToDelete).unwrap();
+      setItemToDelete(null);
+    } catch (err) {
+      console.error('Delete failed:', err);
+    }
+  };
 
   return (
     <AdminLayout>
-      <div className="space-y-8 relative pb-20">
-        {/* Sticky Topbar Section */}
+      <div className="space-y-6 relative pb-20">
+
+        {/* Topbar */}
         <div className="sticky top-[-24px] lg:top-[-48px] z-20 bg-[#F8FAFC]/95 backdrop-blur-md -mx-6 lg:-mx-12 px-6 lg:px-12 py-3 border-b border-ink/5 shadow-sm">
-          <div className="flex items-center justify-between gap-4 overflow-x-auto scrollbar-hide pb-1 md:pb-0">
-            <div className="flex items-center gap-4 shrink-0">
-              {/* Title */}
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-4 flex-wrap">
               <div className="flex items-center gap-2 shrink-0">
                 <div className="w-1 h-5 bg-primary rounded-full" />
                 <h2 className="text-sm md:text-base font-display font-black text-ink leading-none">
@@ -150,350 +169,376 @@ export default function AdminDownloads() {
                 </h2>
               </div>
 
-              {/* Search Bar */}
-              <div className="relative w-32 md:w-48 group shrink-0">
-                <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-ink-muted group-focus-within:text-primary transition-colors">
-                  <Search size={14} />
-                </div>
-                <input 
+              <div className="relative group shrink-0">
+                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted group-focus-within:text-primary transition-colors" />
+                <input
                   type="text"
-                  placeholder="Search Files..."
+                  placeholder="Search files..."
                   value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="w-full bg-white/60 backdrop-blur-xl border border-white/40 rounded-lg py-2 pl-9 pr-3 text-[11px] font-medium focus:outline-none focus:ring-1 focus:ring-primary/20 focus:bg-white transition-all shadow-sm"
+                  onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                  className="w-36 md:w-52 bg-white/60 backdrop-blur border border-white/40 rounded-lg py-2 pl-8 pr-3 text-[11px] font-medium focus:outline-none focus:ring-1 focus:ring-primary/20 shadow-sm"
                 />
               </div>
 
-              {/* Category Filter */}
-              <div className="flex items-center gap-2 shrink-0">
-                <select 
-                  value={categoryFilter}
-                  onChange={(e) => {
-                    setCategoryFilter(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="bg-white/60 backdrop-blur-xl border border-white/40 rounded-lg py-2 px-3 text-[11px] font-bold text-ink-muted appearance-none focus:outline-none focus:ring-1 focus:ring-primary/20 cursor-pointer shadow-sm min-w-[120px]"
-                >
-                  {categories.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
-              </div>
+              <select
+                value={categoryFilter}
+                onChange={e => { setCategoryFilter(e.target.value); setCurrentPage(1); }}
+                className="bg-white/60 backdrop-blur border border-white/40 rounded-lg py-2 px-3 text-[11px] font-bold text-ink-muted appearance-none focus:outline-none focus:ring-1 focus:ring-primary/20 shadow-sm"
+              >
+                <option value="All">All Categories</option>
+                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex items-center gap-3 shrink-0">
-              <button 
-                onClick={() => setIsUploadModalOpen(true)}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/5 rounded-lg border border-primary/10">
+                <FileText size={13} className="text-primary" />
+                <span className="text-[11px] font-bold text-ink-muted">Total: <span className="text-primary">{filtered.length}</span></span>
+              </div>
+              <button
+                onClick={() => setIsModalOpen(true)}
                 className="bg-primary text-white px-4 py-2 rounded-lg font-black text-[10px] uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all active:scale-95 cursor-pointer"
               >
-                <PlusCircle size={14} /> Upload New File
+                <PlusCircle size={14} /> Upload File
               </button>
-              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/5 rounded-lg border border-primary/10">
-                <FileText size={14} className="text-primary" />
-                <span className="text-[11px] font-bold text-ink-muted">Total: <span className="text-primary">{filteredDownloads.length}</span></span>
-              </div>
             </div>
           </div>
         </div>
 
-        {/* Downloads Table Section */}
-        <div className="bg-white/60 backdrop-blur-xl rounded-[32px] border border-white/40 shadow-2xl shadow-ink/5 overflow-hidden hidden md:block">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-ink/5">
-                  <th className="px-8 py-6 text-[10px] font-black text-ink-muted uppercase">Serial</th>
-                  <th className="px-8 py-6 text-[10px] font-black text-ink-muted uppercase">File Title</th>
-                  <th className="px-8 py-6 text-[10px] font-black text-ink-muted uppercase">Category</th>
-                  <th className="px-8 py-6 text-[10px] font-black text-ink-muted uppercase">Type & Size</th>
-                  <th className="px-8 py-6 text-[10px] font-black text-ink-muted uppercase">Upload Date</th>
-                  <th className="px-8 py-6 text-[10px] font-black text-ink-muted uppercase text-center">Downloads</th>
-                  <th className="px-8 py-6 text-[10px] font-black text-ink-muted uppercase text-center">Status</th>
-                  <th className="px-8 py-6 text-[10px] font-black text-ink-muted uppercase text-center">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-ink/5">
-                <AnimatePresence mode="popLayout">
-                  {paginatedDownloads.map((item, index) => (
-                    <motion.tr 
-                      key={item.id}
-                      layout
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ duration: 0.2 }}
-                      className="group hover:bg-white/40 transition-colors"
-                    >
-                      <td className="px-8 py-5 text-sm font-bold text-ink-muted">
-                        {(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
-                      </td>
-                      <td className="px-8 py-5">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                            <FileDown size={20} />
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="text-sm font-black text-ink leading-tight">{item.title}</span>
-                            <span className="text-[10px] font-mono font-bold text-primary uppercase">{item.id}</span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-8 py-5">
-                        <span className="px-3 py-1 rounded-lg bg-blue-50 text-blue-600 text-[10px] font-black uppercase">
-                          {item.category}
-                        </span>
-                      </td>
-                      <td className="px-8 py-5">
-                        <div className="flex flex-col">
-                          <span className="text-xs font-bold text-ink">{item.type}</span>
-                          <span className="text-[10px] font-medium text-ink-muted">{item.size}</span>
-                        </div>
-                      </td>
-                      <td className="px-8 py-5 text-sm font-medium text-ink-muted">{item.date}</td>
-                      <td className="px-8 py-5 text-center">
-                        <span className="text-sm font-black text-ink">{item.downloads.toLocaleString()}</span>
-                      </td>
-                      <td className="px-8 py-5 text-center">
-                        <span className={cn(
-                          "px-3 py-1 rounded-lg text-[10px] font-black uppercase",
-                          item.status === 'Public' ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
-                        )}>
-                          {item.status}
-                        </span>
-                      </td>
-                      <td className="px-8 py-5 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <button className="p-2.5 rounded-xl bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all active:scale-95 cursor-pointer">
-                            <Eye size={16} />
-                          </button>
-                          <button 
-                            onClick={() => setItemToDelete(item.id)}
-                            className="p-2.5 rounded-xl bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white transition-all active:scale-95 cursor-pointer"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </motion.tr>
-                  ))}
-                </AnimatePresence>
-              </tbody>
-            </table>
+        {/* Loading */}
+        {isLoading && (
+          <div className="py-20 flex flex-col items-center gap-4">
+            <Loader2 size={40} className="text-primary animate-spin" />
+            <p className="text-sm font-medium text-ink-muted">Loading files...</p>
           </div>
-        </div>
+        )}
 
-        {/* Mobile Cards View */}
-        <div className="grid grid-cols-1 gap-4 md:hidden">
-          <AnimatePresence mode="popLayout">
-            {paginatedDownloads.map((item, index) => (
-              <motion.div
-                key={item.id}
-                layout
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                className="bg-white/60 backdrop-blur-xl p-6 rounded-3xl border border-white/40 shadow-lg shadow-ink/5 space-y-4"
-              >
-                <div className="flex justify-between items-start">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-primary/5 flex items-center justify-center text-primary">
-                      <FileDown size={24} />
+        {/* Desktop Table */}
+        {!isLoading && (
+          <div className="bg-white/60 backdrop-blur-xl rounded-[32px] border border-white/40 shadow-2xl shadow-ink/5 overflow-hidden hidden md:block">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-ink/5">
+                    {['#', 'File', 'Category', 'Size', 'Target', 'Date', 'Downloads', 'Status', 'Actions'].map(h => (
+                      <th key={h} className="px-6 py-5 text-[10px] font-black text-ink-muted uppercase whitespace-nowrap">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-ink/5">
+                  <AnimatePresence mode="popLayout">
+                    {paginated.map((item: DownloadFile, idx: number) => (
+                      <motion.tr
+                        key={item._id}
+                        layout
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ duration: 0.18 }}
+                        className="group hover:bg-white/40 transition-colors"
+                      >
+                        <td className="px-6 py-4 text-xs font-bold text-ink-muted">
+                          {(currentPage - 1) * ITEMS_PER_PAGE + idx + 1}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-primary/5 flex items-center justify-center text-primary group-hover:scale-110 transition-transform shrink-0">
+                              <FileDown size={18} />
+                            </div>
+                            <div>
+                              <p className="text-xs font-black text-ink leading-tight max-w-[200px] truncate">{item.title}</p>
+                              <p className="text-[10px] font-bold text-primary/70 uppercase">{item.fileType}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-600 text-[10px] font-black whitespace-nowrap">{item.category}</span>
+                        </td>
+                        <td className="px-6 py-4 text-xs font-medium text-ink-muted whitespace-nowrap">{item.fileSize}</td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-wrap gap-1">
+                            {(item.targetRoles || ['all']).map(r => <RoleBadge key={r} role={r} />)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-xs font-medium text-ink-muted whitespace-nowrap">
+                          {item.createdAt ? new Date(item.createdAt).toLocaleDateString('en-GB') : '—'}
+                        </td>
+                        <td className="px-6 py-4 text-center text-xs font-black text-ink">{item.downloadsCount}</td>
+                        <td className="px-6 py-4 text-center">
+                          <span className={cn(
+                            'px-2.5 py-1 rounded-lg text-[10px] font-black uppercase',
+                            item.isPublished ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'
+                          )}>
+                            {item.isPublished ? 'Live' : 'Draft'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center justify-center gap-2">
+                            <a
+                              href={item.fileUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="p-2 rounded-xl bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all"
+                            >
+                              <Eye size={14} />
+                            </a>
+                            <button
+                              onClick={() => togglePublished(item._id)}
+                              className={cn('p-2 rounded-xl transition-all', item.isPublished
+                                ? 'bg-amber-50 text-amber-500 hover:bg-amber-500 hover:text-white'
+                                : 'bg-emerald-50 text-emerald-500 hover:bg-emerald-500 hover:text-white'
+                              )}
+                              title={item.isPublished ? 'Unpublish' : 'Publish'}
+                            >
+                              {item.isPublished ? <EyeOff size={14} /> : <Check size={14} />}
+                            </button>
+                            <button
+                              onClick={() => setItemToDelete(item._id)}
+                              className="p-2 rounded-xl bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white transition-all"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </AnimatePresence>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Mobile Cards */}
+        {!isLoading && (
+          <div className="grid grid-cols-1 gap-4 md:hidden">
+            <AnimatePresence mode="popLayout">
+              {paginated.map((item: DownloadFile) => (
+                <motion.div
+                  key={item._id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  className="bg-white/60 backdrop-blur-xl p-5 rounded-3xl border border-white/40 shadow-lg shadow-ink/5 space-y-4"
+                >
+                  <div className="flex justify-between items-start gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-2xl bg-primary/5 flex items-center justify-center text-primary shrink-0">
+                        <FileDown size={22} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-black text-ink leading-tight">{item.title}</p>
+                        <p className="text-[10px] font-bold text-primary/70 uppercase">{item.fileType} · {item.fileSize}</p>
+                      </div>
                     </div>
-                    <div className="space-y-0.5">
-                      <p className="text-[10px] font-black text-primary uppercase">{item.id}</p>
-                      <h3 className="text-base font-black text-ink leading-tight">{item.title}</h3>
-                    </div>
+                    <span className={cn('px-2 py-1 rounded-lg text-[9px] font-black uppercase shrink-0', item.isPublished ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500')}>
+                      {item.isPublished ? 'Live' : 'Draft'}
+                    </span>
                   </div>
-                  <span className={cn(
-                    "px-2 py-1 rounded-lg text-[9px] font-black uppercase",
-                    item.status === 'Public' ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
-                  )}>
-                    {item.status}
-                  </span>
-                </div>
 
-                <div className="grid grid-cols-2 gap-4 py-3 border-y border-ink/5">
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-black text-ink-muted uppercase flex items-center gap-1.5">
-                      <Filter size={10} /> Category
-                    </p>
-                    <p className="text-xs font-bold text-ink">{item.category}</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(item.targetRoles || ['all']).map(r => <RoleBadge key={r} role={r} />)}
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-black text-ink-muted uppercase flex items-center gap-1.5">
-                      <HardDrive size={10} /> Size
-                    </p>
-                    <p className="text-xs font-bold text-ink">{item.size} ({item.type})</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-black text-ink-muted uppercase flex items-center gap-1.5">
-                      <Calendar size={10} /> Uploaded
-                    </p>
-                    <p className="text-xs font-bold text-ink">{item.date}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-black text-ink-muted uppercase flex items-center gap-1.5">
-                      <Download size={10} /> Downloads
-                    </p>
-                    <p className="text-xs font-bold text-primary">{item.downloads.toLocaleString()}</p>
-                  </div>
-                </div>
 
-                <div className="flex gap-3 pt-2">
-                  <button className="flex-grow py-3 rounded-2xl bg-primary text-white text-[10px] font-black uppercase shadow-lg shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer">
-                    <Eye size={14} /> View File
-                  </button>
-                  <button 
-                    onClick={() => setItemToDelete(item.id)}
-                    className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center active:scale-95 transition-all border border-rose-100 cursor-pointer"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
+                  <div className="grid grid-cols-2 gap-3 py-3 border-y border-ink/5 text-xs">
+                    <div><p className="text-[10px] text-ink-muted font-black uppercase flex items-center gap-1"><Calendar size={9} /> Uploaded</p><p className="font-bold text-ink">{item.createdAt ? new Date(item.createdAt).toLocaleDateString('en-GB') : '—'}</p></div>
+                    <div><p className="text-[10px] text-ink-muted font-black uppercase flex items-center gap-1"><Download size={9} /> Downloads</p><p className="font-bold text-primary">{item.downloadsCount}</p></div>
+                  </div>
 
-        {/* Pagination Section */}
+                  <div className="flex gap-2">
+                    <a href={item.fileUrl} target="_blank" rel="noreferrer" className="flex-1 py-2.5 rounded-2xl bg-primary text-white text-[10px] font-black uppercase flex items-center justify-center gap-1.5 shadow-lg shadow-primary/20">
+                      <Eye size={13} /> View
+                    </a>
+                    <button onClick={() => togglePublished(item._id)} className={cn('flex-1 py-2.5 rounded-2xl text-[10px] font-black uppercase flex items-center justify-center gap-1.5', item.isPublished ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600')}>
+                      {item.isPublished ? <><EyeOff size={13} /> Unpublish</> : <><Check size={13} /> Publish</>}
+                    </button>
+                    <button onClick={() => setItemToDelete(item._id)} className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center border border-rose-100">
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        )}
+
+        {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2 py-8">
-            <button 
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
-              className="w-10 h-10 rounded-xl bg-white/60 backdrop-blur-xl border border-white/40 flex items-center justify-center text-ink-muted hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm cursor-pointer"
-            >
-              <ChevronLeft size={20} />
+          <div className="flex items-center justify-center gap-2 py-6">
+            <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="w-9 h-9 rounded-xl bg-white/60 border border-white/40 flex items-center justify-center text-ink-muted hover:text-primary disabled:opacity-30 shadow-sm">
+              <ChevronLeft size={18} />
             </button>
-            
-            <div className="flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur-xl border border-white/40 rounded-xl shadow-sm">
-              <span className="text-sm font-bold text-ink-muted">
-                Page <span className="text-primary">{currentPage}</span> of {totalPages}
-              </span>
+            <div className="px-4 py-2 bg-white/60 border border-white/40 rounded-xl shadow-sm text-sm font-bold text-ink-muted">
+              Page <span className="text-primary">{currentPage}</span> of {totalPages}
             </div>
-
-            <button 
-              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages}
-              className="w-10 h-10 rounded-xl bg-white/60 backdrop-blur-xl border border-white/40 flex items-center justify-center text-ink-muted hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm cursor-pointer"
-            >
-              <ChevronRight size={20} />
+            <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="w-9 h-9 rounded-xl bg-white/60 border border-white/40 flex items-center justify-center text-ink-muted hover:text-primary disabled:opacity-30 shadow-sm">
+              <ChevronRight size={18} />
             </button>
           </div>
         )}
 
-        {/* Empty State */}
-        {filteredDownloads.length === 0 && (
+        {/* Empty state */}
+        {!isLoading && filtered.length === 0 && (
           <div className="py-20 flex flex-col items-center justify-center text-center space-y-4">
             <div className="w-20 h-20 bg-ink/5 rounded-full flex items-center justify-center text-ink-muted">
               <FileText size={40} />
             </div>
-            <div className="space-y-1">
+            <div>
               <h3 className="text-xl font-black text-ink">No files found</h3>
-              <p className="text-sm font-medium text-ink-muted max-w-xs">
-                We couldn't find any files matching your current search or category filter.
-              </p>
+              <p className="text-sm font-medium text-ink-muted mt-1 max-w-xs">Upload a PDF or document to get started.</p>
             </div>
           </div>
         )}
       </div>
 
-      {/* 🌟 Upload New File Modal */}
+      {/* ─── Upload Modal ─── */}
       <AnimatePresence>
-        {isUploadModalOpen && (
+        {isModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsUploadModalOpen(false)}
-              className="absolute inset-0 bg-ink/30 backdrop-blur-sm"
-            />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={resetModal} className="absolute inset-0 bg-ink/30 backdrop-blur-sm" />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 24 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-md bg-white rounded-[32px] shadow-2xl border border-white/40 p-8 space-y-6 z-10"
+              exit={{ opacity: 0, scale: 0.92, y: 24 }}
+              className="relative w-full max-w-lg bg-white rounded-[32px] shadow-2xl border border-white/40 p-8 space-y-6 z-10 max-h-[90vh] overflow-y-auto"
             >
               <div className="flex items-center justify-between border-b border-ink/5 pb-4">
-                <h3 className="text-xl font-display font-black text-ink">Upload New File</h3>
-                <button 
-                  onClick={() => setIsUploadModalOpen(false)}
-                  className="w-8 h-8 rounded-full bg-ink/5 flex items-center justify-center text-ink-muted hover:text-ink cursor-pointer"
-                >
-                  <X size={18} />
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                    <CloudUpload size={18} />
+                  </div>
+                  <h3 className="text-lg font-display font-black text-ink">Upload New File</h3>
+                </div>
+                <button onClick={resetModal} className="w-8 h-8 rounded-full bg-ink/5 flex items-center justify-center text-ink-muted hover:text-ink cursor-pointer">
+                  <X size={16} />
                 </button>
               </div>
 
-              <form onSubmit={handleUploadSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-5">
+                {/* Title */}
                 <div className="space-y-1.5">
                   <label className="text-[11px] font-black text-ink-muted uppercase">File Title *</label>
-                  <input 
-                    type="text"
+                  <input
                     required
-                    placeholder="e.g. HSC Physics Chapter 1 Note"
-                    value={newFileTitle}
-                    onChange={(e) => setNewFileTitle(e.target.value)}
-                    className="w-full bg-background border border-ink/10 rounded-2xl py-3 px-4 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    type="text"
+                    placeholder="e.g. HSC Physics Chapter 1 Notes"
+                    value={title}
+                    onChange={e => setTitle(e.target.value)}
+                    className="w-full bg-background border border-ink/10 rounded-2xl py-3 px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
                 </div>
 
+                {/* Description */}
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-black text-ink-muted uppercase">Description (optional)</label>
+                  <textarea
+                    rows={2}
+                    placeholder="Short description about this file..."
+                    value={description}
+                    onChange={e => setDescription(e.target.value)}
+                    className="w-full bg-background border border-ink/10 rounded-2xl py-3 px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
+                  />
+                </div>
+
+                {/* Category */}
                 <div className="space-y-1.5">
                   <label className="text-[11px] font-black text-ink-muted uppercase">Category *</label>
-                  <select 
-                    value={newFileCategory}
-                    onChange={(e) => setNewFileCategory(e.target.value)}
-                    className="w-full bg-background border border-ink/10 rounded-2xl py-3 px-4 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  <select
+                    value={category}
+                    onChange={e => setCategory(e.target.value)}
+                    className="w-full bg-background border border-ink/10 rounded-2xl py-3 px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20"
                   >
-                    <option value="Lecture Notes">Lecture Notes</option>
-                    <option value="Syllabus">Syllabus</option>
-                    <option value="E-Book">E-Book</option>
-                    <option value="Question Bank">Question Bank</option>
-                    <option value="Lab Manual">Lab Manual</option>
-                    <option value="Diagrams">Diagrams</option>
+                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-black text-ink-muted uppercase">Status *</label>
-                  <select 
-                    value={newFileStatus}
-                    onChange={(e) => setNewFileStatus(e.target.value)}
-                    className="w-full bg-background border border-ink/10 rounded-2xl py-3 px-4 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  >
-                    <option value="Public">Public</option>
-                    <option value="Private">Private</option>
-                  </select>
+                {/* Target Roles */}
+                <div className="space-y-2">
+                  <label className="text-[11px] font-black text-ink-muted uppercase flex items-center gap-2">
+                    <Users size={12} /> Send To *
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {ROLES.map(role => {
+                      const active = targetRoles.includes(role.value);
+                      return (
+                        <button
+                          key={role.value}
+                          type="button"
+                          onClick={() => toggleRole(role.value)}
+                          className={cn(
+                            'px-3 py-1.5 rounded-xl text-[11px] font-black border transition-all',
+                            active
+                              ? `${role.color} border-current shadow-sm`
+                              : 'bg-ink/5 text-ink-muted border-transparent hover:bg-ink/10'
+                          )}
+                        >
+                          {active && <Check size={10} className="inline mr-1" />}
+                          {role.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-[10px] text-ink-muted font-medium">Push notification will be sent to selected roles.</p>
                 </div>
 
+                {/* File Drop Zone */}
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-black text-ink-muted uppercase">Select Document (PDF, DOCX, JPG) *</label>
-                  <input 
-                    type="file"
-                    required
-                    onChange={(e) => setSelectedFile(e.target.files ? e.target.files[0] : null)}
-                    className="w-full text-xs text-ink-muted file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer"
-                  />
+                  <label className="text-[11px] font-black text-ink-muted uppercase">Document (PDF, DOCX, PPT, etc.) *</label>
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    onDragOver={e => { e.preventDefault(); setDragActive(true); }}
+                    onDragLeave={() => setDragActive(false)}
+                    onDrop={handleDrop}
+                    className={cn(
+                      'w-full border-2 border-dashed rounded-2xl p-6 flex flex-col items-center gap-3 cursor-pointer transition-all',
+                      dragActive ? 'border-primary bg-primary/5' : 'border-ink/15 hover:border-primary/40 hover:bg-ink/2'
+                    )}
+                  >
+                    <div className={cn('w-12 h-12 rounded-2xl flex items-center justify-center transition-colors', dragActive ? 'bg-primary/10 text-primary' : 'bg-ink/5 text-ink-muted')}>
+                      <Upload size={22} />
+                    </div>
+                    {selectedFile ? (
+                      <div className="text-center">
+                        <p className="text-sm font-black text-ink">{selectedFile.name}</p>
+                        <p className="text-[11px] text-ink-muted font-medium">{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB</p>
+                      </div>
+                    ) : (
+                      <div className="text-center">
+                        <p className="text-sm font-bold text-ink-muted">Drop file here or <span className="text-primary">browse</span></p>
+                        <p className="text-[11px] text-ink-muted mt-1">PDF, DOCX, PPT, PNG up to 25MB</p>
+                      </div>
+                    )}
+                  </div>
+                  <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.webp" className="hidden" onChange={e => setSelectedFile(e.target.files?.[0] ?? null)} />
                 </div>
 
-                <div className="flex gap-3 pt-4">
-                  <button 
-                    type="button"
-                    onClick={() => setIsUploadModalOpen(false)}
-                    className="flex-1 py-3.5 rounded-2xl bg-ink/5 text-ink font-bold text-xs hover:bg-ink/10 transition-all cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button 
+                {/* Progress bar */}
+                <AnimatePresence>
+                  {isUploading && (
+                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="space-y-2">
+                      <div className="flex justify-between text-[11px] font-bold text-ink-muted">
+                        <span>Uploading to R2...</span>
+                        <span>{uploadProgress}%</span>
+                      </div>
+                      <div className="w-full h-2 bg-ink/10 rounded-full overflow-hidden">
+                        <motion.div className="h-full bg-primary rounded-full" initial={{ width: 0 }} animate={{ width: `${uploadProgress}%` }} transition={{ ease: 'easeOut' }} />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Actions */}
+                <div className="flex gap-3 pt-2">
+                  <button type="button" onClick={resetModal} className="flex-1 py-3.5 rounded-2xl bg-ink/5 text-ink font-bold text-sm hover:bg-ink/10 transition-all cursor-pointer">Cancel</button>
+                  <button
                     type="submit"
-                    disabled={isUploading}
-                    className="flex-1 py-3.5 rounded-2xl bg-primary text-white font-bold text-xs shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60"
+                    disabled={isUploading || !selectedFile || !title.trim()}
+                    className="flex-1 py-3.5 rounded-2xl bg-primary text-white font-bold text-sm shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60"
                   >
-                    {isUploading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><Upload size={16} /> Upload File</>}
+                    {isUploading
+                      ? <><Loader2 size={16} className="animate-spin" /> Uploading...</>
+                      : <><HardDrive size={16} /> Upload & Notify</>}
                   </button>
                 </div>
               </form>
@@ -506,14 +551,8 @@ export default function AdminDownloads() {
       <AnimatePresence>
         {itemToDelete && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setItemToDelete(null)}
-              className="absolute inset-0 bg-ink/20 backdrop-blur-sm"
-            />
-            <motion.div 
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setItemToDelete(null)} className="absolute inset-0 bg-ink/20 backdrop-blur-sm" />
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -524,23 +563,11 @@ export default function AdminDownloads() {
               </div>
               <div className="space-y-2">
                 <h3 className="text-2xl font-display font-black text-ink">Delete File?</h3>
-                <p className="text-sm font-medium text-ink-muted leading-relaxed">
-                  Are you sure you want to delete this file? This action will permanently remove it from the zone.
-                </p>
+                <p className="text-sm font-medium text-ink-muted leading-relaxed">This will permanently remove the file from the Download Zone. Users will lose access immediately.</p>
               </div>
               <div className="flex flex-col sm:flex-row gap-3">
-                <button 
-                  onClick={() => setItemToDelete(null)}
-                  className="flex-1 py-4 rounded-2xl bg-ink/5 text-ink font-bold text-sm hover:bg-ink/10 transition-all cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button 
-                  onClick={confirmDelete}
-                  className="flex-1 py-4 rounded-2xl bg-[#EF4444] text-white font-bold text-sm shadow-lg shadow-rose-500/20 hover:bg-rose-600 transition-all cursor-pointer"
-                >
-                  Delete
-                </button>
+                <button onClick={() => setItemToDelete(null)} className="flex-1 py-4 rounded-2xl bg-ink/5 text-ink font-bold text-sm hover:bg-ink/10 transition-all cursor-pointer">Cancel</button>
+                <button onClick={confirmDelete} className="flex-1 py-4 rounded-2xl bg-rose-500 text-white font-bold text-sm shadow-lg shadow-rose-500/20 hover:bg-rose-600 transition-all cursor-pointer">Delete</button>
               </div>
             </motion.div>
           </div>

@@ -11,7 +11,9 @@ import {
   Settings,
   ChevronRight,
   Home,
-  ClipboardList
+  ClipboardList,
+  Megaphone,
+  FileDown
 } from 'lucide-react';
 import { useAuth } from '@/src/context/AuthContext.tsx';
 import { cn } from '@/src/lib/utils';
@@ -55,6 +57,8 @@ export default function CoachingLayout({ children, title }: CoachingLayoutProps)
     { label: 'Manage Batches', path: '/coaching/batches', icon: BookOpen },
     { label: 'Tutors & Students', path: '/coaching/members', icon: Users },
     { label: 'Enrollment', path: '/coaching/enrollments', icon: ClipboardList, badge: pendingCount },
+    { label: 'Notice Board', path: '/coaching/notices', icon: Megaphone },
+    { label: 'Download & PDF Zone', path: '/coaching/downloads', icon: FileDown },
     { label: 'Institute Profile', path: '/coaching/profile', icon: Building2 },
     { label: 'Settings', path: '/coaching/settings', icon: Settings },
     { label: 'Home', path: '/', icon: Home },
@@ -126,23 +130,32 @@ export default function CoachingLayout({ children, title }: CoachingLayoutProps)
 
       {/* Main Content Area */}
       <div className="flex-1 lg:pl-72 flex flex-col min-h-screen">
-        {/* Topbar */}
-        <header className="h-20 bg-white border-b border-ink/5 px-6 sm:px-10 flex items-center justify-between sticky top-0 z-40 shadow-sm">
-          <div>
-            <h2 className="text-lg sm:text-xl font-display font-bold text-ink">{title || 'Dashboard'}</h2>
-            <p className="text-xs text-ink-muted">Welcome back, manage your coaching activities.</p>
+        {/* Premium Topbar */}
+        <header className="h-16 bg-white/90 backdrop-blur-md border-b border-ink/5 px-6 sm:px-8 flex items-center justify-between sticky top-0 z-40"
+          style={{ boxShadow: '0 1px 20px rgba(0,0,0,0.06)' }}>
+          {/* Left: page title with accent bar */}
+          <div className="flex items-center gap-3">
+            <div className="w-1 h-8 rounded-full bg-gradient-to-b from-primary to-purple-500 shrink-0" />
+            <div>
+              <h2 className="text-base font-display font-black text-ink leading-tight">{title || 'Dashboard'}</h2>
+              <p className="text-[10px] text-ink-muted font-medium">Coaching Portal · Home Tutor Provider BD</p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          {/* Right: actions */}
+          <div className="flex items-center gap-3">
             <NotificationBell role="coaching" />
-            <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
-              {user?.name ? user.name.charAt(0).toUpperCase() : 'C'}
+            {/* Avatar with gradient ring */}
+            <div className="p-0.5 rounded-2xl bg-gradient-to-br from-primary to-purple-500 shadow-md shadow-primary/20">
+              <div className="w-9 h-9 rounded-[14px] bg-white flex items-center justify-center font-black text-sm text-primary">
+                {user?.name ? user.name.charAt(0).toUpperCase() : 'C'}
+              </div>
             </div>
           </div>
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-6 sm:p-10 max-w-7xl w-full mx-auto">
+        <main className="flex-1 p-5 sm:p-8 max-w-7xl w-full mx-auto">
           {children}
         </main>
       </div>

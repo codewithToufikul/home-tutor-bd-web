@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  History, Clock, CheckCircle2, MapPin, BookOpen, 
-  Sparkles, Users, ArrowRight, Eye, Check, X, ShieldCheck, Star, RefreshCw
+  History, MapPin, BookOpen, 
+  Sparkles, Users, ArrowRight, Eye, Check, X, ShieldCheck,
+  Pencil, Trash2, Save, AlertTriangle, RefreshCw
 } from 'lucide-react';
 import StudentLayout from '@/src/components/StudentLayout.tsx';
 import { useAuth } from '@/src/context/AuthContext.tsx';
@@ -21,6 +22,13 @@ export default function StudentRequests() {
   const [shortlisted, setShortlisted] = useState<any[]>([]);
   const [modalLoading, setModalLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+
+  // ── Edit / Delete state ──────────────────────────────────────
+  const [editJob, setEditJob] = useState<any | null>(null);
+  const [editForm, setEditForm] = useState<any>({});
+  const [editLoading, setEditLoading] = useState(false);
+  const [deleteJobId, setDeleteJobId] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const loadRequests = async () => {
     if (!user) {
@@ -108,6 +116,67 @@ export default function StudentRequests() {
     }
   };
 
+  // ── Open edit modal ─────────────────────────────────────────
+  const openEditModal = (job: any) => {
+    setEditJob(job);
+    setEditForm({
+      salary: job.salary || '',
+      status: job.status || 'Open',
+      subjects: Array.isArray(job.subjects) ? job.subjects.join(', ') : job.subjects || '',
+      studentClass: job.studentClass || '',
+      medium: job.medium || '',
+      tuitionType: job.tuitionType || '',
+      genderPreference: job.genderPreference || 'Any',
+      tutoringDays: job.tutoringDays || '',
+      duration: job.duration || '',
+      tutorQualification: job.tutorQualification || '',
+      requirements: job.requirements || '',
+    });
+  };
+
+  // ── Save edit ────────────────────────────────────────────────
+  const handleSaveEdit = async () => {
+    if (!editJob) return;
+    setEditLoading(true);
+    try {
+      const jobId = String(editJob._id || editJob.id);
+      const payload: Record<string, any> = {
+        salary: Number(editForm.salary) || editJob.salary,
+        status: editForm.status,
+        subjects: editForm.subjects.split(',').map((s: string) => s.trim()).filter(Boolean),
+        studentClass: editForm.studentClass,
+        medium: editForm.medium,
+        tuitionType: editForm.tuitionType,
+        genderPreference: editForm.genderPreference,
+        tutoringDays: editForm.tutoringDays,
+        duration: editForm.duration,
+        tutorQualification: editForm.tutorQualification,
+        requirements: editForm.requirements,
+      };
+      await TuitionService.update(jobId, payload);
+      setEditJob(null);
+      await loadRequests();
+    } catch (err: any) {
+      alert(err.message || 'আপডেট করতে সমস্যা হয়েছে।');
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  // ── Delete job ───────────────────────────────────────────────
+  const handleDeleteJob = async (jobId: string) => {
+    setDeleteLoading(true);
+    try {
+      await TuitionService.remove(jobId);
+      setDeleteJobId(null);
+      await loadRequests();
+    } catch (err: any) {
+      alert(err.message || 'মুছতে সমস্যা হয়েছে।');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   const handleRejectApp = async (appId: string) => {
     if (!confirm('আপনি কি এই আবেদনটি প্রত্যাখ্যান (Reject) করতে চান?')) return;
     setActionLoading(true);
@@ -127,99 +196,149 @@ export default function StudentRequests() {
 
   return (
     <StudentLayout>
-      <div className="space-y-8 pb-12 max-w-5xl mx-auto">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="space-y-4 sm:space-y-6 pb-28 sm:pb-16 max-w-5xl mx-auto px-3.5 sm:px-0">
+        {/* Header Section */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 bg-white sm:bg-transparent p-4 sm:p-0 rounded-2xl sm:rounded-none border sm:border-0 border-slate-200/80 shadow-2xs sm:shadow-none">
           <div>
-            <h1 className="text-2xl font-black text-[#001F3F]">My Tuition Posts & Applications</h1>
-            <p className="text-xs text-ink-muted">আপনার পোস্ট করা টিউশনসমূহ, আবেদনকারী টিউটর এবং অটো-ম্যাচ করা শর্টলিস্ট দেখুন।</p>
+            <h1 className="text-xl sm:text-2xl font-black text-[#001F3F] tracking-tight">My Tuition Posts & Applications</h1>
+            <p className="text-xs text-slate-500 mt-0.5">আপনার পোস্ট করা টিউশনসমূহ, আবেদনকারী টিউটর এবং অটো-ম্যাচ করা শর্টলিস্ট দেখুন।</p>
           </div>
           <Link
             to="/request-tutor"
-            className="px-5 py-2.5 bg-secondary text-white rounded-xl text-xs font-black uppercase tracking-wider hover:bg-secondary/90 transition-all shadow-md flex items-center justify-center gap-2"
+            className="w-full sm:w-auto px-5 py-3 sm:py-2.5 bg-secondary text-white rounded-xl text-xs font-black uppercase tracking-wider hover:bg-secondary/90 active:scale-95 transition-all shadow-sm flex items-center justify-center gap-2"
           >
             + Post New Tuition
           </Link>
         </div>
 
         {/* Requests List */}
-        <div className="space-y-4">
+        <div className="space-y-3.5 sm:space-y-4">
           {requests.map((job) => {
             const jobId = String(job._id || job.id);
             const subjectsStr = Array.isArray(job.subjects) ? job.subjects.join(', ') : job.category || 'Tuition';
             const locStr = typeof job.location === 'object' ? `${job.location?.area || ''}, ${job.location?.district || ''}` : `${job.area || ''}, ${job.location || ''}`;
             const shortlistCount = job.shortlistedTutors?.length || 0;
+            const mediumText = job.medium 
+              ? (job.medium.toLowerCase().includes('medium') || job.medium.toLowerCase().includes('version') ? job.medium : `${job.medium} Medium`)
+              : 'General';
 
             return (
               <motion.div 
                 key={jobId}
                 whileHover={{ y: -2 }}
-                className="bg-white p-6 rounded-3xl border border-ink/10 shadow-sm space-y-4 transition-all hover:shadow-md"
+                className="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-2xs sm:shadow-sm space-y-3.5 sm:space-y-4 transition-all hover:shadow-md hover:border-slate-300"
               >
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                  <div className="space-y-1.5 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[10px] font-black text-secondary bg-secondary/10 px-2.5 py-0.5 rounded-full uppercase">
-                        Job #{jobId.slice(-6)}
-                      </span>
-                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
-                        job.status === 'Matched' 
-                          ? 'bg-purple-100 text-purple-700' 
-                          : job.status === 'Open' 
-                            ? 'bg-emerald-100 text-emerald-700' 
-                            : 'bg-gray-100 text-gray-700'
-                      }`}>
-                        Status: {job.status || 'Open'}
-                      </span>
-                      <span className="text-xs font-bold text-ink-muted">
-                        • {new Date(job.createdAt || Date.now()).toLocaleDateString('bn-BD', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </span>
-                    </div>
-
-                    <h3 className="text-lg font-black text-[#001F3F] leading-snug">
-                      Tutor Needed for {subjectsStr} ({job.studentClass || 'Class N/A'})
-                    </h3>
-
-                    <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-ink-muted">
-                      <span className="flex items-center gap-1 font-bold text-ink">
-                        <BookOpen size={14} className="text-secondary" /> {job.medium} Medium
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <MapPin size={14} className="text-secondary" /> {locStr}
-                      </span>
-                      <span className="font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">
-                        ৳ {job.salary ? job.salary.toLocaleString() : 'Negotiable'} / month
-                      </span>
-                    </div>
+                {/* Top Row: Badges & Utilities */}
+                <div className="flex items-center justify-between gap-2 flex-wrap pb-1 border-b border-slate-100 sm:border-none sm:pb-0">
+                  <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                    <span className="text-[10px] sm:text-[11px] font-black text-secondary bg-secondary/10 px-2.5 py-0.5 rounded-full uppercase tracking-wider font-mono">
+                      Job #{jobId.slice(-6).toUpperCase()}
+                    </span>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black uppercase tracking-wider ${
+                      job.status === 'Matched' 
+                        ? 'bg-purple-100 text-purple-700 border border-purple-200' 
+                        : job.status === 'Open' 
+                          ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' 
+                          : 'bg-gray-100 text-gray-700 border border-gray-200'
+                    }`}>
+                      Status: {job.status || 'Open'}
+                    </span>
+                    <span className="text-[11px] font-bold text-slate-400">
+                      • {new Date(job.createdAt || Date.now()).toLocaleDateString('bn-BD', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </span>
                   </div>
 
-                  {/* Actions */}
-                  <div className="flex items-center gap-2.5 flex-wrap w-full md:w-auto justify-end border-t md:border-t-0 pt-3 md:pt-0 border-ink/5">
+                  {/* Top-Right Quick Utility Icons on Desktop */}
+                  <div className="hidden sm:flex items-center gap-1.5">
+                    <Link
+                      to={`/job/${jobId}`}
+                      className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all active:scale-95"
+                      title="View Job Details"
+                    >
+                      <Eye size={15} />
+                    </Link>
+                    <button
+                      onClick={() => openEditModal(job)}
+                      className="p-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl transition-all cursor-pointer border border-blue-200/80 active:scale-95"
+                      title="Edit Tuition Post"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    <button
+                      onClick={() => setDeleteJobId(jobId)}
+                      className="p-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl transition-all cursor-pointer border border-rose-200/80 active:scale-95"
+                      title="Delete Tuition Post"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Job Title */}
+                <div className="space-y-1.5">
+                  <h3 className="text-base sm:text-lg font-black text-[#001F3F] leading-snug">
+                    Tutor Needed for {subjectsStr} ({job.studentClass || 'Class N/A'})
+                  </h3>
+
+                  {/* Specs / Meta Badges */}
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs font-semibold text-slate-500 pt-0.5">
+                    <span className="inline-flex items-center gap-1 font-bold text-slate-700 bg-slate-100/80 px-2 py-0.5 rounded-md">
+                      <BookOpen size={13} className="text-secondary shrink-0" /> {mediumText}
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-slate-600 bg-slate-100/80 px-2 py-0.5 rounded-md">
+                      <MapPin size={13} className="text-secondary shrink-0" /> <span className="truncate max-w-[200px] sm:max-w-none">{locStr || 'Location N/A'}</span>
+                    </span>
+                    <span className="font-black text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200/80">
+                      ৳ {job.salary ? job.salary.toLocaleString() : 'Negotiable'} / month
+                    </span>
+                  </div>
+                </div>
+
+                {/* Action Buttons (App-like 2-column + utility bar on Mobile) */}
+                <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                  {/* Primary Actions: Applications & Auto-Matches */}
+                  <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-2.5 flex-1">
+                    {/* View Applications */}
+                    <Link
+                      to={`/student/requests/${jobId}/applications`}
+                      className="px-3.5 py-2.5 bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all shadow-xs active:scale-[0.98] text-center"
+                    >
+                      <Users size={14} className="shrink-0" />
+                      <span>View Applications</span>
+                    </Link>
+
                     {/* Auto Match Button */}
                     <button
                       onClick={() => openMatchesModal(job)}
-                      className="px-3.5 py-2 bg-purple-50 text-purple-700 hover:bg-purple-100 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer border border-purple-200"
+                      className="px-3 py-2.5 bg-purple-50 text-purple-700 hover:bg-purple-100 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer border border-purple-200/80 active:scale-[0.98] text-center"
                     >
-                      <Sparkles size={14} className="text-purple-600" />
-                      Auto-Matched ({shortlistCount > 0 ? shortlistCount : 'Top 5'})
+                      <Sparkles size={14} className="text-purple-600 shrink-0" />
+                      <span>Auto-Matched ({shortlistCount > 0 ? shortlistCount : 'Top 5'})</span>
                     </button>
+                  </div>
 
-                    {/* Applications Page Link */}
-                    <Link
-                      to={`/student/requests/${jobId}/applications`}
-                      className="px-4 py-2 bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-sm"
-                    >
-                      <Users size={14} />
-                      View Applications
-                    </Link>
-
-                    {/* Public Details Link */}
+                  {/* Mobile Utility Row */}
+                  <div className="flex sm:hidden items-center justify-between pt-1 border-t border-slate-100/80 gap-2">
                     <Link
                       to={`/job/${jobId}`}
-                      className="p-2 bg-gray-100 hover:bg-gray-200 text-ink rounded-xl transition-all"
-                      title="View Job Details"
+                      className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95"
                     >
-                      <Eye size={16} />
+                      <Eye size={14} /> <span>View Post</span>
                     </Link>
+                    <button
+                      onClick={() => openEditModal(job)}
+                      className="p-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl transition-all cursor-pointer border border-blue-200/80 active:scale-95 w-10 h-9 flex items-center justify-center shrink-0"
+                      title="Edit"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    <button
+                      onClick={() => setDeleteJobId(jobId)}
+                      className="p-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl transition-all cursor-pointer border border-rose-200/80 active:scale-95 w-10 h-9 flex items-center justify-center shrink-0"
+                      title="Delete"
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 </div>
               </motion.div>
@@ -227,61 +346,301 @@ export default function StudentRequests() {
           })}
 
           {!loading && requests.length === 0 && (
-            <div className="bg-white p-12 rounded-3xl border border-ink/10 shadow-sm text-center space-y-4">
-              <div className="w-20 h-20 bg-ink/5 rounded-full flex items-center justify-center text-ink-muted mx-auto">
-                <History size={40} />
+            <div className="bg-white p-8 sm:p-12 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-2xs text-center space-y-4">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 mx-auto">
+                <History size={36} />
               </div>
               <div className="space-y-1">
-                <h3 className="text-xl font-display font-black text-ink">No Tuition Requests Found</h3>
-                <p className="text-ink-muted text-xs">আপনি এখনও কোনো টিউশন পোস্ট করেননি। নতুন টিউটর খুঁজতে এখনই পোস্ট করুন।</p>
+                <h3 className="text-lg sm:text-xl font-display font-black text-[#001F3F]">No Tuition Requests Found</h3>
+                <p className="text-slate-500 text-xs max-w-sm mx-auto">আপনি এখনও কোনো টিউশন পোস্ট করেননি। নতুন টিউটর খুঁজতে এখনই পোস্ট করুন।</p>
               </div>
-              <Link to="/request-tutor" className="inline-block px-5 py-2.5 bg-secondary text-white rounded-xl text-xs font-black">
+              <Link to="/request-tutor" className="inline-block px-6 py-2.5 bg-secondary text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-sm active:scale-95 transition-all">
                 Post Tuition Now
               </Link>
             </div>
           )}
         </div>
 
-        {/* Modal: Applications or Auto-Matches */}
+        {/* ═══════════════════════════════════════════════════════
+             Edit Modal
+        ════════════════════════════════════════════════════════ */}
         <AnimatePresence>
-          {modalType && selectedJob && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          {editJob && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm">
               <motion.div
                 initial={{ opacity: 0, scale: 0.95, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                className="bg-white w-full max-w-3xl rounded-[32px] p-6 sm:p-8 shadow-2xl border border-ink/10 space-y-6 max-h-[85vh] overflow-y-auto"
+                className="bg-white w-full max-w-2xl rounded-2xl sm:rounded-[28px] p-4 sm:p-8 shadow-2xl border border-slate-200 space-y-4 sm:space-y-5 max-h-[90vh] overflow-y-auto"
               >
-                <div className="flex items-center justify-between border-b border-ink/10 pb-4">
+                {/* Header */}
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3 sm:pb-4">
+                  <div className="space-y-0.5 sm:space-y-1">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black uppercase tracking-wider bg-blue-50 text-blue-700">
+                      <Pencil size={12} /> Edit Tuition Post
+                    </div>
+                    <h2 className="text-base sm:text-lg font-black text-[#001F3F] leading-snug">
+                      {editJob.subjects?.join(', ') || 'Tuition'} — {editJob.studentClass}
+                    </h2>
+                  </div>
+                  <button
+                    onClick={() => setEditJob(null)}
+                    className="p-2 rounded-full bg-slate-100 hover:bg-rose-100 hover:text-rose-600 transition-all cursor-pointer active:scale-95"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                {/* Form Fields */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+
+                  {/* Subjects */}
+                  <div className="sm:col-span-2 space-y-1">
+                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Subjects (comma separated)</label>
+                    <input
+                      type="text"
+                      value={editForm.subjects}
+                      onChange={e => setEditForm((p: any) => ({ ...p, subjects: e.target.value }))}
+                      className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      placeholder="Math, Physics, Chemistry"
+                    />
+                  </div>
+
+                  {/* Class */}
                   <div className="space-y-1">
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-primary/10 text-primary">
-                      {modalType === 'matches' ? <Sparkles size={14} /> : <Users size={14} />}
+                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Class / Course</label>
+                    <input
+                      type="text"
+                      value={editForm.studentClass}
+                      onChange={e => setEditForm((p: any) => ({ ...p, studentClass: e.target.value }))}
+                      className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      placeholder="Class 10"
+                    />
+                  </div>
+
+                  {/* Salary */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Monthly Salary (৳)</label>
+                    <input
+                      type="number"
+                      value={editForm.salary}
+                      onChange={e => setEditForm((p: any) => ({ ...p, salary: e.target.value }))}
+                      className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      placeholder="5000"
+                    />
+                  </div>
+
+                  {/* Medium */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Medium / Curriculum</label>
+                    <select
+                      value={editForm.medium}
+                      onChange={e => setEditForm((p: any) => ({ ...p, medium: e.target.value }))}
+                      className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white cursor-pointer"
+                    >
+                      {['Bangla Medium', 'English Medium', 'English Version', 'Madrasa', 'Other'].map(m => (
+                        <option key={m} value={m}>{m}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Tuition Type */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Tuition Type</label>
+                    <select
+                      value={editForm.tuitionType}
+                      onChange={e => setEditForm((p: any) => ({ ...p, tuitionType: e.target.value }))}
+                      className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white cursor-pointer"
+                    >
+                      {['Home Tuition', 'Online', 'Group Tuition', 'Coaching Center'].map(t => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Gender Preference */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Tutor Gender</label>
+                    <select
+                      value={editForm.genderPreference}
+                      onChange={e => setEditForm((p: any) => ({ ...p, genderPreference: e.target.value }))}
+                      className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white cursor-pointer"
+                    >
+                      {['Any', 'Male', 'Female'].map(g => (
+                        <option key={g} value={g}>{g}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Tutoring Days */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Days per Week</label>
+                    <select
+                      value={editForm.tutoringDays}
+                      onChange={e => setEditForm((p: any) => ({ ...p, tutoringDays: e.target.value }))}
+                      className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white cursor-pointer"
+                    >
+                      {['2 Days/Week', '3 Days/Week', '4 Days/Week', '5 Days/Week', '6 Days/Week', 'Daily'].map(d => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Duration */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Session Duration</label>
+                    <select
+                      value={editForm.duration}
+                      onChange={e => setEditForm((p: any) => ({ ...p, duration: e.target.value }))}
+                      className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white cursor-pointer"
+                    >
+                      {['1 Hour', '1.5 Hours', '2 Hours', '2.5 Hours', '3 Hours'].map(d => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Status */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Status</label>
+                    <select
+                      value={editForm.status}
+                      onChange={e => setEditForm((p: any) => ({ ...p, status: e.target.value }))}
+                      className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white cursor-pointer"
+                    >
+                      {['Open', 'Closed', 'Matched', 'Cancelled'].map(s => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Tutor Qualification */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Expected Qualification</label>
+                    <input
+                      type="text"
+                      value={editForm.tutorQualification}
+                      onChange={e => setEditForm((p: any) => ({ ...p, tutorQualification: e.target.value }))}
+                      className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      placeholder="Graduate / Masters"
+                    />
+                  </div>
+
+                  {/* Requirements */}
+                  <div className="sm:col-span-2 space-y-1">
+                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Additional Requirements / Notes</label>
+                    <textarea
+                      rows={3}
+                      value={editForm.requirements}
+                      onChange={e => setEditForm((p: any) => ({ ...p, requirements: e.target.value }))}
+                      className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
+                      placeholder="Any special note for the tutor..."
+                    />
+                  </div>
+                </div>
+
+                {/* Footer Buttons */}
+                <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                  <button
+                    onClick={() => setEditJob(null)}
+                    className="flex-1 sm:flex-initial px-5 py-2.5 bg-slate-100 text-slate-700 rounded-xl text-xs font-black hover:bg-slate-200 transition-all cursor-pointer active:scale-95 text-center"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveEdit}
+                    disabled={editLoading}
+                    className="flex-1 sm:flex-initial px-6 py-2.5 bg-primary text-white rounded-xl text-xs font-black flex items-center justify-center gap-1.5 hover:bg-primary/90 transition-all shadow-md shadow-primary/20 cursor-pointer disabled:opacity-60 active:scale-95 text-center"
+                  >
+                    {editLoading ? <RefreshCw size={14} className="animate-spin" /> : <Save size={14} />}
+                    {editLoading ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* ═══════════════════════════════════════════════════════
+             Delete Confirm Modal
+        ════════════════════════════════════════════════════════ */}
+        <AnimatePresence>
+          {deleteJobId && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="bg-white w-full max-w-sm rounded-2xl sm:rounded-[24px] p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-4 sm:space-y-5 text-center"
+              >
+                <div className="w-14 h-14 sm:w-16 sm:h-16 bg-rose-50 rounded-full flex items-center justify-center mx-auto border border-rose-200">
+                  <AlertTriangle size={26} className="text-rose-600" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-base sm:text-lg font-black text-slate-900">Delete Tuition Post?</h3>
+                  <p className="text-xs text-slate-500">এই টিউশন পোস্টটি স্থায়ীভাবে মুছে ফেলা হবে। সমস্ত আবেদনও বাতিল হয়ে যাবে।</p>
+                </div>
+                <div className="flex gap-2.5 pt-1">
+                  <button
+                    onClick={() => setDeleteJobId(null)}
+                    className="flex-1 px-4 py-2.5 bg-slate-100 text-slate-700 rounded-xl text-xs font-black hover:bg-slate-200 transition-all cursor-pointer active:scale-95"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => handleDeleteJob(deleteJobId)}
+                    disabled={deleteLoading}
+                    className="flex-1 px-4 py-2.5 bg-rose-600 text-white rounded-xl text-xs font-black flex items-center justify-center gap-1.5 hover:bg-rose-700 transition-all cursor-pointer disabled:opacity-60 active:scale-95 shadow-sm"
+                  >
+                    {deleteLoading ? <RefreshCw size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                    {deleteLoading ? 'Deleting...' : 'Yes, Delete'}
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* Modal: Applications or Auto-Matches */}
+        <AnimatePresence>
+          {modalType && selectedJob && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                className="bg-white w-full max-w-3xl rounded-2xl sm:rounded-[32px] p-4 sm:p-8 shadow-2xl border border-slate-200 space-y-4 sm:space-y-6 max-h-[88vh] overflow-y-auto"
+              >
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3 sm:pb-4">
+                  <div className="space-y-0.5 sm:space-y-1">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black uppercase tracking-wider bg-primary/10 text-primary">
+                      {modalType === 'matches' ? <Sparkles size={13} /> : <Users size={13} />}
                       {modalType === 'matches' ? 'AI Auto-Matched Tutors' : 'Received Applications'}
                     </div>
-                    <h2 className="text-xl font-black text-[#001F3F]">
+                    <h2 className="text-base sm:text-xl font-black text-[#001F3F] line-clamp-1">
                       Job: {selectedJob.subjects?.join(', ') || 'Tuition'} ({selectedJob.studentClass})
                     </h2>
                   </div>
                   <button
                     onClick={() => { setModalType(null); setSelectedJob(null); }}
-                    className="p-2 rounded-full bg-gray-100 hover:bg-rose-100 hover:text-rose-600 transition-all cursor-pointer"
+                    className="p-2 rounded-full bg-slate-100 hover:bg-rose-100 hover:text-rose-600 transition-all cursor-pointer active:scale-95"
                   >
                     <X size={18} />
                   </button>
                 </div>
 
                 {modalLoading ? (
-                  <div className="py-16 text-center text-xs font-bold text-ink-muted animate-pulse">
+                  <div className="py-16 text-center text-xs font-bold text-slate-400 animate-pulse">
                     Loading details...
                   </div>
                 ) : modalType === 'applications' ? (
                   /* ─── Applications View ─── */
-                  <div className="space-y-4">
+                  <div className="space-y-3 sm:space-y-4">
                     {applications.length === 0 ? (
-                      <div className="py-12 text-center text-ink-muted space-y-2">
-                        <Users size={36} className="mx-auto text-ink-muted/30" />
-                        <p className="text-sm font-bold text-ink">এখনও কোনো আবেদন জমা পড়েনি।</p>
-                        <p className="text-xs">টিউটররা আবেদন করলে এখানে তাদের তালিকা দেখতে পাবেন।</p>
+                      <div className="py-12 text-center text-slate-400 space-y-2">
+                        <Users size={36} className="mx-auto text-slate-300" />
+                        <p className="text-sm font-bold text-slate-800">এখনও কোনো আবেদন জমা পড়েনি।</p>
+                        <p className="text-xs text-slate-400">টিউটররা আবেদন করলে এখানে তাদের তালিকা দেখতে পাবেন।</p>
                       </div>
                     ) : (
                       applications.map((app: any) => {
@@ -291,11 +650,11 @@ export default function StudentRequests() {
                         return (
                           <div
                             key={appId}
-                            className="bg-gray-50 border border-ink/10 rounded-2xl p-5 space-y-3"
+                            className="bg-slate-50/80 border border-slate-200/80 rounded-2xl p-4 sm:p-5 space-y-3"
                           >
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                               <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center font-black text-lg overflow-hidden border">
+                                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center font-black text-base sm:text-lg overflow-hidden border shrink-0">
                                   {tutorUser.avatar ? (
                                     <img src={tutorUser.avatar} alt="" className="w-full h-full object-cover" />
                                   ) : (
@@ -303,40 +662,40 @@ export default function StudentRequests() {
                                   )}
                                 </div>
                                 <div>
-                                  <h4 className="text-sm font-black text-ink flex items-center gap-1.5">
+                                  <h4 className="text-xs sm:text-sm font-black text-slate-900 flex items-center gap-1.5 flex-wrap">
                                     {tutorUser.name || 'Tutor'}
                                     {app.isAutoShortlisted && (
-                                      <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-[10px] font-black rounded-full">
+                                      <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-[9px] sm:text-[10px] font-black rounded-full">
                                         🤖 Auto Matched
                                       </span>
                                     )}
                                   </h4>
-                                  <p className="text-xs text-ink-muted">{tutorUser.phone || tutorUser.email || 'Verified Tutor'}</p>
+                                  <p className="text-[11px] sm:text-xs text-slate-500">{tutorUser.phone || tutorUser.email || 'Verified Tutor'}</p>
                                 </div>
                               </div>
 
                               {/* Match Score Badge */}
-                              <div className="text-right">
+                              <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-1">
                                 {app.matchScore !== undefined && app.matchScore !== null && (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-lg text-xs font-black">
-                                    <Sparkles size={12} /> Score: {app.matchScore}/100
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-lg text-[11px] sm:text-xs font-black">
+                                    <Sparkles size={11} /> Score: {app.matchScore}/100
                                   </span>
                                 )}
-                                <span className="block text-[11px] font-bold text-ink-muted mt-1">
-                                  Status: <span className="font-black text-ink">{app.status}</span>
+                                <span className="text-[10px] sm:text-[11px] font-bold text-slate-500">
+                                  Status: <span className="font-black text-slate-800">{app.status}</span>
                                 </span>
                               </div>
                             </div>
 
                             {/* Cover letter & details */}
                             {app.coverLetter && (
-                              <p className="text-xs text-ink-muted bg-white p-3 rounded-xl border border-ink/5 italic">
+                              <p className="text-xs text-slate-600 bg-white p-3 rounded-xl border border-slate-200/80 italic">
                                 "{app.coverLetter}"
                               </p>
                             )}
 
-                            <div className="flex flex-wrap items-center justify-between gap-3 text-xs pt-1 border-t border-ink/5">
-                              <div className="flex items-center gap-3 text-ink-muted font-bold">
+                            <div className="flex flex-wrap items-center justify-between gap-3 text-xs pt-1 border-t border-slate-100">
+                              <div className="flex items-center gap-3 text-slate-500 font-bold">
                                 {app.expectedSalary ? <span>Expected: ৳{app.expectedSalary}</span> : null}
                                 {app.availableTime && app.availableTime.length > 0 && (
                                   <span>Time: {app.availableTime.join(', ')}</span>
@@ -345,18 +704,18 @@ export default function StudentRequests() {
 
                               {/* Action Buttons */}
                               {app.status === 'Pending' ? (
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
                                   <button
                                     onClick={() => handleRejectApp(appId)}
                                     disabled={actionLoading}
-                                    className="px-3 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-xl text-xs font-black transition-all cursor-pointer"
+                                    className="px-3 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-xl text-xs font-black transition-all cursor-pointer active:scale-95"
                                   >
                                     Reject
                                   </button>
                                   <button
                                     onClick={() => handleAcceptApp(appId)}
                                     disabled={actionLoading}
-                                    className="px-4 py-1.5 bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl text-xs font-black shadow-md shadow-emerald-600/20 transition-all cursor-pointer flex items-center gap-1"
+                                    className="px-4 py-1.5 bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl text-xs font-black shadow-md shadow-emerald-600/20 transition-all cursor-pointer flex items-center gap-1 active:scale-95"
                                   >
                                     <Check size={14} /> Accept Tutor
                                   </button>
@@ -376,12 +735,12 @@ export default function StudentRequests() {
                   </div>
                 ) : (
                   /* ─── Auto Matched Tutors View ─── */
-                  <div className="space-y-4">
+                  <div className="space-y-3 sm:space-y-4">
                     {shortlisted.length === 0 ? (
-                      <div className="py-12 text-center text-ink-muted space-y-2">
+                      <div className="py-12 text-center text-slate-400 space-y-2">
                         <Sparkles size={36} className="mx-auto text-purple-300" />
-                        <p className="text-sm font-bold text-ink">এখনও কোনো টিউটর ম্যাচ পাওয়া যায়নি।</p>
-                        <p className="text-xs">সিস্টেম ব্যাকগ্রাউন্ডে সক্রিয় টিউটরদের সাথে ম্যাচ করছে।</p>
+                        <p className="text-sm font-bold text-slate-800">এখনও কোনো টিউটর ম্যাচ পাওয়া যায়নি।</p>
+                        <p className="text-xs text-slate-400">সিস্টেম ব্যাকগ্রাউন্ডে সক্রিয় টিউটরদের সাথে ম্যাচ করছে।</p>
                       </div>
                     ) : (
                       shortlisted.map((item: any, idx: number) => {
@@ -392,11 +751,11 @@ export default function StudentRequests() {
                         return (
                           <div
                             key={idx}
-                            className="bg-purple-50/50 border border-purple-200/70 rounded-2xl p-5 space-y-3"
+                            className="bg-purple-50/50 border border-purple-200/70 rounded-2xl p-4 sm:p-5 space-y-3"
                           >
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                               <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 rounded-full bg-purple-600 text-white flex items-center justify-center font-black text-lg overflow-hidden">
+                                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-purple-600 text-white flex items-center justify-center font-black text-base sm:text-lg overflow-hidden shrink-0">
                                   {tutorUser.avatar ? (
                                     <img src={tutorUser.avatar} alt="" className="w-full h-full object-cover" />
                                   ) : (
@@ -404,23 +763,23 @@ export default function StudentRequests() {
                                   )}
                                 </div>
                                 <div>
-                                  <h4 className="text-sm font-black text-ink flex items-center gap-1.5">
+                                  <h4 className="text-xs sm:text-sm font-black text-slate-900 flex items-center gap-1.5">
                                     {tutorUser.name || 'Top Tutor'}
-                                    {tutor.isVerified && <ShieldCheck size={16} className="text-emerald-600" />}
+                                    {tutor.isVerified && <ShieldCheck size={15} className="text-emerald-600 shrink-0" />}
                                   </h4>
-                                  <p className="text-xs text-ink-muted">{tutor.university || tutor.qualification || 'Experienced Tutor'}</p>
+                                  <p className="text-[11px] sm:text-xs text-slate-500">{tutor.university || tutor.qualification || 'Experienced Tutor'}</p>
                                 </div>
                               </div>
 
-                              <div className="text-right">
-                                <span className="inline-flex items-center gap-1 px-3 py-1 bg-purple-600 text-white rounded-xl text-xs font-black shadow-sm">
+                              <div className="text-left sm:text-right">
+                                <span className="inline-flex items-center gap-1 px-3 py-1 bg-purple-600 text-white rounded-xl text-xs font-black shadow-xs">
                                   <Sparkles size={12} /> Score: {item.score || 0}/100
                                 </span>
                               </div>
                             </div>
 
                             {/* Breakdown Pills */}
-                            <div className="flex flex-wrap gap-1.5 text-[11px] font-bold text-ink-muted pt-1">
+                            <div className="flex flex-wrap gap-1.5 text-[10px] sm:text-[11px] font-bold text-slate-600 pt-1">
                               <span className="px-2 py-0.5 bg-white rounded-md border border-purple-100">
                                 Subject: {details.subjectScore || 0}/30
                               </span>
@@ -444,7 +803,7 @@ export default function StudentRequests() {
                               <div className="pt-2 flex justify-end">
                                 <Link
                                   to={`/tutor/${tutor._id}`}
-                                  className="px-4 py-1.5 bg-primary text-white rounded-xl text-xs font-bold hover:bg-primary/90 transition-all flex items-center gap-1"
+                                  className="w-full sm:w-auto text-center px-4 py-2 bg-primary text-white rounded-xl text-xs font-bold hover:bg-primary/90 active:scale-95 transition-all flex items-center justify-center gap-1 shadow-xs"
                                 >
                                   View Profile & Hire <ArrowRight size={13} />
                                 </Link>

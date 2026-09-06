@@ -1,18 +1,22 @@
 import StudentLayout from '@/src/components/StudentLayout.tsx';
 import { useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { 
-  Building2, 
-  BookOpen, 
-  MapPin, 
-  Search, 
-  Sparkles, 
-  CheckCircle2, 
-  Clock, 
-  GraduationCap, 
+import { motion, AnimatePresence } from 'motion/react';
+import {
+  Building2,
+  BookOpen,
+  MapPin,
+  Search,
+  Sparkles,
+  CheckCircle2,
   X,
-  Phone,
-  ArrowRight
+  ArrowRight,
+  Calendar,
+  Users,
+  ChevronDown,
+  ChevronUp,
+  GraduationCap,
+  BadgeCheck,
 } from 'lucide-react';
 import Navbar from '@/src/components/Navbar.tsx';
 import Footer from '@/src/components/Footer.tsx';
@@ -21,6 +25,7 @@ import { CoachingPublicRepository } from '@/src/repositories/coachingRepository'
 import { CoachingProfileRecord } from '@/src/repositories/coachingRepository';
 import { apiPost } from '@/src/repositories/baseRepository';
 import { useNavigate } from 'react-router-dom';
+import { cn } from '@/src/lib/utils';
 
 export default function PublicCoachingExplorer({ isDashboard }: { isDashboard?: boolean }) {
   const { user } = useAuth();
@@ -30,8 +35,8 @@ export default function PublicCoachingExplorer({ isDashboard }: { isDashboard?: 
   const [coachingCenters, setCoachingCenters] = useState<CoachingProfileRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [expandedCenters, setExpandedCenters] = useState<Set<string>>(new Set());
 
-  // Enrollment Modal State
   const [selectedBatch, setSelectedBatch] = useState<{ coaching: CoachingProfileRecord; batch: any } | null>(null);
   const [enrolling, setEnrolling] = useState(false);
   const [enrollSuccess, setEnrollSuccess] = useState(false);
@@ -57,7 +62,7 @@ export default function PublicCoachingExplorer({ isDashboard }: { isDashboard?: 
 
   const handleEnrollClick = (coaching: CoachingProfileRecord, batch: any) => {
     if (!user) {
-      alert('ভর্তি হতে দয়া করে প্রথমে আপনার অ্যাকাউন্টে লগইন বা সাইন আপ করুন!');
+      alert('ভর্তি হতে দয়া করে প্রথমে আপনার অ্যাকাউন্টে লগইন বা সাইন আপ করুন!');
       navigate('/login');
       return;
     }
@@ -87,10 +92,19 @@ export default function PublicCoachingExplorer({ isDashboard }: { isDashboard?: 
         setSelectedBatch(null);
       }, 3000);
     } catch (err: any) {
-      alert(err.message || 'ভর্তির জন্য আবেদন করতে সমস্যা হয়েছে।');
+      alert(err.message || 'ভর্তির জন্য আবেদন করতে সমস্যা হয়েছে।');
     } finally {
       setEnrolling(false);
     }
+  };
+
+  const toggleCenterExpand = (id: string) => {
+    setExpandedCenters((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
   const filteredCenters = coachingCenters.filter((c) =>
@@ -101,230 +115,383 @@ export default function PublicCoachingExplorer({ isDashboard }: { isDashboard?: 
   );
 
   const content = (
-    <div className={`w-full space-y-8 ${inDashboard ? '' : 'pt-24 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto'}`}>
-        {/* Banner */}
-        <div className="bg-gradient-to-r from-primary via-purple-600 to-pink-500 rounded-3xl p-8 text-white shadow-xl shadow-primary/20 space-y-3 text-center sm:text-left">
-          <span className="px-3.5 py-1 bg-white/20 text-white rounded-full text-[10px] font-black uppercase tracking-wider inline-flex items-center gap-1.5">
-            <Sparkles size={14} /> Verified Academic Coaching Centers
+    <div className={`w-full ${inDashboard ? 'pb-24 lg:pb-6' : 'pt-24 pb-16 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto'}`}>
+
+      {/* HERO BANNER */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-primary via-purple-600 to-pink-500 p-5 sm:p-8 text-white shadow-xl shadow-primary/30 mb-4 sm:mb-6"
+      >
+        <div
+          className="absolute inset-0 opacity-[0.07] pointer-events-none"
+          style={{ backgroundImage: 'radial-gradient(white 1.2px, transparent 1.2px)', backgroundSize: '18px 18px' }}
+        />
+        <div className="absolute -bottom-10 -right-10 w-44 h-44 bg-pink-400/30 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative z-10 space-y-3">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 backdrop-blur-sm text-white rounded-full text-[10px] font-black uppercase tracking-wider border border-white/20">
+            <Sparkles size={11} /> Verified Academic Coaching Centers
           </span>
-          <h1 className="text-3xl sm:text-4xl font-display font-black">
+          <h1 className="text-xl sm:text-3xl lg:text-4xl font-display font-black leading-tight tracking-tight">
             খুঁজে নিন আপনার এলাকার সেরা কোচিং সেন্টার ও একাডেমীক ব্যাচ
           </h1>
-          <p className="text-white/80 text-sm max-w-2xl">
-            অভিজ্ঞ শিক্ষক, নিয়মিত পরীক্ষা ও সেরা সিডিউলে সরাসরি ব্যাচে ভর্তি হোন আপনার পছন্দ অনুযায়ী।
+          <p className="text-white/80 text-xs sm:text-sm leading-relaxed max-w-xl">
+            অভিজ্ঞ শিক্ষক, নিয়মিত পরীক্ষা ও সেরা সিডিউলে সরাসরি ব্যাচে ভর্তি হোন আপনার পছন্দ অনুযায়ী।
           </p>
         </div>
+      </motion.div>
 
-        {/* Search */}
-        <div className="relative max-w-2xl mx-auto">
-          <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-muted" />
-          <input 
-            type="text"
-            placeholder="Search coaching centers by name, district, location, or subject..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-4 bg-white rounded-2xl border border-ink/10 text-sm font-bold shadow-md outline-none focus:ring-2 focus:ring-primary/20"
-          />
-        </div>
-
-        {/* Coaching Centers List */}
-        {filteredCenters.length > 0 ? (
-          <div className="space-y-8">
-            {filteredCenters.map((coaching) => (
-              <div 
-                key={String((coaching as any)._id || Math.random())}
-                className="bg-white rounded-3xl p-6 sm:p-8 border border-ink/5 shadow-sm space-y-6 hover:shadow-md transition-all"
-              >
-                {/* Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-ink/5 pb-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-black text-2xl shrink-0">
-                      <Building2 size={28} />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h2 className="text-xl font-display font-black text-ink">{coaching.instituteName}</h2>
-                        <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase rounded-full flex items-center gap-1">
-                          <CheckCircle2 size={12} /> Verified
-                        </span>
-                      </div>
-                      <p className="text-xs text-ink-muted flex items-center gap-1 mt-1 font-medium">
-                        <MapPin size={14} className="text-primary" /> {coaching.location || coaching.district || 'Dhaka'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Batches Section */}
-                <div className="space-y-4">
-                  <h4 className="text-xs font-black uppercase tracking-wider text-ink-muted">Available Batches ({coaching.batches?.length || 0})</h4>
-                  
-                  {coaching.batches && coaching.batches.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {coaching.batches.map((batch: any) => (
-                        <div 
-                          key={String(batch._id || Math.random())}
-                          className="bg-background p-5 rounded-2xl border border-ink/5 space-y-4 flex flex-col justify-between"
-                        >
-                          <div className="space-y-2">
-                            <span className="px-2.5 py-0.5 bg-primary/10 text-primary text-[10px] font-black uppercase rounded-full">
-                              {batch.className}
-                            </span>
-                            <h3 className="text-base font-black text-ink leading-tight">{batch.batchName}</h3>
-                            <p className="text-xs font-bold text-ink-muted">Subject: <span className="text-ink">{batch.subject}</span></p>
-                            <p className="text-xs font-bold text-ink-muted">Schedule: <span className="text-ink">{batch.schedule}</span></p>
-                          </div>
-
-                          <div className="pt-3 border-t border-ink/5 flex items-center justify-between">
-                            <div>
-                              <p className="text-[10px] text-ink-muted uppercase font-bold">Monthly Fee</p>
-                              <p className="text-lg font-black text-primary">৳{batch.fee}</p>
-                            </div>
-                            <button
-                              onClick={() => handleEnrollClick(coaching, batch)}
-                              className="px-5 py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-md hover:bg-primary-dark transition-all cursor-pointer flex items-center gap-1.5"
-                            >
-                              Enroll Now <ArrowRight size={14} />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs font-bold text-ink-muted py-4">No active batches listed yet.</p>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="bg-white p-12 rounded-3xl border border-ink/5 text-center space-y-4 shadow-sm">
-            <Building2 size={40} className="text-ink-muted mx-auto" />
-            <h3 className="text-lg font-black text-ink">No coaching centers found</h3>
-            <p className="text-xs text-ink-muted">Try adjusting your search criteria.</p>
-          </div>
+      {/* SEARCH */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.08 }}
+        className="relative mb-5 sm:mb-6"
+      >
+        <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+        <input
+          type="text"
+          placeholder="Search coaching centers by name, district, or subject..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full pl-11 pr-10 py-3.5 bg-white rounded-xl sm:rounded-2xl border border-slate-200/80 text-sm font-semibold text-slate-800 shadow-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 placeholder:text-slate-400 transition-all"
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery('')}
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all"
+          >
+            <X size={15} />
+          </button>
         )}
+      </motion.div>
 
-      {/* Enrollment Modal */}
-      {selectedBatch && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-md rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 relative border border-ink/10">
-            <button 
-              onClick={() => setSelectedBatch(null)}
-              className="absolute top-6 right-6 p-2 rounded-full bg-gray-100 hover:bg-rose-50 text-gray-500 hover:text-rose-600 transition-all cursor-pointer"
-            >
-              <X size={18} />
-            </button>
-
-            {enrollSuccess ? (
-              <div className="text-center py-6 space-y-3">
-                <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
-                  <CheckCircle2 size={36} />
+      {/* LOADING SKELETON */}
+      {loading && (
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-white rounded-2xl p-4 border border-slate-100 animate-pulse">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-slate-100 rounded-xl shrink-0" />
+                <div className="space-y-2 flex-1">
+                  <div className="h-4 bg-slate-100 rounded-lg w-2/3" />
+                  <div className="h-3 bg-slate-100 rounded-lg w-1/3" />
                 </div>
-                <h3 className="text-xl font-black text-ink">ভর্তির আবেদন সফল হয়েছে! 🎉</h3>
-                <p className="text-xs font-medium text-ink-muted">
-                  কোচিং সেন্টারটি আপনার আবেদনটি পেয়েছে এবং শীঘ্রই আপনার ফোনে যোগাযোগ করবে।
-                </p>
+                <div className="w-10 h-10 bg-slate-100 rounded-full shrink-0" />
               </div>
-            ) : (
-              <>
-                <div className="space-y-1">
-                  <h3 className="text-xl font-display font-black text-ink">Confirm Enrollment</h3>
-                  <p className="text-xs text-ink-muted">Apply for batch enrollment at {selectedBatch.coaching.instituteName}.</p>
-                </div>
-
-                <div className="bg-background p-4 rounded-2xl border border-ink/5 space-y-2 text-xs">
-                  <p className="font-bold text-ink">Batch: <span className="text-primary">{selectedBatch.batch.batchName}</span></p>
-                  <p className="font-bold text-ink">Subject(s): <span>{selectedBatch.batch.subject}</span></p>
-                  <p className="font-bold text-ink">Class: <span>{selectedBatch.batch.className}</span></p>
-                  <p className="font-bold text-ink">Monthly Fee: <span className="text-primary font-black">৳{selectedBatch.batch.fee}</span></p>
-                </div>
-
-                <div className="bg-blue-50/60 p-4 rounded-2xl border border-blue-100/80 space-y-3">
-                  <p className="font-bold text-xs text-blue-900 flex items-center justify-between">
-                    <span>📋 Applicant & Student Information:</span>
-                    <span className="text-[10px] text-blue-600 font-normal">Fill in details for coaching</span>
-                  </p>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                    <div>
-                      <label className="block text-[11px] font-bold text-gray-700 mb-1">Applicant Name</label>
-                      <input
-                        type="text"
-                        disabled
-                        value={user?.name || ''}
-                        className="w-full px-3 py-2 bg-gray-100 border border-gray-200 rounded-xl text-gray-600 cursor-not-allowed font-medium"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-gray-700 mb-1">Email</label>
-                      <input
-                        type="text"
-                        disabled
-                        value={user?.email || ''}
-                        className="w-full px-3 py-2 bg-gray-100 border border-gray-200 rounded-xl text-gray-600 cursor-not-allowed font-medium"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                    <div>
-                      <label className="block text-[11px] font-bold text-gray-700 mb-1">Mobile Number *</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. 01712345678"
-                        value={applicantPhone}
-                        onChange={(e) => setApplicantPhone(e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-blue-200 rounded-xl text-gray-800 font-medium focus:outline-none focus:ring-2 focus:ring-primary/40"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-gray-700 mb-1">School / College Name</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Dhaka Residential Model"
-                        value={applicantInstitution}
-                        onChange={(e) => setApplicantInstitution(e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-blue-200 rounded-xl text-gray-800 font-medium focus:outline-none focus:ring-2 focus:ring-primary/40"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="text-xs">
-                    <label className="block text-[11px] font-bold text-gray-700 mb-1">Current Class / Standard</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Class 12 (Science)"
-                      value={applicantClass}
-                      onChange={(e) => setApplicantClass(e.target.value)}
-                      className="w-full px-3 py-2 bg-white border border-blue-200 rounded-xl text-gray-800 font-medium focus:outline-none focus:ring-2 focus:ring-primary/40"
-                    />
-                  </div>
-
-                  <div className="text-xs">
-                    <label className="block text-[11px] font-bold text-gray-700 mb-1">Additional Details / Message (Optional)</label>
-                    <textarea
-                      placeholder="Specify shift preference, target subjects, GPA, or questions for the coaching..."
-                      value={applicantNote}
-                      onChange={(e) => setApplicantNote(e.target.value)}
-                      rows={2}
-                      className="w-full px-3 py-2 bg-white border border-blue-200 rounded-xl text-gray-800 font-medium focus:outline-none focus:ring-2 focus:ring-primary/40 resize-none"
-                    />
-                  </div>
-                </div>
-
-                <button 
-                  onClick={handleConfirmEnroll}
-                  disabled={enrolling}
-                  className="w-full py-4 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all cursor-pointer disabled:opacity-50"
-                >
-                  {enrolling ? 'Submitting Application...' : 'Confirm & Apply for Enrollment'}
-                </button>
-              </>
-            )}
-          </div>
+            </div>
+          ))}
         </div>
       )}
+
+      {/* COACHING CENTERS LIST */}
+      {!loading && (
+        <div className="space-y-3 sm:space-y-4">
+          {filteredCenters.length > 0 ? (
+            filteredCenters.map((coaching, idx) => {
+              const centerId = String((coaching as any)._id || idx);
+              const isExpanded = expandedCenters.has(centerId);
+              const batchCount = coaching.batches?.length || 0;
+
+              return (
+                <motion.div
+                  key={centerId}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                  className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden"
+                >
+                  {/* Header row */}
+                  <div className="p-4 sm:p-5 flex items-center gap-3">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/10">
+                      <Building2 size={22} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h2 className="text-sm sm:text-base font-black text-[#001F3F] leading-tight">{coaching.instituteName}</h2>
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-50 text-emerald-700 text-[9px] font-black uppercase rounded-full border border-emerald-200">
+                          <BadgeCheck size={10} /> Verified
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 font-medium flex items-center gap-1 mt-0.5">
+                        <MapPin size={11} className="text-primary shrink-0" />
+                        <span className="truncate">{coaching.location || coaching.district || 'Dhaka'}</span>
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => toggleCenterExpand(centerId)}
+                      className="flex flex-col items-center gap-0.5 shrink-0 cursor-pointer group"
+                    >
+                      <span className="text-[10px] font-black text-slate-400 group-hover:text-primary transition-colors whitespace-nowrap">
+                        {batchCount} Batch{batchCount !== 1 ? 'es' : ''}
+                      </span>
+                      <div className={cn(
+                        "w-8 h-8 rounded-full flex items-center justify-center transition-all",
+                        isExpanded ? "bg-primary text-white" : "bg-slate-100 text-slate-500 group-hover:bg-primary/10 group-hover:text-primary"
+                      )}>
+                        {isExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                      </div>
+                    </button>
+                  </div>
+
+                  {/* Expandable batches */}
+                  <AnimatePresence initial={false}>
+                    {isExpanded && (
+                      <motion.div
+                        key="batches"
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.22, ease: 'easeInOut' }}
+                        className="overflow-hidden"
+                      >
+                        <div className="border-t border-slate-100 px-4 sm:px-5 py-4 space-y-3 bg-slate-50/60">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                            Available Batches ({batchCount})
+                          </p>
+                          {batchCount > 0 ? (
+                            <div className="space-y-2.5">
+                              {coaching.batches!.map((batch: any) => (
+                                <div
+                                  key={String(batch._id || Math.random())}
+                                  className="bg-white rounded-xl border border-slate-200/80 p-3.5 space-y-3 shadow-2xs"
+                                >
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="space-y-0.5 flex-1 min-w-0">
+                                      <span className="inline-block px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-black uppercase rounded-full">
+                                        {batch.className}
+                                      </span>
+                                      <h3 className="text-sm font-black text-[#001F3F] leading-tight">{batch.batchName}</h3>
+                                    </div>
+                                    <div className="text-right shrink-0">
+                                      <p className="text-[10px] text-slate-400 font-bold uppercase">Fee/Month</p>
+                                      <p className="text-base font-black text-primary">৳{batch.fee}</p>
+                                    </div>
+                                  </div>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {batch.subject && (
+                                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 text-slate-700 text-[11px] font-bold rounded-lg">
+                                        <BookOpen size={10} className="text-secondary" /> {batch.subject}
+                                      </span>
+                                    )}
+                                    {batch.schedule && (
+                                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 text-slate-700 text-[11px] font-bold rounded-lg">
+                                        <Calendar size={10} className="text-purple-500" /> {batch.schedule}
+                                      </span>
+                                    )}
+                                    {batch.seats && (
+                                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 text-slate-700 text-[11px] font-bold rounded-lg">
+                                        <Users size={10} className="text-emerald-600" /> {batch.seats} Seats
+                                      </span>
+                                    )}
+                                  </div>
+                                  <button
+                                    onClick={() => handleEnrollClick(coaching, batch)}
+                                    className="w-full py-2.5 bg-primary hover:bg-primary-dark text-white text-xs font-black rounded-xl shadow-md shadow-primary/20 transition-all active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
+                                  >
+                                    Enroll Now <ArrowRight size={13} />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="py-5 text-center">
+                              <BookOpen size={26} className="text-slate-300 mx-auto mb-1.5" />
+                              <p className="text-xs font-bold text-slate-400">No active batches yet.</p>
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              );
+            })
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.97 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white p-10 rounded-2xl border border-slate-100 text-center space-y-3 shadow-sm"
+            >
+              <Building2 size={34} className="text-slate-300 mx-auto" />
+              <h3 className="text-base font-black text-slate-700">
+                {searchQuery ? 'কোনো ফলাফল পাওয়া যায়নি' : 'কোনো কোচিং সেন্টার নেই'}
+              </h3>
+              <p className="text-xs text-slate-400 font-medium">
+                {searchQuery ? 'অন্য কীওয়ার্ড দিয়ে সার্চ করুন।' : 'শীঘ্রই নতুন কোচিং সেন্টার যুক্ত হবে।'}
+              </p>
+              {searchQuery && (
+                <button onClick={() => setSearchQuery('')} className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white text-xs font-black rounded-xl cursor-pointer">
+                  <X size={13} /> Clear Search
+                </button>
+              )}
+            </motion.div>
+          )}
+        </div>
+      )}
+
+      {/* ENROLLMENT BOTTOM-SHEET MODAL */}
+      <AnimatePresence>
+        {selectedBatch && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/60 backdrop-blur-sm"
+            onClick={(e) => { if (e.target === e.currentTarget) setSelectedBatch(null); }}
+          >
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+              className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden max-h-[92vh] flex flex-col"
+            >
+              {/* Drag handle (mobile) */}
+              <div className="flex justify-center pt-3 pb-1 sm:hidden">
+                <div className="w-10 h-1 bg-slate-200 rounded-full" />
+              </div>
+
+              {/* Modal header */}
+              <div className="flex items-center justify-between px-5 pt-3 pb-4 border-b border-slate-100 shrink-0">
+                <div>
+                  <h3 className="text-base font-black text-[#001F3F]">ব্যাচে ভর্তির আবেদন</h3>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">{selectedBatch.coaching.instituteName}</p>
+                </div>
+                <button
+                  onClick={() => setSelectedBatch(null)}
+                  className="p-2 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 transition-all cursor-pointer"
+                >
+                  <X size={17} />
+                </button>
+              </div>
+
+              {/* Scrollable body */}
+              <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
+                {enrollSuccess ? (
+                  <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-8 space-y-3">
+                    <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
+                      <CheckCircle2 size={34} />
+                    </div>
+                    <h3 className="text-lg font-black text-[#001F3F]">ভর্তির আবেদন সফল! 🎉</h3>
+                    <p className="text-xs font-medium text-slate-500 leading-relaxed">
+                      কোচিং সেন্টারটি আপনার আবেদন পেয়েছে এবং শীঘ্রই আপনার ফোনে যোগাযোগ করবে।
+                    </p>
+                  </motion.div>
+                ) : (
+                  <>
+                    {/* Batch summary */}
+                    <div className="bg-primary/5 border border-primary/15 rounded-2xl p-4 space-y-2.5">
+                      <div className="flex items-center gap-2 text-primary mb-1">
+                        <GraduationCap size={15} />
+                        <span className="text-xs font-black uppercase tracking-wider">Batch Details</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                        <div>
+                          <p className="text-slate-400 font-bold text-[10px] uppercase">Batch</p>
+                          <p className="font-black text-slate-800">{selectedBatch.batch.batchName}</p>
+                        </div>
+                        <div>
+                          <p className="text-slate-400 font-bold text-[10px] uppercase">Class</p>
+                          <p className="font-black text-slate-800">{selectedBatch.batch.className}</p>
+                        </div>
+                        <div>
+                          <p className="text-slate-400 font-bold text-[10px] uppercase">Subject(s)</p>
+                          <p className="font-black text-slate-800">{selectedBatch.batch.subject}</p>
+                        </div>
+                        <div>
+                          <p className="text-slate-400 font-bold text-[10px] uppercase">Monthly Fee</p>
+                          <p className="font-black text-primary">৳{selectedBatch.batch.fee}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Form */}
+                    <div className="space-y-3">
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">আপনার তথ্য</p>
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-bold text-slate-500">নাম</label>
+                          <input disabled value={user?.name || ''} className="w-full px-3 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 cursor-not-allowed" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-bold text-slate-500">ইমেইল</label>
+                          <input disabled value={user?.email || ''} className="w-full px-3 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 cursor-not-allowed" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-bold text-slate-700">মোবাইল নম্বর *</label>
+                          <input
+                            type="text"
+                            placeholder="01712345678"
+                            value={applicantPhone}
+                            onChange={(e) => setApplicantPhone(e.target.value)}
+                            className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary/40 transition-all"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-bold text-slate-700">বর্তমান শ্রেণী</label>
+                          <input
+                            type="text"
+                            placeholder="Class 10"
+                            value={applicantClass}
+                            onChange={(e) => setApplicantClass(e.target.value)}
+                            className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary/40 transition-all"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-bold text-slate-700">স্কুল / কলেজের নাম</label>
+                        <input
+                          type="text"
+                          placeholder="Dhaka Residential Model College"
+                          value={applicantInstitution}
+                          onChange={(e) => setApplicantInstitution(e.target.value)}
+                          className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary/40 transition-all"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-bold text-slate-700">অতিরিক্ত বার্তা (ঐচ্ছিক)</label>
+                        <textarea
+                          placeholder="শিফট পছন্দ, লক্ষ্য বিষয়, বা অন্য কোনো প্রশ্ন..."
+                          value={applicantNote}
+                          onChange={(e) => setApplicantNote(e.target.value)}
+                          rows={2}
+                          className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary/40 transition-all resize-none"
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Sticky footer CTA */}
+              {!enrollSuccess && (
+                <div className="px-5 pb-6 pt-3 border-t border-slate-100 shrink-0">
+                  <button
+                    onClick={handleConfirmEnroll}
+                    disabled={enrolling || !applicantPhone}
+                    className="w-full py-3.5 bg-primary text-white rounded-2xl font-black text-sm shadow-lg shadow-primary/25 hover:bg-primary-dark transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {enrolling ? (
+                      <>
+                        <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                        আবেদন পাঠানো হচ্ছে...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 size={16} />
+                        Confirm &amp; Apply for Enrollment
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 
