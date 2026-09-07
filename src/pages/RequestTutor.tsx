@@ -687,9 +687,9 @@ export default function RequestTutor() {
       schoolName: formData.schoolName.trim(),
       universityPreference: formData.universityPreference,
       tutorQualification: formData.tutorQualification,
-      requirements: formData.requirements,
+      requirements: Array.isArray(formData.requirements) ? formData.requirements : [],
       preferredTime: [formData.startTime],
-      description: `Tutor requested for: ${classesStr} (${mediumsStr}). Subjects: ${formData.subjects.join(', ')}. Location: ${fullLocationDescription}. Tutor Preference: ${formData.genderPreference} Tutor from ${formData.universityPreference}. Schedule: ${formData.tutoringDays} (${formData.duration}). Expected Salary: ৳${parseInt(formData.salaryOffer, 10).toLocaleString()}/month. Notes: ${formData.additional || 'None'}. Phone: ${formData.phone}${whatsapp ? `, WhatsApp: ${whatsapp}` : ''}`,
+      description: `Tutor requested for: ${classesStr} (${mediumsStr}). Subjects: ${formData.subjects.join(', ')}. Location: ${fullLocationDescription}. Tutor Preference: ${formData.genderPreference} Tutor from ${formData.universityPreference}. Schedule: ${formData.tutoringDays} (${formData.duration}). Expected Salary: ৳${parseInt(formData.salaryOffer, 10).toLocaleString()}/month.${formData.additional?.trim() ? ` Notes: ${formData.additional.trim()}` : ''}`,
       status: 'Open',
       approvalStatus: 'Approved',
     };

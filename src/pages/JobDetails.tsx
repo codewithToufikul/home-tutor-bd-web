@@ -10,7 +10,7 @@ import {
   Monitor, Users, BadgeCheck, CheckSquare, Compass, Shield
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { cn } from '@/src/lib/utils';
+import { cn, sanitizePublicText } from '@/src/lib/utils';
 import type { TuitionJob } from '@/src/types';
 import { TuitionService } from '@/src/services/tuitionService.ts';
 import { ApplicationService } from '@/src/services/applicationService.ts';
@@ -115,8 +115,10 @@ export default function JobDetails() {
       subjects: Array.isArray(jobData.subjects) && jobData.subjects.length > 0
         ? jobData.subjects
         : [(jobData as any).subject || 'All General Subjects'],
-      requirements: Array.isArray(jobData.requirements) ? jobData.requirements : [],
-      description: jobData.description || '',
+      requirements: Array.isArray(jobData.requirements)
+        ? jobData.requirements.map((r: string) => sanitizePublicText(r)).filter(Boolean)
+        : [],
+      description: sanitizePublicText(jobData.description || ''),
       status: jobData.status || 'Active & Available',
       postedDate: new Date(jobData.createdAt || Date.now()).toLocaleDateString('en-US', {
         month: 'short',
