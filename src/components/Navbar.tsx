@@ -29,9 +29,9 @@ export default function Navbar() {
           <div className="flex items-center">
             <Link to="/" className="flex items-center gap-3 group">
               <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-primary shadow-lg shadow-primary/25 group-hover:scale-105 transition-transform flex items-center justify-center bg-white">
-                <img 
-                  src={logoImage} 
-                  alt="Home Tutor Provider BD" 
+                <img
+                  src={logoImage}
+                  alt="Home Tutor Provider BD"
                   className="w-full h-full object-cover"
                 />
               </div>

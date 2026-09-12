@@ -17,13 +17,13 @@ interface AdminEditJobModalProps {
 }
 
 const CUSTOM_CLASSES = [
-  'Play / Nursery', 'KG', 'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5',
-  'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'SSC / O-Level',
-  'HSC / A-Level (AS & A2)', 'Public University Admission Test',
+  'Play', 'Nursery', 'KG', 'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5',
+  'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'SSC', 'HSC', 'O-Level',
+  'A-Level', 'Public University Admission Test',
   'Medical College Admission Test', 'Engineering University Admission Test',
   'Medical Admission', 'Cadet Admission', 'College Admission', 'Admission Candidate',
   'BA', 'BBA', 'BSC', 'Degree', 'Diploma Engineering', 'Engineering',
-  'Medical - MBBS', 'Medical - BDS', 'Law', 'Honours', 'University / Undergrad',
+  'Medical - MBBS', 'Medical - BDS', 'Law', 'Honours', 'University', 'Undergraduate',
   'BCS', 'Bank', 'IELTS', 'Islamic Studies', 'Drawing & Painting', 'Handwriting'
 ];
 

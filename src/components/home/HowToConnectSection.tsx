@@ -198,7 +198,7 @@ export default function HowToConnectSection() {
             to="/request-tutor"
             className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-xs tracking-wide transition-all shadow-sm hover:shadow-md cursor-pointer shrink-0"
           >
-            <span>Request a Tutor</span>
+            <span>টিউটর রিকোয়েস্ট করুন</span>
             <ArrowRight size={13} />
           </Link>
         </motion.div>

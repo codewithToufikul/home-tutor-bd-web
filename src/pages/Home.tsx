@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  Search, MapPin, BookOpen, Phone, ChevronRight, Star, Users, ShieldCheck, Award, GraduationCap, Clock, Target, UserPlus, FileText, ClipboardList, CheckCircle, ArrowRight, UserCheck, Briefcase, PlayCircle, ChevronLeft, X, Home as HomeIcon, Video, Youtube, Navigation, MessageCircle, Check,
+  Search, MapPin, BookOpen, Phone, ChevronRight, ChevronDown, Star, Users, ShieldCheck, Award, GraduationCap, Clock, Target, UserPlus, FileText, ClipboardList, CheckCircle, ArrowRight, UserCheck, Briefcase, PlayCircle, ChevronLeft, X, Home as HomeIcon, Video, Youtube, Navigation, MessageCircle, Check,
   Sparkles, School, Palette, Landmark, Cpu, Stethoscope, Building2, Sprout, Globe, Laptop, HelpCircle
 } from 'lucide-react';
 import { getDivisions, getDistricts, getUpazilas, getAreas } from '@olism/bd-geo';
@@ -40,7 +40,8 @@ export const COURSE_CATEGORIES = [
     bangla: 'স্কুল ও কলেজ',
     icon: School,
     items: [
-      'Play / Nursery',
+      'Play',
+      'Nursery',
       'KG',
       'Class 1',
       'Class 2',
@@ -52,8 +53,10 @@ export const COURSE_CATEGORIES = [
       'Class 8',
       'Class 9',
       'Class 10',
-      'SSC / O-Level',
-      'HSC / A-Level (AS & A2)',
+      'SSC',
+      'HSC',
+      'O-Level',
+      'A-Level',
     ]
   },
   {
@@ -90,7 +93,8 @@ export const COURSE_CATEGORIES = [
       'Medical - BDS',
       'Law',
       'Honours',
-      'University / Undergrad',
+      'University',
+      'Undergraduate',
     ]
   },
   {
@@ -123,7 +127,8 @@ export const COURSE_CATEGORIES = [
 ];
 
 const CUSTOM_CLASSES = [
-  'Play / Nursery',
+  'Play',
+  'Nursery',
   'KG',
   'Class 1',
   'Class 2',
@@ -135,8 +140,10 @@ const CUSTOM_CLASSES = [
   'Class 8',
   'Class 9',
   'Class 10',
-  'SSC / O-Level',
-  'HSC / A-Level (AS & A2)',
+  'SSC',
+  'HSC',
+  'O-Level',
+  'A-Level',
   'Public University Admission Test',
   'Private University Admission Test',
   'Medical College Admission Test',
@@ -157,7 +164,8 @@ const CUSTOM_CLASSES = [
   'Medical - BDS',
   'Law',
   'Honours',
-  'University / Undergrad',
+  'University',
+  'Undergraduate',
   'BCS',
   'Bank',
   'Primary Teacher',
@@ -251,8 +259,11 @@ export const ADMISSION_CATEGORIES = [
 const CUSTOM_MEDIUMS = [
   'Admission Candidate',
   'Bangla Medium',
-  'English Medium',
   'English Version',
+  'English Medium (Edexcel)',
+  'English Medium (Cambridge)',
+  'English Medium (A1)',
+  'English Medium (A2)',
   'Madrasah Medium',
   'Admission Help',
   'International Exam Preparation',
@@ -627,6 +638,7 @@ export default function Home() {
   const [showAdmissionPanel, setShowAdmissionPanel] = useState(false);
   const [classCategoryFilter, setClassCategoryFilter] = useState<string>('all');
   const [classSearchQuery, setClassSearchQuery] = useState<string>('');
+  const [customMediumInput, setCustomMediumInput] = useState('');
 
   const stats = [
     {
@@ -752,6 +764,8 @@ export default function Home() {
     }));
   };
 
+  const [isWardDropdownOpen, setIsWardDropdownOpen] = useState(false);
+
   const handleUpazilaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const upId = Number(e.target.value);
     const up = allUpazilas.find((u) => u.id === upId);
@@ -765,6 +779,26 @@ export default function Home() {
       wardId: '',
       area: up ? up.name : '',
     }));
+  };
+
+  const handleWardTextChange = (text: string) => {
+    const matchedWd = availableWards.find(
+      (w) => w.name.toLowerCase() === text.trim().toLowerCase() || (w.nameBn && w.nameBn === text.trim())
+    );
+    setFormData((prev) => ({
+      ...prev,
+      ward: text,
+      wardId: matchedWd ? matchedWd.id : '',
+    }));
+  };
+
+  const handleSelectWard = (wd: { id: number; name: string; nameBn?: string }) => {
+    setFormData((prev) => ({
+      ...prev,
+      ward: wd.name,
+      wardId: wd.id,
+    }));
+    setIsWardDropdownOpen(false);
   };
 
   const handleUnionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -1270,7 +1304,7 @@ export default function Home() {
                   </div>
 
                   <div className="mt-4 pt-3 border-t border-primary/10 flex items-center justify-between text-xs font-bold text-primary group-hover:translate-x-0.5 transition-transform">
-                    <span>Request a Tutor</span>
+                    <span>টিউটর রিকোয়েস্ট করুন</span>
                     <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                   </div>
                 </Link>
@@ -1290,12 +1324,12 @@ export default function Home() {
               <div className="relative bg-surface p-7 sm:p-9 lg:p-5 rounded-[2rem] border border-ink/5 shadow-2xl shadow-primary/10">
                 <div className="mb-6 pt-1">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-2xl font-display font-black text-ink">Request a Tutor</h2>
+                    <h2 className="text-2xl font-display font-black text-ink">টিউটর রিকোয়েস্ট করুন</h2>
                     <span className="text-xs font-black uppercase px-3 py-1 bg-primary/10 text-primary rounded-full tracking-wider">
                       {isSuccess ? 'Matched' : `Step ${step} of 5`}
                     </span>
                   </div>
-                  <p className="text-xs text-ink-muted mt-1 font-medium">Get matched with top verified tutors in minutes.</p>
+                  <p className="text-xs text-ink-muted mt-1 font-medium">কয়েক মিনিটের মধ্যেই খুঁজে নিন সেরা ভেরিফাইড টিউটর</p>
 
                   {!isSuccess && (
                     <div className="flex gap-1.5 mt-5">
@@ -1680,7 +1714,7 @@ export default function Home() {
                                 value={formData.upazilaId}
                                 onChange={handleUpazilaChange}
                                 disabled={!formData.districtId}
-                                className="w-full px-3 py-2.5 rounded-xl border border-ink/10 bg-background text-xs font-bold text-ink focus:ring-2 focus:ring-primary/20 outline-none cursor-pointer disabled:opacity-40"
+                                className="w-full px-3 py-2.5 rounded-xl border border-ink/10 bg-background text-xs font-bold text-ink focus:ring-2 focus:ring-primary/20 outline-none cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                               >
                                 <option value="">{formData.districtId ? 'Select Upazila / Thana' : 'First Select District'}</option>
                                 {availableUpazilas.map((up) => (
@@ -1691,50 +1725,118 @@ export default function Home() {
                               </select>
                             </div>
 
-                            {/* Union & Ward (Optional Grid if available) */}
-                            {(availableUnions.length > 0 || availableWards.length > 0) && (
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                {availableUnions.length > 0 && (
-                                  <div>
-                                    <label className="block text-[10px] font-bold text-ink-muted mb-1 uppercase tracking-wider">
-                                      Union (ইউনিয়ন - Optional)
-                                    </label>
-                                    <select
-                                      value={formData.unionId}
-                                      onChange={handleUnionChange}
-                                      className="w-full px-3 py-2.5 rounded-xl border border-ink/10 bg-background text-xs font-bold text-ink focus:ring-2 focus:ring-primary/20 outline-none cursor-pointer"
-                                    >
-                                      <option value="">Select Union (Optional)</option>
-                                      {availableUnions.map((un) => (
-                                        <option key={un.id} value={un.id}>
-                                          {un.name} ({un.nameBn})
-                                        </option>
-                                      ))}
-                                    </select>
-                                  </div>
-                                )}
+                            {/* Union & Ward Grid */}
+                            <div className={cn("grid gap-2", availableUnions.length > 0 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1")}>
+                              {availableUnions.length > 0 && (
+                                <div>
+                                  <label className="block text-[10px] font-bold text-ink-muted mb-1 uppercase tracking-wider">
+                                    Union (ইউনিয়ন - Optional)
+                                  </label>
+                                  <select
+                                    value={formData.unionId}
+                                    onChange={handleUnionChange}
+                                    className="w-full px-3 py-2.5 rounded-xl border border-ink/10 bg-background text-xs font-bold text-ink focus:ring-2 focus:ring-primary/20 outline-none cursor-pointer"
+                                  >
+                                    <option value="">Select Union (Optional)</option>
+                                    {availableUnions.map((un) => (
+                                      <option key={un.id} value={un.id}>
+                                        {un.name} ({un.nameBn})
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              )}
 
-                                {availableWards.length > 0 && (
-                                  <div>
-                                    <label className="block text-[10px] font-bold text-ink-muted mb-1 uppercase tracking-wider">
-                                      Ward (ওয়ার্ড - Optional)
-                                    </label>
-                                    <select
-                                      value={formData.wardId}
-                                      onChange={handleWardChange}
-                                      className="w-full px-3 py-2.5 rounded-xl border border-ink/10 bg-background text-xs font-bold text-ink focus:ring-2 focus:ring-primary/20 outline-none cursor-pointer"
+                              {/* Ward (Select + Type Field) */}
+                              <div className="relative">
+                                <div className="flex items-center justify-between mb-1">
+                                  <label className="block text-[10px] font-bold text-ink-muted uppercase tracking-wider">
+                                    Ward / Area (ওয়ার্ড / এলাকা - Optional)
+                                  </label>
+                                  <span className="text-[9px] font-semibold text-primary lowercase">(select or type)</span>
+                                </div>
+                                <div className="relative">
+                                  <input
+                                    type="text"
+                                    list="home-ward-suggestions"
+                                    value={formData.ward}
+                                    onChange={(e) => {
+                                      handleWardTextChange(e.target.value);
+                                      setIsWardDropdownOpen(true);
+                                    }}
+                                    onFocus={() => {
+                                      if (availableWards.length > 0) setIsWardDropdownOpen(true);
+                                    }}
+                                    placeholder={availableWards.length > 0 ? "Type or select Ward..." : "e.g. Ward 4, Sector 3, Block B..."}
+                                    className="w-full pl-3 pr-8 py-2.5 rounded-xl border border-ink/10 bg-background text-xs font-bold text-ink focus:ring-2 focus:ring-primary/20 outline-none"
+                                  />
+                                  {availableWards.length > 0 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setIsWardDropdownOpen((prev) => !prev)}
+                                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-muted hover:text-ink p-1 cursor-pointer"
                                     >
-                                      <option value="">Select Ward (Optional)</option>
-                                      {availableWards.map((wd) => (
-                                        <option key={wd.id} value={wd.id}>
-                                          {wd.name} ({wd.nameBn})
-                                        </option>
-                                      ))}
-                                    </select>
-                                  </div>
+                                      <ChevronDown size={14} className={cn("transition-transform duration-200", isWardDropdownOpen && "rotate-180")} />
+                                    </button>
+                                  )}
+                                </div>
+
+                                <datalist id="home-ward-suggestions">
+                                  {availableWards.map((wd) => (
+                                    <option key={wd.id} value={wd.name}>
+                                      {wd.nameBn || ''}
+                                    </option>
+                                  ))}
+                                </datalist>
+
+                                {/* Custom Dropdown Suggestion List for Wards */}
+                                {isWardDropdownOpen && availableWards.length > 0 && (
+                                  <>
+                                    <div 
+                                      className="fixed inset-0 z-20" 
+                                      onClick={() => setIsWardDropdownOpen(false)} 
+                                    />
+                                    <div className="absolute left-0 right-0 top-full mt-1 bg-surface border border-ink/10 rounded-xl shadow-xl max-h-44 overflow-y-auto z-30 divide-y divide-ink/5 scrollbar-thin">
+                                      {availableWards
+                                        .filter((wd) => 
+                                          !formData.ward ||
+                                          wd.name.toLowerCase().includes(formData.ward.toLowerCase()) ||
+                                          (wd.nameBn && wd.nameBn.includes(formData.ward))
+                                        )
+                                        .map((wd) => {
+                                          const isSelected = formData.wardId === wd.id || formData.ward.toLowerCase() === wd.name.toLowerCase();
+                                          return (
+                                            <button
+                                              key={wd.id}
+                                              type="button"
+                                              onClick={() => handleSelectWard(wd)}
+                                              className={cn(
+                                                "w-full px-3 py-2 text-left text-xs flex items-center justify-between hover:bg-primary/5 transition-colors cursor-pointer",
+                                                isSelected ? "bg-primary/10 font-bold text-primary" : "text-ink"
+                                              )}
+                                            >
+                                              <div className="flex items-center gap-1.5 truncate">
+                                                <span className="font-semibold">{wd.name}</span>
+                                                {wd.nameBn && <span className="text-ink-muted text-[11px]">({wd.nameBn})</span>}
+                                              </div>
+                                              {isSelected && <span className="text-primary font-bold text-xs">✓</span>}
+                                            </button>
+                                          );
+                                        })}
+                                      {availableWards.filter((wd) => 
+                                        !formData.ward ||
+                                        wd.name.toLowerCase().includes(formData.ward.toLowerCase()) ||
+                                        (wd.nameBn && wd.nameBn.includes(formData.ward))
+                                      ).length === 0 && (
+                                        <div className="px-3 py-2 text-xs text-ink-muted">
+                                          Custom: <span className="font-bold text-ink">{formData.ward}</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </>
                                 )}
                               </div>
-                            )}
+                            </div>
 
                             {/* Detailed Address (House, Road, Sector) */}
                             <div>
@@ -1808,7 +1910,7 @@ export default function Home() {
                               </div>
                             )}
 
-                            <div className="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-1 scrollbar-thin">
+                            <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1 scrollbar-thin">
                               {CUSTOM_MEDIUMS.map((m) => {
                                 const isSelected = formData.mediums.includes(m);
                                 return (
@@ -1829,6 +1931,46 @@ export default function Home() {
                                 );
                               })}
                             </div>
+
+                            {/* Custom Medium Input */}
+                            <div className="flex items-center gap-2">
+                              <div className="relative flex-1">
+                                <input
+                                  type="text"
+                                  value={customMediumInput}
+                                  onChange={(e) => setCustomMediumInput(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && customMediumInput.trim()) {
+                                      e.preventDefault();
+                                      const val = customMediumInput.trim();
+                                      if (!formData.mediums.includes(val)) {
+                                        setFormData(prev => ({ ...prev, mediums: [...prev.mediums, val] }));
+                                      }
+                                      setCustomMediumInput('');
+                                    }
+                                  }}
+                                  placeholder="অন্য কোনো মাধ্যম লিখুন..."
+                                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 placeholder:text-slate-400"
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const val = customMediumInput.trim();
+                                  if (val && !formData.mediums.includes(val)) {
+                                    setFormData(prev => ({ ...prev, mediums: [...prev.mediums, val] }));
+                                  }
+                                  setCustomMediumInput('');
+                                }}
+                                disabled={!customMediumInput.trim()}
+                                className="shrink-0 px-3 py-2 rounded-xl bg-primary text-white text-xs font-semibold transition active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                              >
+                                Add
+                              </button>
+                            </div>
+                            <p className="text-[10px] text-slate-400">
+                              উপরের লিস্টে না থাকলে নিজে টাইপ করে Add করুন
+                            </p>
                           </div>
 
                           <div className="space-y-2 pt-1 border-t border-slate-100">

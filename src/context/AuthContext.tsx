@@ -31,7 +31,7 @@ export interface AppUser {
 
 interface AuthContextType {
   user: AppUser | null;
-  login: (email: string, password: string, role?: AuthRole) => Promise<void>;
+  login: (email: string, password: string, role?: AuthRole) => Promise<any>;
   register: (
     name: string,
     email: string,

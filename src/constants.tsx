@@ -156,10 +156,10 @@ export const SUBJECTS = [
 
 // 👨‍🎓 শিক্ষাস্তর বা ক্লাসসমূহ
 export const CLASSES = [
-  'Play / Nursery', 'KG', 'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 
+  'Play', 'Nursery', 'KG', 'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 
   'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 
   'SSC Examinee', 'HSC 1st Year', 'HSC 2nd Year', 
-  'O-Level (IGCSE)', 'A-Level (AS & A2)', 'Admission Seeker', 'University / Graduate'
+  'O-Level (IGCSE)', 'A-Level (AS & A2)', 'Admission Seeker', 'University', 'Graduate'
 ];
 
 // 🏫 শিক্ষাব্যবস্থার মাধ্যম

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  ChevronRight, ChevronLeft, MapPin, BookOpen, GraduationCap,
+  ChevronRight, ChevronLeft, ChevronDown, MapPin, BookOpen, GraduationCap,
   Phone, User, School, Calendar, ShieldCheck, Star,
   MessageSquare, X, Check, AlertCircle, Send,
   Search, Target, Briefcase, Palette, Cpu, Stethoscope, Landmark,
@@ -22,7 +22,7 @@ const COURSE_CATEGORIES = [
   { id: 'all', name: 'All Classes', bangla: 'সকল শ্রেণি ও কোর্স', icon: Sparkles },
   {
     id: 'school_college', name: 'School & College', bangla: 'স্কুল ও কলেজ', icon: School,
-    items: ['Play / Nursery', 'KG', 'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'SSC / O-Level', 'HSC / A-Level (AS & A2)']
+    items: ['Play', 'Nursery', 'KG', 'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'SSC', 'HSC', 'O-Level', 'A-Level']
   },
   {
     id: 'admission', name: 'Admission Test', bangla: 'ভর্তি পরীক্ষা', icon: Target,
@@ -30,7 +30,7 @@ const COURSE_CATEGORIES = [
   },
   {
     id: 'university_degree', name: 'University & Degree', bangla: 'বিশ্ববিদ্যালয় ও ডিগ্রি', icon: GraduationCap,
-    items: ['BA', 'BBA', 'BSC', 'Degree', 'Diploma Engineering', 'Engineering', 'Medical - MBBS', 'Medical - BDS', 'Law', 'Honours', 'University / Undergrad']
+    items: ['BA', 'BBA', 'BSC', 'Degree', 'Diploma Engineering', 'Engineering', 'Medical - MBBS', 'Medical - BDS', 'Law', 'Honours', 'University', 'Undergraduate']
   },
   {
     id: 'job_prep', name: 'Job Preparation', bangla: 'চাকরি প্রস্তুতি', icon: Briefcase,
@@ -43,11 +43,11 @@ const COURSE_CATEGORIES = [
 ];
 
 const CUSTOM_CLASSES = [
-  'Play / Nursery', 'KG', 'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10',
-  'SSC / O-Level', 'HSC / A-Level (AS & A2)', 'Public University Admission Test', 'Private University Admission Test',
+  'Play', 'Nursery', 'KG', 'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10',
+  'SSC', 'HSC', 'O-Level', 'A-Level', 'Public University Admission Test', 'Private University Admission Test',
   'Medical College Admission Test', 'Engineering University Admission Test', 'Medical Admission', 'Cadet Admission',
   'College Admission', 'School Admission Test', 'Admission', 'Admission Candidate', 'BA', 'BBA', 'BSC', 'Degree',
-  'Diploma Engineering', 'Engineering', 'Medical - MBBS', 'Medical - BDS', 'Law', 'Honours', 'University / Undergrad',
+  'Diploma Engineering', 'Engineering', 'Medical - MBBS', 'Medical - BDS', 'Law', 'Honours', 'University', 'Undergraduate',
   'BCS', 'Bank', 'Primary Teacher', 'Sub: Inspector', 'NTRCA', 'IELTS', 'Islamic Studies', 'Drawing & Painting',
   'Handwriting', 'Computer Programming', 'Basic Computer Operating',
 ];
@@ -213,10 +213,32 @@ export default function AdminCreateJob() {
     setFormData(prev => ({ ...prev, district: dist ? dist.name : '', districtId: distId || '', upazila: '', upazilaId: '', union: '', unionId: '', ward: '', wardId: '', area: '' }));
   };
 
+  const [isWardDropdownOpen, setIsWardDropdownOpen] = useState(false);
+
   const handleUpazilaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const upId = Number(e.target.value);
     const up = allUpazilas.find(u => u.id === upId);
     setFormData(prev => ({ ...prev, upazila: up ? up.name : '', upazilaId: upId || '', union: '', unionId: '', ward: '', wardId: '', area: up ? up.name : '' }));
+  };
+
+  const handleWardTextChange = (text: string) => {
+    const matchedWd = availableWards.find(
+      (w) => w.name.toLowerCase() === text.trim().toLowerCase() || (w.nameBn && w.nameBn === text.trim())
+    );
+    setFormData((prev) => ({
+      ...prev,
+      ward: text,
+      wardId: matchedWd ? matchedWd.id : '',
+    }));
+  };
+
+  const handleSelectWard = (wd: { id: number; name: string; nameBn?: string }) => {
+    setFormData((prev) => ({
+      ...prev,
+      ward: wd.name,
+      wardId: wd.id,
+    }));
+    setIsWardDropdownOpen(false);
   };
 
   const handleUnionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -816,11 +838,11 @@ export default function AdminCreateJob() {
                     </select>
                   </div>
 
-                  {/* Upazila */}
+                  {/* Upazila Select */}
                   <div className="space-y-1">
                     <label className={labelCls}>Upazila / Thana <span className="text-rose-500">*</span></label>
                     <select value={formData.upazilaId} onChange={handleUpazilaChange} disabled={!formData.districtId} className={cn(inputCls, "disabled:opacity-40")}>
-                      <option value="">{formData.districtId ? 'Select Upazila' : 'First select district'}</option>
+                      <option value="">{formData.districtId ? 'Select Upazila / Thana' : 'First select district'}</option>
                       {availableUpazilas.map(u => <option key={u.id} value={u.id}>{u.name} ({u.nameBn})</option>)}
                     </select>
                   </div>
@@ -836,16 +858,93 @@ export default function AdminCreateJob() {
                     </div>
                   )}
 
-                  {/* Ward (optional) */}
-                  {availableWards.length > 0 && (
-                    <div className="space-y-1">
-                      <label className={labelCls}>Ward <span className="text-slate-400 font-normal">(optional)</span></label>
-                      <select value={formData.wardId} onChange={handleWardChange} className={inputCls}>
-                        <option value="">Select Ward</option>
-                        {availableWards.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-                      </select>
+                  {/* Ward (Select + Type Field) */}
+                  <div className="space-y-1 relative">
+                    <div className="flex items-center justify-between">
+                      <label className={labelCls}>Ward / Area <span className="text-slate-400 font-normal">(optional)</span></label>
+                      <span className="text-[10px] font-medium text-primary">(select or type)</span>
                     </div>
-                  )}
+                    <div className="relative">
+                      <input
+                        type="text"
+                        list="admin-ward-suggestions"
+                        value={formData.ward}
+                        onChange={(e) => {
+                          handleWardTextChange(e.target.value);
+                          setIsWardDropdownOpen(true);
+                        }}
+                        onFocus={() => {
+                          if (availableWards.length > 0) setIsWardDropdownOpen(true);
+                        }}
+                        placeholder={availableWards.length > 0 ? "Type or select Ward..." : "e.g. Ward 4, Sector 3, Block B..."}
+                        className={cn(inputCls, "pr-8")}
+                      />
+                      {availableWards.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setIsWardDropdownOpen((prev) => !prev)}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
+                        >
+                          <ChevronDown size={14} className={cn("transition-transform duration-200", isWardDropdownOpen && "rotate-180")} />
+                        </button>
+                      )}
+                    </div>
+
+                    <datalist id="admin-ward-suggestions">
+                      {availableWards.map((w) => (
+                        <option key={w.id} value={w.name}>
+                          {w.nameBn || ''}
+                        </option>
+                      ))}
+                    </datalist>
+
+                    {/* Custom Dropdown Suggestion List for Wards */}
+                    {isWardDropdownOpen && availableWards.length > 0 && (
+                      <>
+                        <div 
+                          className="fixed inset-0 z-20" 
+                          onClick={() => setIsWardDropdownOpen(false)} 
+                        />
+                        <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto z-30 divide-y divide-slate-100 scrollbar-thin">
+                          {availableWards
+                            .filter((w) => 
+                              !formData.ward ||
+                              w.name.toLowerCase().includes(formData.ward.toLowerCase()) ||
+                              (w.nameBn && w.nameBn.includes(formData.ward))
+                            )
+                            .map((w) => {
+                              const isSelected = formData.wardId === w.id || formData.ward.toLowerCase() === w.name.toLowerCase();
+                              return (
+                                <button
+                                  key={w.id}
+                                  type="button"
+                                  onClick={() => handleSelectWard(w)}
+                                  className={cn(
+                                    "w-full px-3 py-2 text-left text-xs flex items-center justify-between hover:bg-slate-50 transition-colors cursor-pointer",
+                                    isSelected ? "bg-primary/10 font-bold text-primary" : "text-slate-800"
+                                  )}
+                                >
+                                  <div className="flex items-center gap-1.5 truncate">
+                                    <span className="font-semibold">{w.name}</span>
+                                    {w.nameBn && <span className="text-slate-400 text-[11px]">({w.nameBn})</span>}
+                                  </div>
+                                  {isSelected && <span className="text-primary font-bold text-xs">✓</span>}
+                                </button>
+                              );
+                            })}
+                          {availableWards.filter((w) => 
+                            !formData.ward ||
+                            w.name.toLowerCase().includes(formData.ward.toLowerCase()) ||
+                            (w.nameBn && w.nameBn.includes(formData.ward))
+                          ).length === 0 && (
+                            <div className="px-3 py-2 text-xs text-slate-500">
+                              Custom: <span className="font-bold text-slate-900">{formData.ward}</span>
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
 
                   {/* Detailed Address */}
                   <div className="sm:col-span-2 space-y-1">

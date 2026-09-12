@@ -18,7 +18,7 @@ export const HireService = {
   },
 
   async create(payload: Partial<HireRequestRecord>) {
-    return HireRepository.create({ ...payload, createdAt: new Date().toISOString(), status: 'pending' } as HireRequestRecord);
+    return HireRepository.create({ ...payload, createdAt: new Date().toISOString(), status: 'Pending' } as unknown as HireRequestRecord);
   },
 
   async updateStatus(id: string, status: string) {

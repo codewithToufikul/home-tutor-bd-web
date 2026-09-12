@@ -312,7 +312,7 @@ export default function AdminNotifications() {
                           
                           <div className="flex items-center gap-1.5 shrink-0 text-[10px] sm:text-xs font-semibold text-slate-400 mt-0.5">
                             <Clock size={11} className="shrink-0" />
-                            <span className="whitespace-nowrap">{formatRelativeTime(notif.createdAt)}</span>
+                            <span className="whitespace-nowrap">{formatRelativeTime(String(notif.createdAt || ''))}</span>
                             {isUnread && (
                               <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
                             )}
