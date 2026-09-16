@@ -111,9 +111,11 @@ export default function AdminHirePending() {
       const descUniMatch = (job.description || '').match(/University Preference:\s*([^.]+)/i);
       const descDetailsMatch = (job.description || '').match(/Details:\s*([^)]+)/i);
 
-      const guardianPhone = postedBy.phone || (descPhoneMatch ? descPhoneMatch[1].trim() : '') || 'N/A';
+      // Contact details priority: Job specific contact info first!
+      const guardianName = job.contactName || job.parentName || (isAdminPosted ? 'অভিভাবক/গার্ডিয়ান' : postedBy.name) || 'অভিভাবক/গার্ডিয়ান';
+      const guardianPhone = job.phone || (descPhoneMatch ? descPhoneMatch[1].trim() : '') || (isAdminPosted ? '' : postedBy.phone) || postedBy.phone || 'N/A';
       const cleanGuardianPhone = guardianPhone.replace(/[^0-9]/g, '');
-      const guardianWhatsApp = (descWhatsAppMatch ? descWhatsAppMatch[1].trim() : '') || guardianPhone;
+      const guardianWhatsApp = job.whatsappNumber || (descWhatsAppMatch ? descWhatsAppMatch[1].trim() : '') || (job.phone && job.phone !== 'N/A' ? job.phone : '') || postedBy.whatsapp || guardianPhone;
       const cleanGuardianWhatsApp = guardianWhatsApp.replace(/[^0-9]/g, '');
       const universityPreference = descUniMatch ? descUniMatch[1].trim() : (job.tutorQualification || '');
       const detailedAddress = descDetailsMatch ? descDetailsMatch[1].trim() : (job.location?.detailedAddress || '');
@@ -158,14 +160,17 @@ export default function AdminHirePending() {
         // Student / Guardian & Tuition Job Details
         student: {
           id: String(postedBy._id || postedBy.id || 'STUDENT'),
-          name: postedBy.name || (isAdminPosted ? 'Staff (Admin Job)' : isGuestRequest ? 'Guest Guardian (Home Request)' : 'Student Poster'),
-          email: (postedBy.email && !postedBy.email.startsWith('guardian_') && !postedBy.email.endsWith('@hometutorbd.com')) ? postedBy.email : 'N/A',
+          name: guardianName,
+          staffName: isAdminPosted ? (postedBy.name || 'Admin Staff') : '',
+          staffEmail: isAdminPosted ? (postedBy.email || '') : '',
+          staffPhone: isAdminPosted ? (postedBy.phone || '') : '',
+          email: (postedBy.email && !postedBy.email.startsWith('guardian_') && !postedBy.email.endsWith('@hometutorbd.com') && !isAdminPosted) ? postedBy.email : (job.email || 'N/A'),
           phone: guardianPhone,
           cleanPhone: cleanGuardianPhone,
           whatsapp: guardianWhatsApp,
           cleanWhatsApp: cleanGuardianWhatsApp,
           role: postedBy.role || (isAdminPosted ? 'admin' : isGuestRequest ? 'guardian' : 'student'),
-          avatar: postedBy.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(postedBy.name || postedBy.email || 'student')}`,
+          avatar: postedBy.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(guardianName)}`,
           location: jobLoc,
           area: job.location?.area || job.area || 'Area N/A',
           district: job.location?.district || job.district || 'Dhaka',
@@ -961,28 +966,28 @@ export default function AdminHirePending() {
                     </div>
 
                     {/* Quick Guardian Contact Bar */}
-                    {selectedApp.isGuestRequest && (
-                      <div className="p-3 bg-white/80 backdrop-blur-sm rounded-2xl border border-teal-200/80 flex items-center justify-between gap-2 flex-wrap">
+                    {selectedApp.student.phone && selectedApp.student.phone !== 'N/A' && (
+                      <div className="p-3 bg-white/90 backdrop-blur-sm rounded-2xl border border-teal-200/90 shadow-xs flex items-center justify-between gap-2 flex-wrap">
                         <div>
-                          <p className="text-[10px] font-black uppercase text-teal-800 tracking-wider">অভিভাবক যোগাযোগ নম্বর</p>
+                          <p className="text-[10px] font-black uppercase text-teal-800 tracking-wider flex items-center gap-1">
+                            <span>📞</span> অভিভাবক যোগাযোগ নম্বর
+                          </p>
                           <p className="text-xs font-black text-ink">{selectedApp.student.phone}</p>
                         </div>
                         <div className="flex items-center gap-2">
-                          {selectedApp.student.phone && selectedApp.student.phone !== 'N/A' && (
-                            <a
-                              href={`tel:${selectedApp.student.phone}`}
-                              className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1"
-                            >
-                              <Phone size={12} />
-                              <span>কল করুন</span>
-                            </a>
-                          )}
+                          <a
+                            href={`tel:${selectedApp.student.phone}`}
+                            className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1 active:scale-95 cursor-pointer"
+                          >
+                            <Phone size={12} />
+                            <span>কল করুন</span>
+                          </a>
                           {selectedApp.student.cleanWhatsApp && (
                             <a
                               href={`https://wa.me/880${selectedApp.student.cleanWhatsApp.slice(-10)}?text=${encodeURIComponent(`আসসালামু আলাইকুম ${selectedApp.student.name || 'সম্মানিত অভিভাবক'}, Home Tutor BD থেকে বলছি। আপনার ${selectedApp.job.studentClass} (${selectedApp.job.medium}) টিউশন রিকোয়েস্টের জন্য একজন ভেরিফাইড টিউটর (${selectedApp.tutor.name}) আবেদন করেছেন। বিস্তারিত আলোচনা করতে আমাদের জানান।`)}`}
                               target="_blank"
                               rel="noreferrer"
-                              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1 shadow-xs"
+                              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1 shadow-xs active:scale-95 cursor-pointer"
                             >
                               <MessageCircle size={12} />
                               <span>WhatsApp</span>
@@ -1062,7 +1067,7 @@ export default function AdminHirePending() {
                         "text-[10px] font-black uppercase tracking-wider",
                         selectedApp.isAdminPosted ? "text-violet-900" : "text-amber-900"
                       )}>
-                        {selectedApp.isAdminPosted ? '🛡️ Staff Post Details' : '🎓 Student / Guardian'}
+                        {selectedApp.isAdminPosted ? '🛡️ অভিভাবক ও পোস্টকারী স্টাফ' : '🎓 Student / Guardian'}
                       </span>
                       <span className={cn(
                         "px-2 py-0.5 rounded-md text-[9px] font-black uppercase",
@@ -1078,7 +1083,11 @@ export default function AdminHirePending() {
                       </div>
                       <div className="min-w-0">
                         <p className="text-sm font-black text-ink truncate">{selectedApp.student.name}</p>
-                        <p className="text-xs text-ink-muted truncate">{selectedApp.student.email}</p>
+                        {selectedApp.isAdminPosted && selectedApp.student.staffName ? (
+                          <p className="text-[11px] text-violet-700 font-bold">পোস্টকারী স্টাফ: {selectedApp.student.staffName}</p>
+                        ) : (
+                          <p className="text-xs text-ink-muted truncate">{selectedApp.student.email}</p>
+                        )}
                       </div>
                     </div>
 
@@ -1086,12 +1095,24 @@ export default function AdminHirePending() {
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-ink-muted font-bold">Contact Phone:</span>
                         {selectedApp.student.phone && selectedApp.student.phone !== 'N/A' ? (
-                          <a
-                            href={`tel:${selectedApp.student.phone}`}
-                            className="font-black text-blue-700 hover:underline flex items-center gap-1"
-                          >
-                            <Phone size={12} /> {selectedApp.student.phone}
-                          </a>
+                          <div className="flex items-center gap-1.5">
+                            <a
+                              href={`tel:${selectedApp.student.phone}`}
+                              className="font-black text-blue-700 hover:underline flex items-center gap-1"
+                            >
+                              <Phone size={12} /> {selectedApp.student.phone}
+                            </a>
+                            {selectedApp.student.cleanWhatsApp && (
+                              <a
+                                href={`https://wa.me/880${selectedApp.student.cleanWhatsApp.slice(-10)}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="px-1.5 py-0.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded font-black text-[9px]"
+                              >
+                                WA
+                              </a>
+                            )}
+                          </div>
                         ) : (
                           <span className="text-ink-muted">N/A</span>
                         )}

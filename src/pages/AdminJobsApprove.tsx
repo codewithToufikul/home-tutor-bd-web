@@ -5,7 +5,7 @@ import {
   MapPin, Clock, BookOpen, GraduationCap, Users,
   CheckCircle2, XCircle, AlertCircle, Eye, ToggleLeft,
   ToggleRight, Phone, Mail, Calendar, Sparkles,
-  ExternalLink, Filter, ShieldCheck, Star, MessageSquare,
+  ExternalLink, Filter, ShieldCheck, Star, MessageSquare, MessageCircle,
   Check, X, Loader2, ArrowRight, UserCheck, Pencil
 } from 'lucide-react';
 import AdminLayout from '@/src/components/AdminLayout.tsx';
@@ -60,10 +60,23 @@ export default function AdminJobsApprove() {
     return items.map((j: any) => {
       const jobId = String(j._id || j.id || '');
       const poster = j.postedByUser || (typeof j.postedBy === 'object' ? j.postedBy : {});
-      const posterName = poster?.name || j.parentName || 'Unknown Poster';
-      const posterPhone = poster?.phone || j.phone || 'N/A';
-      const rawEmail = poster?.email || j.email || '';
-      const posterEmail = (rawEmail && !rawEmail.startsWith('guardian_') && !rawEmail.endsWith('@hometutorbd.com')) ? rawEmail : 'N/A';
+      const rawPosterRole = poster?.role || '';
+      const isAdminPoster = ['admin', 'super_admin', 'moderator'].includes(rawPosterRole);
+
+      // Contact details priority: Tuition Post contact details first, then poster user profile
+      const guardianName = j.contactName || j.parentName || (isAdminPoster ? 'অভিভাবক (Admin Post)' : poster?.name) || 'শিক্ষার্থী/অভিভাবক';
+      const guardianPhone = j.phone || (isAdminPoster ? '' : poster?.phone) || poster?.phone || 'N/A';
+      const guardianWhatsApp = j.whatsappNumber || (j.phone && j.phone !== 'N/A' ? j.phone : '') || poster?.whatsapp || poster?.phone || '';
+      const guardianEmail = j.email || (!isAdminPoster ? poster?.email : '') || '';
+
+      const staffPosterName = isAdminPoster ? (poster?.name || 'Admin Staff') : '';
+      const staffPosterEmail = isAdminPoster ? (poster?.email || '') : '';
+      const staffPosterPhone = isAdminPoster ? (poster?.phone || '') : '';
+
+      const posterName = guardianName;
+      const posterPhone = guardianPhone;
+      const posterWhatsApp = guardianWhatsApp;
+      const posterEmail = (guardianEmail && !guardianEmail.startsWith('guardian_') && !guardianEmail.endsWith('@hometutorbd.com')) ? guardianEmail : 'N/A';
       const posterAvatar = poster?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(posterName)}`;
 
       const locArea = typeof j.location === 'object' ? j.location?.area : j.area;
@@ -77,8 +90,6 @@ export default function AdminJobsApprove() {
         .filter(Boolean)
         .join(', ') || 'Dhaka';
 
-      const rawPosterRole = poster?.role || '';
-      const isAdminPoster = ['admin', 'super_admin', 'moderator'].includes(rawPosterRole);
       const posterRoleLabel = rawPosterRole === 'moderator' ? 'Moderator'
         : rawPosterRole === 'super_admin' ? 'Super Admin'
           : rawPosterRole === 'admin' ? 'Admin'
@@ -126,8 +137,15 @@ export default function AdminJobsApprove() {
         id: jobId,
         customId: j.customId || '',
         jobCode: j.customId || `JOB-${jobId.slice(-6).toUpperCase()}`,
+        guardianName,
+        guardianPhone,
+        guardianWhatsApp,
+        staffPosterName,
+        staffPosterEmail,
+        staffPosterPhone,
         posterName,
         posterPhone,
+        posterWhatsApp,
         posterEmail,
         posterAvatar,
         posterRole,
@@ -843,11 +861,49 @@ export default function AdminJobsApprove() {
               <div className="p-5 sm:p-7 space-y-5 sm:space-y-6 overflow-y-auto">
                 {/* 1. Job & Student Details Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 sm:p-5 bg-gray-50 rounded-2xl border border-ink/5 text-xs">
-                  <div className="space-y-2">
-                    <p className="font-black text-ink uppercase text-[10px] text-ink-muted">পোস্টকারী শিক্ষার্থী/অভিভাবক</p>
-                    <p className="font-bold text-ink text-sm">{selectedJob.posterName}</p>
-                    <p className="text-ink-muted">📞 {selectedJob.posterPhone}</p>
-                    <p className="text-ink-muted break-all">✉️ {selectedJob.posterEmail}</p>
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <p className="font-black uppercase text-[10px] text-ink-muted">
+                        {selectedJob.isAdminPoster ? '🛡️ অভিভাবক ও পোস্টকারী তথ্য' : '🎓 পোস্টকারী শিক্ষার্থী/অভিভাবক'}
+                      </p>
+                      {selectedJob.isAdminPoster && (
+                        <span className="px-2 py-0.5 bg-violet-100 text-violet-700 rounded-md text-[9px] font-black uppercase">
+                          Admin Post
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-black text-ink text-sm">{selectedJob.guardianName || selectedJob.posterName}</p>
+                      {selectedJob.isAdminPoster && selectedJob.staffPosterName && (
+                        <p className="text-[10px] text-violet-700 font-bold">পোস্টকারী স্টাফ: {selectedJob.staffPosterName}</p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-ink font-bold flex items-center gap-1">
+                        📞 {selectedJob.guardianPhone || selectedJob.posterPhone}
+                      </p>
+                      {selectedJob.guardianPhone && selectedJob.guardianPhone !== 'N/A' && (
+                        <a
+                          href={`tel:${selectedJob.guardianPhone}`}
+                          className="px-2 py-0.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded font-black text-[10px] flex items-center gap-1 transition-all"
+                        >
+                          <Phone size={10} /> Call
+                        </a>
+                      )}
+                      {selectedJob.guardianWhatsApp && selectedJob.guardianWhatsApp !== 'N/A' && (
+                        <a
+                          href={`https://wa.me/880${selectedJob.guardianWhatsApp.replace(/[^0-9]/g, '').slice(-10)}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-2 py-0.5 bg-teal-100 hover:bg-teal-200 text-teal-800 rounded font-black text-[10px] flex items-center gap-1 transition-all"
+                        >
+                          <MessageCircle size={10} /> WhatsApp
+                        </a>
+                      )}
+                    </div>
+                    {selectedJob.posterEmail && selectedJob.posterEmail !== 'N/A' && (
+                      <p className="text-ink-muted break-all">✉️ {selectedJob.posterEmail}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">

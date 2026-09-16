@@ -54,6 +54,13 @@ export default function TutorAppliedJobs() {
           const populatedJob = typeof a.jobId === 'object' ? a.jobId : null;
           const job: any = populatedJob || jobsById[rawJobId] || jobsById[a.id] || {};
 
+          const postedBy = typeof job?.postedBy === 'object' && job?.postedBy !== null ? job.postedBy : {};
+          const guardianName = job?.contactName || job?.parentName || postedBy?.name || 'অভিভাবক/গার্ডিয়ান';
+          const guardianPhone = job?.phone || postedBy?.phone || '';
+          const guardianWhatsApp = job?.whatsappNumber || postedBy?.whatsapp || job?.phone || postedBy?.phone || '';
+          const detailedAddress = typeof job?.location === 'object' ? job?.location?.detailedAddress : (job?.detailedAddress || '');
+          const studentUserId = String(postedBy?._id || postedBy?.id || job?.parentId || job?.userId || '');
+
           // Location parsing
           const locArea = typeof job?.location === 'object' ? job?.location?.area : job?.area;
           const locDist = typeof job?.location === 'object' ? job?.location?.district : (typeof job?.location === 'string' ? job?.location : '');
@@ -87,6 +94,11 @@ export default function TutorAppliedJobs() {
             medium: job?.medium || a.category || 'General',
             subjects: subjectsList.length ? subjectsList : ['All Subjects'],
             location: locStr,
+            detailedAddress,
+            guardianName,
+            guardianPhone,
+            guardianWhatsApp,
+            studentUserId,
             salaryNumber: Number(job?.salary || a.expectedSalary || 0),
             salary: job?.salary ? `৳ ${Number(job.salary).toLocaleString()}` : (a.expectedSalary ? `৳ ${Number(a.expectedSalary).toLocaleString()}` : 'Negotiable'),
             expectedSalary: a.expectedSalary ? `৳ ${Number(a.expectedSalary).toLocaleString()}` : null,
@@ -456,6 +468,88 @@ export default function TutorAppliedJobs() {
                         </div>
                       </div>
 
+                      {/* Confirmed Guardian Contact Details Box (Visible when Accepted / Hired) */}
+                      {(job.status === 'accepted' || job.status === 'hired') && (
+                        <div className="p-3.5 sm:p-4 bg-emerald-50/70 rounded-xl sm:rounded-2xl border border-emerald-200 shadow-xs space-y-2.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase text-emerald-800 tracking-wider flex items-center gap-1.5">
+                              <ShieldCheck size={14} className="text-emerald-600" />
+                              গার্ডিয়ান / যোগাযোগের তথ্য (Confirmed)
+                            </span>
+                            {job.detailedAddress && (
+                              <span className="text-[10px] font-bold text-ink-muted truncate max-w-[160px] sm:max-w-[240px]">
+                                📍 {job.detailedAddress}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-xl border border-emerald-100/90 shadow-2xs">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="w-10 h-10 sm:w-11 sm:h-11 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center font-black text-base shadow-xs shrink-0">
+                                {job.guardianName.charAt(0).toUpperCase()}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-sm font-black text-ink truncate">{job.guardianName}</p>
+                                <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-xs">
+                                  {job.guardianPhone ? (
+                                    <span className="font-bold text-emerald-700 flex items-center gap-1">
+                                      <Phone size={11} className="text-emerald-600 shrink-0" />
+                                      {job.guardianPhone}
+                                    </span>
+                                  ) : (
+                                    <span className="text-ink-muted text-xs">ফোন নম্বর উপলব্ধ</span>
+                                  )}
+                                  {job.guardianWhatsApp && job.guardianWhatsApp !== job.guardianPhone && (
+                                    <span className="font-bold text-teal-700 flex items-center gap-1">
+                                      <MessageSquare size={11} className="text-teal-600 shrink-0" />
+                                      WA: {job.guardianWhatsApp}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              {job.guardianPhone && (
+                                <a
+                                  href={`tel:${job.guardianPhone}`}
+                                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-xs uppercase flex items-center gap-1 shadow-sm shadow-emerald-600/20 transition-all cursor-pointer active:scale-95"
+                                >
+                                  <Phone size={12} />
+                                  <span>Call</span>
+                                </a>
+                              )}
+
+                              {job.guardianWhatsApp && (() => {
+                                const digits = job.guardianWhatsApp.replace(/[^0-9]/g, '');
+                                const waUrl = digits.startsWith('880') ? digits : digits.startsWith('01') ? ('88' + digits) : digits;
+                                return (
+                                  <a
+                                    href={`https://wa.me/${waUrl}?text=${encodeURIComponent(`আসসালামু আলাইকুম ${job.guardianName || 'সম্মানিত অভিভাবক'}, আমি ${user?.displayName || 'আপনার নিয়োগপ্রাপ্ত টিউটর'}, Home Tutor BD-তে আপনার পোস্টকৃত টিউশনের বিষয়ে যোগাযোগ করছি।`)}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-xl font-black text-xs uppercase flex items-center gap-1 border border-emerald-200 transition-all cursor-pointer active:scale-95"
+                                  >
+                                    <MessageSquare size={12} />
+                                    <span>WhatsApp</span>
+                                  </a>
+                                );
+                              })()}
+
+                              {job.studentUserId && (
+                                <Link
+                                  to="/tutor/messages"
+                                  className="px-3 py-1.5 bg-primary/10 hover:bg-primary text-primary hover:text-white rounded-xl font-black text-xs uppercase flex items-center gap-1 transition-all cursor-pointer active:scale-95"
+                                >
+                                  <MessageSquare size={12} />
+                                  <span>চ্যাট</span>
+                                </Link>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Salary & Action Row */}
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-4 bg-slate-50/90 rounded-xl sm:rounded-2xl border border-slate-100">
                         <div className="space-y-0.5">
@@ -726,6 +820,78 @@ export default function TutorAppliedJobs() {
                       <span className="font-bold text-ink">{selectedJobDetails.numStudents} Student ({selectedJobDetails.studentGender})</span>
                     </div>
                   </div>
+
+                  {/* Confirmed Guardian Contact in Modal (when accepted / hired) */}
+                  {(selectedJobDetails.status === 'accepted' || selectedJobDetails.status === 'hired') && (
+                    <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase text-emerald-800 tracking-wider flex items-center gap-1.5">
+                          <ShieldCheck size={14} className="text-emerald-600" />
+                          গার্ডিয়ান / যোগাযোগের তথ্য (Confirmed)
+                        </span>
+                        {selectedJobDetails.detailedAddress && (
+                          <span className="text-[10px] font-bold text-ink-muted truncate max-w-[200px]">
+                            📍 {selectedJobDetails.detailedAddress}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-xl border border-emerald-100 shadow-2xs">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-10 h-10 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center font-black text-base shadow-xs shrink-0">
+                            {selectedJobDetails.guardianName ? selectedJobDetails.guardianName.charAt(0).toUpperCase() : 'G'}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-black text-ink truncate">{selectedJobDetails.guardianName}</p>
+                            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-xs">
+                              {selectedJobDetails.guardianPhone ? (
+                                <span className="font-bold text-emerald-700 flex items-center gap-1">
+                                  <Phone size={11} className="text-emerald-600 shrink-0" />
+                                  {selectedJobDetails.guardianPhone}
+                                </span>
+                              ) : (
+                                <span className="text-ink-muted text-xs">ফোন নম্বর উপলব্ধ</span>
+                              )}
+                              {selectedJobDetails.guardianWhatsApp && selectedJobDetails.guardianWhatsApp !== selectedJobDetails.guardianPhone && (
+                                <span className="font-bold text-teal-700 flex items-center gap-1">
+                                  <MessageSquare size={11} className="text-teal-600 shrink-0" />
+                                  WA: {selectedJobDetails.guardianWhatsApp}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          {selectedJobDetails.guardianPhone && (
+                            <a
+                              href={`tel:${selectedJobDetails.guardianPhone}`}
+                              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-xs uppercase flex items-center gap-1 shadow-sm shadow-emerald-600/20 transition-all cursor-pointer active:scale-95"
+                            >
+                              <Phone size={12} />
+                              <span>Call</span>
+                            </a>
+                          )}
+
+                          {selectedJobDetails.guardianWhatsApp && (() => {
+                            const digits = selectedJobDetails.guardianWhatsApp.replace(/[^0-9]/g, '');
+                            const waUrl = digits.startsWith('880') ? digits : digits.startsWith('01') ? ('88' + digits) : digits;
+                            return (
+                              <a
+                                href={`https://wa.me/${waUrl}?text=${encodeURIComponent(`আসসালামু আলাইকুম ${selectedJobDetails.guardianName || 'সম্মানিত অভিভাবক'}, আমি ${user?.displayName || 'আপনার নিয়োগপ্রাপ্ত টিউটর'}, Home Tutor BD-তে আপনার পোস্টকৃত টিউশনের বিষয়ে যোগাযোগ করছি।`)}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-xl font-black text-xs uppercase flex items-center gap-1 border border-emerald-200 transition-all cursor-pointer active:scale-95"
+                              >
+                                <MessageSquare size={12} />
+                                <span>WhatsApp</span>
+                              </a>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Guardian / Job Requirements note */}
                   {selectedJobDetails.fullJob?.requirements && (

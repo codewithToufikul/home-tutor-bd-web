@@ -91,13 +91,15 @@ export default function TutorActiveTuitions() {
           const job = populatedJob || jobsById[rawJobId] || null;
 
           const postedBy = job?.postedBy || {};
-          const guardianName = postedBy.name || 'Guardian';
-          const guardianPhone = postedBy.phone || '';
-          const guardianEmail = postedBy.email || '';
+          const guardianName = job?.contactName || postedBy.name || 'অভিভাবক/গার্ডিয়ান';
+          const guardianPhone = job?.phone || postedBy.phone || '';
+          const guardianWhatsApp = job?.whatsappNumber || postedBy.whatsapp || job?.phone || postedBy.phone || '';
+          const guardianEmail = postedBy.email || job?.email || '';
           const studentUserId = String(postedBy._id || postedBy.id || job?.parentId || job?.userId || '');
 
           const locArea = typeof job?.location === 'object' ? job?.location?.area : job?.area;
           const locDist = typeof job?.location === 'object' ? job?.location?.district : (typeof job?.location === 'string' ? job?.location : '');
+          const detailedAddr = typeof job?.location === 'object' ? job?.location?.detailedAddress : job?.detailedAddress;
           const locStr = [locArea, locDist].filter(Boolean).join(', ') || 'Dhaka';
 
           const daysCount = Array.isArray(job?.tutoringDays) ? job.tutoringDays.length : 3;
@@ -114,6 +116,7 @@ export default function TutorActiveTuitions() {
             subjects: Array.isArray(job?.subjects) ? job.subjects.join(', ') : (job?.subjects || 'General'),
             studentClass: job?.studentClass || 'N/A',
             location: locStr,
+            detailedAddress: detailedAddr || '',
             salary: salaryNum,
             salaryFormatted: salaryNum ? `${salaryNum.toLocaleString()} ৳/মাস` : 'আলোচনা সাপেক্ষে',
             daysPerWeek: Array.isArray(job?.tutoringDays) ? job.tutoringDays.join(', ') : (job?.tutoringDays || '3-4 দিন/সপ্তাহ'),
@@ -122,6 +125,7 @@ export default function TutorActiveTuitions() {
             platformFeeAmount,
             guardianName,
             guardianPhone,
+            guardianWhatsApp,
             guardianEmail,
             confirmedDate: a.updatedAt ? new Date(a.updatedAt).toLocaleDateString('bn-BD') : 'সম্প্রতি',
             timeSlot: job?.timeSlot || 'সন্ধ্যা / বিকাল',
@@ -411,24 +415,46 @@ export default function TutorActiveTuitions() {
                     </div>
 
                     {/* Guardian Contact Info Card */}
-                    <div className="p-3.5 sm:p-4 bg-white rounded-xl sm:rounded-2xl border border-ink/5 shadow-sm space-y-3">
-                      <p className="text-[10px] font-black text-ink-muted uppercase tracking-wider">
-                        গার্ডিয়ান / স্টুডেন্টের যোগাযোগের তথ্য
-                      </p>
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div className="flex items-center gap-3">
+                    <div className="p-3.5 sm:p-4 bg-emerald-50/40 rounded-xl sm:rounded-2xl border border-emerald-100 shadow-sm space-y-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-[10px] font-black text-emerald-800 uppercase tracking-wider flex items-center gap-1.5">
+                          <User size={13} className="text-emerald-600" />
+                          গার্ডিয়ান / যোগাযোগের তথ্য (Confirmed)
+                        </p>
+                        {tuition.detailedAddress && (
+                          <span className="text-[10px] font-bold text-ink-muted truncate max-w-[160px] sm:max-w-[240px]">
+                            📍 {tuition.detailedAddress}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-xl border border-emerald-100/80 shadow-xs">
+                        <div className="flex items-center gap-3 min-w-0">
                           <div className="w-10 h-10 sm:w-11 sm:h-11 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center font-black text-base shadow-sm shrink-0">
                             {tuition.guardianName.charAt(0).toUpperCase()}
                           </div>
                           <div className="min-w-0">
                             <p className="text-sm font-black text-ink truncate">{tuition.guardianName}</p>
-                            <p className="text-xs font-bold text-emerald-700 truncate">
-                              {tuition.guardianPhone || 'নম্বর উপলব্ধ'}
-                            </p>
+                            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-xs">
+                              {tuition.guardianPhone ? (
+                                <span className="font-bold text-emerald-700 flex items-center gap-1">
+                                  <Phone size={11} className="text-emerald-600 shrink-0" />
+                                  {tuition.guardianPhone}
+                                </span>
+                              ) : (
+                                <span className="text-ink-muted text-xs">ফোন নম্বর উপলব্ধ</span>
+                              )}
+                              {tuition.guardianWhatsApp && tuition.guardianWhatsApp !== tuition.guardianPhone && (
+                                <span className="font-bold text-teal-700 flex items-center gap-1">
+                                  <MessageSquare size={11} className="text-teal-600 shrink-0" />
+                                  WA: {tuition.guardianWhatsApp}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-3 sm:flex items-center gap-2">
+                        <div className="grid grid-cols-3 sm:flex items-center gap-2 shrink-0">
                           <button
                             onClick={() => handleStartChatWithStudent(tuition.studentUserId)}
                             className="px-2.5 sm:px-3.5 py-2 bg-primary hover:bg-primary-dark text-white rounded-xl font-black text-[11px] sm:text-xs uppercase flex items-center justify-center gap-1 shadow-sm shadow-primary/20 transition-all cursor-pointer active:scale-95"
@@ -438,16 +464,21 @@ export default function TutorActiveTuitions() {
                           </button>
 
                           {tuition.guardianPhone && (
-                            <>
+                            <a
+                              href={`tel:${tuition.guardianPhone}`}
+                              className="px-2.5 sm:px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-[11px] sm:text-xs uppercase flex items-center justify-center gap-1 shadow-sm shadow-emerald-600/20 transition-all cursor-pointer active:scale-95"
+                            >
+                              <Phone size={13} />
+                              <span>Call</span>
+                            </a>
+                          )}
+
+                          {tuition.guardianWhatsApp && (() => {
+                            const digits = tuition.guardianWhatsApp.replace(/[^0-9]/g, '');
+                            const waUrl = digits.startsWith('880') ? digits : digits.startsWith('01') ? ('88' + digits) : digits;
+                            return (
                               <a
-                                href={`tel:${tuition.guardianPhone}`}
-                                className="px-2.5 sm:px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-[11px] sm:text-xs uppercase flex items-center justify-center gap-1 shadow-sm shadow-emerald-600/20 transition-all cursor-pointer active:scale-95"
-                              >
-                                <Phone size={13} />
-                                <span>Call</span>
-                              </a>
-                              <a
-                                href={`https://wa.me/${tuition.guardianPhone.replace(/[^0-9]/g, '')}`}
+                                href={`https://wa.me/${waUrl}`}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="px-2.5 sm:px-3.5 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-xl font-black text-[11px] sm:text-xs uppercase flex items-center justify-center gap-1 border border-emerald-200 transition-all cursor-pointer active:scale-95"
@@ -455,8 +486,8 @@ export default function TutorActiveTuitions() {
                                 <MessageSquare size={13} />
                                 <span>WA</span>
                               </a>
-                            </>
-                          )}
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>
