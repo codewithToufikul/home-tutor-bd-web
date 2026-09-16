@@ -22,7 +22,9 @@ import {
   UserCheck,
   Sparkles,
   Megaphone,
-  FileDown
+  FileDown,
+  MessageSquare,
+  ShieldCheck
 } from 'lucide-react';
 import TutorLayout from '@/src/components/TutorLayout.tsx';
 import TutorProfileIncompleteModal from '@/src/components/TutorProfileIncompleteModal.tsx';
@@ -133,19 +135,22 @@ export default function TutorDashboard() {
           const populatedJob = typeof a.jobId === 'object' ? a.jobId : null;
           const job = populatedJob || jobsById[rawJobId] || null;
 
-          const postedBy = job?.postedBy || {};
-          const guardianName = postedBy.name || 'Guardian';
-          const guardianPhone = postedBy.phone || '';
-          const guardianEmail = postedBy.email || '';
-          const guardianAvatar = postedBy.avatar || '';
+          const postedBy = typeof job?.postedBy === 'object' && job?.postedBy !== null ? job.postedBy : {};
+          const guardianName = job?.contactName || job?.parentName || postedBy?.name || 'অভিভাবক/গার্ডিয়ান';
+          const guardianPhone = job?.phone || postedBy?.phone || '';
+          const guardianWhatsApp = job?.whatsappNumber || postedBy?.whatsapp || job?.phone || postedBy?.phone || '';
+          const guardianEmail = postedBy?.email || job?.email || '';
+          const guardianAvatar = postedBy?.avatar || '';
 
           const locArea = typeof job?.location === 'object' ? job?.location?.area : job?.area;
           const locDist = typeof job?.location === 'object' ? job?.location?.district : (typeof job?.location === 'string' ? job?.location : '');
+          const detailedAddress = typeof job?.location === 'object' ? job?.location?.detailedAddress : (job?.detailedAddress || '');
           const locStr = [locArea, locDist].filter(Boolean).join(', ') || 'Dhaka';
+          const studentUserId = String(postedBy?._id || postedBy?.id || job?.parentId || job?.userId || '');
 
           const salaryNum = job?.salary ? Number(job.salary) : 0;
-          const platformFeePercent = (job as any)?.platformFeePercent || 50;
-          const platformFeeAmount = Math.round((salaryNum * platformFeePercent) / 100);
+          const platformFeePercent = a.mediaFee && salaryNum ? Math.round((Number(a.mediaFee) / salaryNum) * 100) : ((job as any)?.platformFeePercent || 60);
+          const platformFeeAmount = a.mediaFee ? Number(a.mediaFee) : Math.round((salaryNum * platformFeePercent) / 100);
 
           return {
             id: String(rawJobId || a._id || ''),
@@ -154,6 +159,7 @@ export default function TutorDashboard() {
             subjects: Array.isArray(job?.subjects) ? job.subjects.join(', ') : (job?.subjects || 'General'),
             studentClass: job?.studentClass || 'N/A',
             location: locStr,
+            detailedAddress,
             salary: salaryNum,
             salaryFormatted: salaryNum ? `${salaryNum.toLocaleString()} ৳/mo` : 'Negotiable',
             daysPerWeek: Array.isArray(job?.tutoringDays) ? job.tutoringDays.join(', ') : (job?.tutoringDays || '3-4 Days/Week'),
@@ -161,8 +167,10 @@ export default function TutorDashboard() {
             platformFeeAmount,
             guardianName,
             guardianPhone,
+            guardianWhatsApp,
             guardianEmail,
             guardianAvatar,
+            studentUserId,
             confirmedDate: a.updatedAt ? new Date(a.updatedAt).toLocaleDateString('bn-BD') : 'Recently',
           };
         });
@@ -523,30 +531,82 @@ export default function TutorDashboard() {
                           </Link>
                         </div>
 
-                        <div className="p-3.5 sm:p-4 bg-white rounded-xl sm:rounded-2xl border border-ink/5 shadow-sm space-y-2.5 sm:space-y-3">
-                          <p className="text-[10px] font-black text-ink-muted uppercase tracking-wider">Guardian / Student Information</p>
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 sm:w-11 sm:h-11 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center font-black text-base shadow-sm">
-                                {tuition.guardianName.charAt(0).toUpperCase()}
+                        <div className="p-3.5 sm:p-4 bg-emerald-50/50 rounded-xl sm:rounded-2xl border border-emerald-200/80 shadow-xs space-y-2.5 sm:space-y-3">
+                          <div className="flex items-center justify-between">
+                            <p className="text-[10px] font-black uppercase text-emerald-800 tracking-wider flex items-center gap-1.5">
+                              <ShieldCheck size={14} className="text-emerald-600" />
+                              Guardian / Student Information (Confirmed)
+                            </p>
+                            {tuition.detailedAddress && (
+                              <span className="text-[10px] font-bold text-ink-muted truncate max-w-[160px] sm:max-w-[240px]">
+                                📍 {tuition.detailedAddress}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-xl border border-emerald-100/90 shadow-2xs">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="w-10 h-10 sm:w-11 sm:h-11 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center font-black text-base shadow-xs shrink-0">
+                                {tuition.guardianName ? tuition.guardianName.charAt(0).toUpperCase() : 'G'}
                               </div>
-                              <div>
-                                <p className="text-sm font-black text-ink">{tuition.guardianName}</p>
-                                <p className="text-xs font-medium text-ink-muted">
-                                  {tuition.guardianPhone || 'Phone available on confirmation'}
-                                </p>
+                              <div className="min-w-0">
+                                <p className="text-sm font-black text-ink truncate">{tuition.guardianName}</p>
+                                <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-xs">
+                                  {tuition.guardianPhone ? (
+                                    <span className="font-bold text-emerald-700 flex items-center gap-1">
+                                      <Phone size={11} className="text-emerald-600 shrink-0" />
+                                      {tuition.guardianPhone}
+                                    </span>
+                                  ) : (
+                                    <span className="text-ink-muted text-xs">ফোন নম্বর উপলব্ধ</span>
+                                  )}
+                                  {tuition.guardianWhatsApp && tuition.guardianWhatsApp !== tuition.guardianPhone && (
+                                    <span className="font-bold text-teal-700 flex items-center gap-1">
+                                      <MessageSquare size={11} className="text-teal-600 shrink-0" />
+                                      WA: {tuition.guardianWhatsApp}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             </div>
 
-                            {tuition.guardianPhone ? (
-                              <a
-                                href={`tel:${tuition.guardianPhone}`}
-                                className="w-full sm:w-auto justify-center px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-xs uppercase flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition-all cursor-pointer active:scale-95"
-                              >
-                                <Phone size={14} />
-                                Call Now
-                              </a>
-                            ) : null}
+                            <div className="flex items-center gap-2 shrink-0">
+                              {tuition.guardianPhone && (
+                                <a
+                                  href={`tel:${tuition.guardianPhone}`}
+                                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-xs uppercase flex items-center gap-1.5 shadow-sm shadow-emerald-600/20 transition-all cursor-pointer active:scale-95"
+                                >
+                                  <Phone size={13} />
+                                  <span>Call Now</span>
+                                </a>
+                              )}
+
+                              {tuition.guardianWhatsApp && (() => {
+                                const digits = tuition.guardianWhatsApp.replace(/[^0-9]/g, '');
+                                const waUrl = digits.startsWith('880') ? digits : digits.startsWith('01') ? ('88' + digits) : digits;
+                                return (
+                                  <a
+                                    href={`https://wa.me/${waUrl}?text=${encodeURIComponent(`আসসালামু আলাইকুম ${tuition.guardianName || 'সম্মানিত অভিভাবক'}, আমি ${user?.displayName || 'আপনার নিয়োগপ্রাপ্ত টিউটর'}, Home Tutor BD-তে আপনার পোস্টকৃত টিউশনের বিষয়ে যোগাযোগ করছি।`)}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="px-3.5 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-xl font-black text-xs uppercase flex items-center gap-1 border border-emerald-200 transition-all cursor-pointer active:scale-95"
+                                  >
+                                    <MessageSquare size={13} />
+                                    <span>WhatsApp</span>
+                                  </a>
+                                );
+                              })()}
+
+                              {tuition.studentUserId && (
+                                <Link
+                                  to="/tutor/messages"
+                                  className="px-3 py-2 bg-primary/10 hover:bg-primary text-primary hover:text-white rounded-xl font-black text-xs uppercase flex items-center gap-1 transition-all cursor-pointer active:scale-95"
+                                >
+                                  <MessageSquare size={13} />
+                                  <span>চ্যাট</span>
+                                </Link>
+                              )}
+                            </div>
                           </div>
                         </div>
 
