@@ -32,7 +32,7 @@ import { cn } from '@/src/lib/utils';
 import { TutorProfileService } from '@/src/services/tutorProfileService.ts';
 import { useGetMyTutorProfileQuery, useSubmitTutorVerificationMutation, useUpdateTutorProfileMutation } from '@/src/services/tutorApi.ts';
 import { uploadFile } from '@/src/repositories/storageRepository.ts';
-import { calculateTutorProfileCompletion } from '@/src/lib/profileCompletion.ts';
+import { calculateTutorProfileCompletion, checkTutorApplicationEligibility } from '@/src/lib/profileCompletion.ts';
 import { SUBJECTS } from '@/src/constants.tsx';
 import { useSearchParams, Link } from 'react-router-dom';
 
@@ -86,6 +86,7 @@ export default function TutorProfileDashboard() {
     // Documents
     nid: '',
     nidCard: '',
+    nidBackCard: '',
     studentIdCard: '',
     sscCertificate: '',
     hscCertificate: '',
@@ -119,6 +120,7 @@ export default function TutorProfileDashboard() {
             gender: ex.gender || prev.gender || 'Male',
             nid: ex.nid || prev.nid || '',
             nidCard: ex.nidCard || prev.nidCard || '',
+            nidBackCard: ex.nidBackCard || prev.nidBackCard || '',
             studentIdCard: ex.studentIdCard || prev.studentIdCard || '',
             sscCertificate: ex.certificates?.[0] || prev.sscCertificate || '',
             hscCertificate: ex.certificates?.[1] || prev.hscCertificate || '',
@@ -140,7 +142,7 @@ export default function TutorProfileDashboard() {
     setSearchParams({ tab });
   };
 
-  const handleDocumentUpload = async (docType: 'nidCard' | 'studentIdCard' | 'sscCertificate' | 'hscCertificate', file: File) => {
+  const handleDocumentUpload = async (docType: 'nidCard' | 'nidBackCard' | 'studentIdCard' | 'sscCertificate' | 'hscCertificate', file: File) => {
     setUploadingDocs(prev => ({ ...prev, [docType]: true }));
     setSuccessMsg(null);
     try {
@@ -179,12 +181,62 @@ export default function TutorProfileDashboard() {
     }
   };
 
+  // ── Per-tab required field validation (disables Save & Next when incomplete) ──
+  const isTabValid = useMemo(() => {
+    const filled = (v: any) => {
+      if (!v) return false;
+      if (typeof v === 'string') return v.trim().length > 0 && v.trim() !== 'Select One' && v.trim() !== 'Select...';
+      if (Array.isArray(v)) return v.length > 0;
+      return true;
+    };
+
+    if (activeTab === 'educational') {
+      // Must have at minimum: university name + department (Graduation section)
+      return filled(profileData.gradInstitute) && filled(profileData.gradDept);
+    }
+
+    if (activeTab === 'tuition') {
+      // Must have: district, preferred area, medium, expected salary, and at least 1 subject
+      return (
+        filled(profileData.tuitionDistrict) &&
+        filled(profileData.preferredArea) &&
+        filled(profileData.preferredMedium) &&
+        filled(profileData.expectedSalary) &&
+        (profileData.preferredSubjects?.length ?? 0) > 0
+      );
+    }
+
+    if (activeTab === 'personal') {
+      // Must have: full name, gender, and guardian phone (which must differ from primary phone)
+      const hasName = filled(profileData.fullName);
+      const hasGender = filled(profileData.gender);
+      const hasGuardianPhone = filled(profileData.altPhone);
+      const guardianDiffersFromOwn =
+        !profileData.altPhone?.trim() ||
+        !profileData.phone?.trim() ||
+        profileData.altPhone.trim() !== profileData.phone.trim();
+      return hasName && hasGender && hasGuardianPhone && guardianDiffersFromOwn;
+    }
+
+    if (activeTab === 'documents') {
+      // Must have: NID number, NID front card, NID back card, student ID
+      return (
+        filled(profileData.nid) &&
+        filled(profileData.nidCard) &&
+        filled(profileData.nidBackCard) &&
+        filled(profileData.studentIdCard)
+      );
+    }
+
+    return true;
+  }, [activeTab, profileData]);
+
   const handleSaveAndNext = async () => {
     setSaving(true);
     setSuccessMsg(null);
     try {
       // Save profile payload
-      const salaryNum = parseInt(profileData.expectedSalary.replace(/[^0-9]/g, ''), 10) || 0;
+      const salaryNum = parseInt(String(profileData.expectedSalary).replace(/[^0-9]/g, ''), 10) || 0;
       await updateProfileMutation({
         ...profileData,
         name: profileData.fullName,
@@ -213,8 +265,18 @@ export default function TutorProfileDashboard() {
   };
 
   const handleFinalVerificationSubmit = async () => {
-    if (!profileData.nidCard || !profileData.studentIdCard) {
-      alert('অনুগ্রহ করে Documents ট্যাবে NID কার্ড এবং স্টুডেন্ট/টিউটর আইডি কার্ড উভয় ডকুমেন্ট আপলোড করুন।');
+    if (!profileData.nid?.trim()) {
+      alert('অনুগ্রহ করে Documents ট্যাবে আপনার NID / Smart Card নম্বরটি প্রদান করুন।');
+      handleTabChange('documents');
+      return;
+    }
+    if (!profileData.nidCard) {
+      alert('অনুগ্রহ করে Documents ট্যাবে NID কার্ডের সামনের পিঠের (Front Side) ছবি আপলোড করুন।');
+      handleTabChange('documents');
+      return;
+    }
+    if (!profileData.studentIdCard) {
+      alert('অনুগ্রহ করে Documents ট্যাবে স্টুডেন্ট/টিউটর আইডি কার্ড আপলোড করুন।');
       handleTabChange('documents');
       return;
     }
@@ -222,6 +284,7 @@ export default function TutorProfileDashboard() {
     try {
       await submitVerification({
         nidCard: profileData.nidCard,
+        nidBackCard: profileData.nidBackCard,
         studentIdCard: profileData.studentIdCard,
         nid: profileData.nid?.trim(),
       }).unwrap();
@@ -245,6 +308,22 @@ export default function TutorProfileDashboard() {
     });
   }, [profileData]);
 
+  const eligibility = useMemo(() => {
+    return checkTutorApplicationEligibility(
+      {
+        ...profileData,
+        ...tutorApiData,
+        nidCard: profileData.nidCard,
+        nidBackCard: profileData.nidBackCard,
+        studentIdCard: profileData.studentIdCard,
+        nid: profileData.nid,
+        isVerified: Boolean(tutorApiData?.isVerified || user?.isApproved),
+        verificationStatus: tutorApiData?.verificationStatus,
+      },
+      user
+    );
+  }, [profileData, tutorApiData, user]);
+
   const tabs: { id: TabType; label: string; icon: any }[] = [
     { id: 'educational', label: 'EDUCATIONAL-INFO', icon: GraduationCap },
     { id: 'tuition', label: 'TUITION-INFO', icon: BookOpen },
@@ -257,6 +336,47 @@ export default function TutorProfileDashboard() {
     <TutorLayout>
       <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6 pb-24 sm:pb-20">
         
+        {/* 📢 Important Mandatory Profile Application Notice Banner */}
+        <div className="bg-gradient-to-r from-amber-500/10 via-primary/10 to-emerald-500/10 border-2 border-amber-400/40 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-3 sm:gap-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-amber-500/20 mt-0.5">
+              <ShieldCheck size={22} />
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500 text-white uppercase tracking-wider">
+                  বাধ্যতামূলক নিয়ম
+                </span>
+                <h3 className="text-xs sm:text-sm font-black text-slate-900">
+                  টিউশন জবে আবেদনের যোগ্যতা ও প্রোফাইল রিকোয়ারমেন্ট
+                </h3>
+              </div>
+              <p className="text-[11.5px] sm:text-xs text-slate-700 leading-relaxed max-w-3xl font-medium">
+                টিউশন জবে সফলভাবে আবেদন (Apply) করার জন্য প্রোফাইলের <strong className="text-primary font-bold">৫টি সেকশন</strong> — 
+                (Educational, Tuition, Personal, Documents Info ও Admin Verification) সম্পূর্ণ ও সঠিক তথ্য দিয়ে পূরণ করা বাধ্যতামূলক। ভুল বা অসম্পূর্ণ প্রোফাইল থাকলে জবে আবেদন করা যাবে না।
+              </p>
+            </div>
+          </div>
+          <div className="shrink-0 flex items-center gap-2 w-full md:w-auto justify-end">
+            <span className={cn(
+              "px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-2xs",
+              eligibility.canApply
+                ? "bg-emerald-600 text-white"
+                : "bg-amber-100 text-amber-900 border border-amber-300"
+            )}>
+              {eligibility.canApply ? (
+                <>
+                  <CheckCircle2 size={14} /> আবেদনের জন্য প্রস্তুত
+                </>
+              ) : (
+                <>
+                  <AlertCircle size={14} /> {eligibility.missingCount}টি সেকশন বাকি
+                </>
+              )}
+            </span>
+          </div>
+        </div>
+
         {/* Profile Completion Header Card */}
         <div className="bg-white/85 backdrop-blur-xl border border-ink/10 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm flex flex-col md:flex-row items-center gap-4 sm:gap-6">
           {/* Avatar with Camera Upload */}
@@ -313,11 +433,13 @@ export default function TutorProfileDashboard() {
           </div>
         </div>
 
-        {/* 5-Tab Navigation Bar - Horizontal Swipe on Mobile */}
+        {/* 5-Tab Navigation Bar - Horizontal Swipe on Mobile with Completion Indicators */}
         <div className="flex items-center gap-1.5 sm:gap-2 bg-white/80 backdrop-blur-xl p-1.5 rounded-xl sm:rounded-2xl border border-ink/10 shadow-sm overflow-x-auto scrollbar-hide snap-x snap-mandatory">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
+            const secStatus = eligibility.sections.find(s => s.id === tab.id);
+            const isDone = secStatus?.isComplete;
             return (
               <button
                 key={tab.id}
@@ -331,6 +453,13 @@ export default function TutorProfileDashboard() {
               >
                 <Icon size={15} />
                 <span>{tab.label}</span>
+                {isDone ? (
+                  <span className={cn("w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-black", isActive ? "bg-white text-primary" : "bg-emerald-100 text-emerald-700")}>
+                    ✓
+                  </span>
+                ) : (
+                  <span className={cn("w-2 h-2 rounded-full", isActive ? "bg-amber-300" : "bg-amber-400")} />
+                )}
               </button>
             );
           })}
@@ -447,7 +576,20 @@ export default function TutorProfileDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-6">
                 <FormGroup label="E-Mail" value={user?.email || ''} required disabled />
                 <FormGroup label="Phone Number" value={profileData.phone} onChange={(v) => handleChange('phone', v)} required disabled />
-                <FormGroup label="Additional Phone Number" placeholder="ex: 017..." value={profileData.altPhone} onChange={(v) => handleChange('altPhone', v)} />
+                <FormGroup
+                  label="Guardian Phone Number"
+                  placeholder="ex: 018... (অভিভাবকের নম্বর)"
+                  value={profileData.altPhone}
+                  onChange={(v) => handleChange('altPhone', v)}
+                  required
+                  error={
+                    profileData.altPhone?.trim() &&
+                    profileData.phone?.trim() &&
+                    profileData.altPhone.trim() === profileData.phone.trim()
+                      ? 'অভিভাবকের নম্বর আপনার নিজের নম্বরের সাথে একই হতে পারবে না'
+                      : undefined
+                  }
+                />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-6">
@@ -477,34 +619,53 @@ export default function TutorProfileDashboard() {
 
           {/* 4. DOCUMENTS INFO TAB (Cloudinary Direct Upload) */}
           {activeTab === 'documents' && (
-            <div className="bg-white/90 backdrop-blur-xl border border-ink/10 rounded-2xl sm:rounded-3xl shadow-sm p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-8">
+            <div className="bg-white/90 backdrop-blur-xl border border-ink/10 rounded-2xl sm:rounded-3xl shadow-sm p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-6">
               <div>
                 <h2 className="text-base sm:text-lg font-black text-ink">Upload Verification & Educational Documents</h2>
                 <p className="text-xs text-ink-muted mt-0.5 sm:mt-1">
-                  Upload your National ID card and Student ID card to get verified. Documents are securely encrypted via Cloudinary.
+                  Upload your National ID card (Front & Back) and Student ID card to get verified. Documents are securely encrypted.
                 </p>
               </div>
 
-              {/* NID Number Input */}
+              {/* ⚠️ Warning Notice Box */}
+              <div className="p-4 bg-amber-50 border-2 border-amber-300/80 rounded-2xl flex items-start gap-3 text-amber-900 shadow-2xs">
+                <AlertCircle className="text-amber-600 shrink-0 mt-0.5" size={20} />
+                <div className="space-y-1">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-amber-900">ডকুমেন্ট আপলোডের জরুরি নির্দেশিকা</h4>
+                  <p className="text-[11.5px] leading-relaxed font-medium text-amber-800">
+                    ⚠️ কোনো প্রকার ঘোলা (blurred), কাটা বা ইমোজি/ফিল্টার দিয়ে কোনো অংশ ঢাকা ডকুমেন্ট আপলোড করবেন না। NID-এর <strong>সামনের (Front)</strong> এবং <strong>পেছনের (Back)</strong> উভয় পিঠের স্পষ্ট ও পরিষ্কার ছবি আপলোড করা আবশ্যক। নিয়ম না মানলে প্রোফাইল ভেরিফিকেশন বাতিল করা হবে।
+                  </p>
+                </div>
+              </div>
+
+              {/* NID Number Input (Strictly Required) */}
               <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-ink uppercase tracking-wider">
-                  National ID (NID) Number / Smart Card No
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-ink uppercase tracking-wider">
+                    National ID (NID) Number / Smart Card No <span className="text-rose-500">* (বাধ্যতামূলক)</span>
+                  </label>
+                  {profileData.nid ? (
+                    <span className="text-[11px] font-bold text-emerald-600">✓ NID নম্বর যুক্ত আছে</span>
+                  ) : (
+                    <span className="text-[11px] font-bold text-rose-500">নম্বর প্রদান করা আবশ্যক</span>
+                  )}
+                </div>
                 <input
                   type="text"
                   value={profileData.nid || ''}
                   onChange={(e) => handleChange('nid', e.target.value)}
-                  placeholder="e.g. 1998261234567890"
+                  placeholder="e.g. 1998261234567890 (১০, ১৩ বা ১৭ ডিজিটের NID নম্বর)"
                   className="w-full bg-slate-50 border border-ink/10 rounded-xl sm:rounded-2xl p-3 sm:p-4 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all"
+                  required
                 />
               </div>
 
               {/* Document Upload Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 
-                {/* 1. NID Card Box */}
+                {/* 1. NID Card Front Box */}
                 <DocumentUploadCard
-                  title="1. National ID (NID) Card"
+                  title="1. NID Card - Front Side (সামনের পিঠ)"
                   required
                   docUrl={profileData.nidCard}
                   isUploading={uploadingDocs.nidCard}
@@ -512,9 +673,19 @@ export default function TutorProfileDashboard() {
                   onPreview={() => setPreviewImage(profileData.nidCard)}
                 />
 
-                {/* 2. Student ID Card Box */}
+                {/* 2. NID Card Back Box */}
                 <DocumentUploadCard
-                  title="2. Student ID / University ID"
+                  title="2. NID Card - Back Side (পেছনের পিঠ)"
+                  required
+                  docUrl={profileData.nidBackCard}
+                  isUploading={uploadingDocs.nidBackCard}
+                  onUpload={(file) => handleDocumentUpload('nidBackCard', file)}
+                  onPreview={() => setPreviewImage(profileData.nidBackCard)}
+                />
+
+                {/* 3. Student ID Card Box */}
+                <DocumentUploadCard
+                  title="3. Student ID / University ID"
                   required
                   docUrl={profileData.studentIdCard}
                   isUploading={uploadingDocs.studentIdCard}
@@ -522,18 +693,18 @@ export default function TutorProfileDashboard() {
                   onPreview={() => setPreviewImage(profileData.studentIdCard)}
                 />
 
-                {/* 3. SSC Certificate */}
+                {/* 4. SSC Certificate (Optional) */}
                 <DocumentUploadCard
-                  title="3. SSC / O-Level Certificate"
+                  title="4. SSC / O-Level Certificate (ঐচ্ছিক)"
                   docUrl={profileData.sscCertificate}
                   isUploading={uploadingDocs.sscCertificate}
                   onUpload={(file) => handleDocumentUpload('sscCertificate', file)}
                   onPreview={() => setPreviewImage(profileData.sscCertificate)}
                 />
 
-                {/* 4. HSC Certificate */}
+                {/* 5. HSC Certificate (Optional) */}
                 <DocumentUploadCard
-                  title="4. HSC / A-Level Certificate"
+                  title="5. HSC / A-Level Certificate (ঐচ্ছিক)"
                   docUrl={profileData.hscCertificate}
                   isUploading={uploadingDocs.hscCertificate}
                   onUpload={(file) => handleDocumentUpload('hscCertificate', file)}
@@ -548,7 +719,7 @@ export default function TutorProfileDashboard() {
                   <ShieldCheck className="text-primary shrink-0" size={22} />
                   <div>
                     <h4 className="text-xs font-bold text-ink">ডকুমেন্ট আপলোড শেষ হয়েছে?</h4>
-                    <p className="text-[11px] text-ink-muted">পরবর্তী ধাপে Verification ট্যাবে গিয়ে তথ্য রিভিয়ু করে অ্যাডমিনের কাছে সাবমিট করুন।</p>
+                    <p className="text-[11px] text-ink-muted">পরবর্তী ধাপে Verification ট্যাবে গিয়ে তথ্য রিভিউ করে অ্যাডমিনের কাছে সাবমিট করুন।</p>
                   </div>
                 </div>
                 <button
@@ -645,79 +816,170 @@ export default function TutorProfileDashboard() {
                   📄 আপলোডকৃত ডকুমেন্ট ও প্রোফাইল সারাংশ
                 </h3>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                  {/* NID Card Summary */}
-                  <div className="border border-ink/10 rounded-xl sm:rounded-2xl p-3.5 sm:p-4 bg-slate-50 space-y-2.5 sm:space-y-3">
+                {/* 5-Section Pre-application Checklist */}
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                      <ShieldCheck size={16} className="text-primary" />
+                      টিউশন জবে আবেদনের যোগ্যতা যাচাই (৫টি সেকশন)
+                    </h4>
+                    <span className={cn(
+                      "text-[10.5px] font-black px-2.5 py-0.5 rounded-full",
+                      eligibility.canApply ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
+                    )}>
+                      {eligibility.canApply ? 'সব তথ্য সম্পূর্ণ ✓' : `${eligibility.missingCount}টি সেকশন অসম্পূর্ণ`}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                    {eligibility.sections.map((sec) => (
+                      <div
+                        key={sec.id}
+                        className={cn(
+                          "p-2.5 rounded-xl border flex items-center justify-between gap-2 text-xs",
+                          sec.isComplete
+                            ? "bg-emerald-50/70 border-emerald-200 text-emerald-900"
+                            : "bg-white border-amber-200 text-slate-700"
+                        )}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          {sec.isComplete ? (
+                            <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                          ) : (
+                            <AlertCircle size={16} className="text-amber-500 shrink-0" />
+                          )}
+                          <div className="min-w-0 truncate">
+                            <span className="font-bold block truncate">{sec.label}</span>
+                            {sec.missingDetails && (
+                              <span className="text-[10px] text-amber-700 block truncate">{sec.missingDetails}</span>
+                            )}
+                          </div>
+                        </div>
+
+                        {!sec.isComplete && sec.id !== 'verification' && (
+                          <button
+                            type="button"
+                            onClick={() => handleTabChange(sec.id as TabType)}
+                            className="text-[10px] font-bold text-primary hover:underline shrink-0 cursor-pointer"
+                          >
+                            পূরণ করুন →
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-4">
+                  {/* NID Card Front Summary */}
+                  <div className="border border-ink/10 rounded-xl sm:rounded-2xl p-3.5 bg-slate-50 space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-700">1. National ID (NID) Card</span>
+                      <span className="text-xs font-bold text-slate-700">1. NID Card (Front)</span>
                       {profileData.nidCard && (
                         <button
                           type="button"
                           onClick={() => setPreviewImage(profileData.nidCard)}
                           className="text-[11px] font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer"
                         >
-                          <Eye size={13} /> View Full
+                          <Eye size={13} /> View
                         </button>
                       )}
                     </div>
 
                     {profileData.nidCard ? (
-                      <div className="h-28 sm:h-32 rounded-xl overflow-hidden border border-ink/10 bg-white relative group">
-                        <img src={profileData.nidCard} alt="NID Card" className="w-full h-full object-cover" />
-                        <span className="absolute bottom-2 right-2 bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                          <Check size={11} /> Uploaded
+                      <div className="h-24 rounded-xl overflow-hidden border border-ink/10 bg-white relative group">
+                        <img src={profileData.nidCard} alt="NID Front" className="w-full h-full object-cover" />
+                        <span className="absolute bottom-1.5 right-1.5 bg-emerald-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                          <Check size={10} /> Uploaded
                         </span>
                       </div>
                     ) : (
-                      <div className="h-28 sm:h-32 rounded-xl border border-dashed border-rose-300 bg-rose-50/50 flex flex-col items-center justify-center p-3 text-center">
-                        <p className="text-xs font-bold text-rose-600">NID Card Not Uploaded</p>
+                      <div className="h-24 rounded-xl border border-dashed border-rose-300 bg-rose-50/50 flex flex-col items-center justify-center p-2 text-center">
+                        <p className="text-[11px] font-bold text-rose-600">Front Side Missing</p>
                         <button
                           type="button"
                           onClick={() => handleTabChange('documents')}
-                          className="text-[10px] font-bold text-primary hover:underline mt-1 cursor-pointer"
+                          className="text-[10px] font-bold text-primary hover:underline mt-0.5 cursor-pointer"
                         >
-                          Upload Now →
+                          Upload →
                         </button>
                       </div>
                     )}
-                    <p className="text-[11px] text-slate-500">NID No: <strong>{profileData.nid || 'Not Provided'}</strong></p>
+                    <p className="text-[10.5px] text-slate-500 truncate">NID No: <strong>{profileData.nid || 'Not Provided'}</strong></p>
+                  </div>
+
+                  {/* NID Card Back Summary */}
+                  <div className="border border-ink/10 rounded-xl sm:rounded-2xl p-3.5 bg-slate-50 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-700">2. NID Card (Back)</span>
+                      {profileData.nidBackCard && (
+                        <button
+                          type="button"
+                          onClick={() => setPreviewImage(profileData.nidBackCard)}
+                          className="text-[11px] font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer"
+                        >
+                          <Eye size={13} /> View
+                        </button>
+                      )}
+                    </div>
+
+                    {profileData.nidBackCard ? (
+                      <div className="h-24 rounded-xl overflow-hidden border border-ink/10 bg-white relative group">
+                        <img src={profileData.nidBackCard} alt="NID Back" className="w-full h-full object-cover" />
+                        <span className="absolute bottom-1.5 right-1.5 bg-emerald-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                          <Check size={10} /> Uploaded
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="h-24 rounded-xl border border-dashed border-amber-300 bg-amber-50/50 flex flex-col items-center justify-center p-2 text-center">
+                        <p className="text-[11px] font-bold text-amber-700">Back Side (Optional / Recommended)</p>
+                        <button
+                          type="button"
+                          onClick={() => handleTabChange('documents')}
+                          className="text-[10px] font-bold text-primary hover:underline mt-0.5 cursor-pointer"
+                        >
+                          Upload →
+                        </button>
+                      </div>
+                    )}
+                    <p className="text-[10.5px] text-slate-500 truncate">NID Back Side</p>
                   </div>
 
                   {/* Student ID Card Summary */}
-                  <div className="border border-ink/10 rounded-xl sm:rounded-2xl p-3.5 sm:p-4 bg-slate-50 space-y-2.5 sm:space-y-3">
+                  <div className="border border-ink/10 rounded-xl sm:rounded-2xl p-3.5 bg-slate-50 space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-700">2. Student ID / University ID</span>
+                      <span className="text-xs font-bold text-slate-700">3. Student ID</span>
                       {profileData.studentIdCard && (
                         <button
                           type="button"
                           onClick={() => setPreviewImage(profileData.studentIdCard)}
                           className="text-[11px] font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer"
                         >
-                          <Eye size={13} /> View Full
+                          <Eye size={13} /> View
                         </button>
                       )}
                     </div>
 
                     {profileData.studentIdCard ? (
-                      <div className="h-28 sm:h-32 rounded-xl overflow-hidden border border-ink/10 bg-white relative group">
+                      <div className="h-24 rounded-xl overflow-hidden border border-ink/10 bg-white relative group">
                         <img src={profileData.studentIdCard} alt="Student ID" className="w-full h-full object-cover" />
-                        <span className="absolute bottom-2 right-2 bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                          <Check size={11} /> Uploaded
+                        <span className="absolute bottom-1.5 right-1.5 bg-emerald-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                          <Check size={10} /> Uploaded
                         </span>
                       </div>
                     ) : (
-                      <div className="h-28 sm:h-32 rounded-xl border border-dashed border-rose-300 bg-rose-50/50 flex flex-col items-center justify-center p-3 text-center">
-                        <p className="text-xs font-bold text-rose-600">Student ID Not Uploaded</p>
+                      <div className="h-24 rounded-xl border border-dashed border-rose-300 bg-rose-50/50 flex flex-col items-center justify-center p-2 text-center">
+                        <p className="text-[11px] font-bold text-rose-600">Student ID Missing</p>
                         <button
                           type="button"
                           onClick={() => handleTabChange('documents')}
-                          className="text-[10px] font-bold text-primary hover:underline mt-1 cursor-pointer"
+                          className="text-[10px] font-bold text-primary hover:underline mt-0.5 cursor-pointer"
                         >
-                          Upload Now →
+                          Upload →
                         </button>
                       </div>
                     )}
-                    <p className="text-[11px] text-slate-500">University: <strong>{profileData.gradInstitute || 'Not Provided'}</strong></p>
+                    <p className="text-[10.5px] text-slate-500 truncate">Institution: <strong>{profileData.gradInstitute || 'Not Provided'}</strong></p>
                   </div>
                 </div>
 
@@ -726,7 +988,7 @@ export default function TutorProfileDashboard() {
                   <button
                     type="button"
                     onClick={handleFinalVerificationSubmit}
-                    disabled={isSubmittingVerification || !profileData.nidCard || !profileData.studentIdCard}
+                    disabled={isSubmittingVerification || !profileData.nidCard || !profileData.studentIdCard || !profileData.nid?.trim()}
                     className="w-full py-3.5 sm:py-4 px-6 rounded-xl sm:rounded-2xl bg-primary text-white font-bold text-xs sm:text-sm shadow-xl shadow-primary/20 hover:bg-primary-dark transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                   >
                     {isSubmittingVerification ? (
@@ -759,10 +1021,25 @@ export default function TutorProfileDashboard() {
                   <CheckCircle2 size={16} /> {successMsg}
                 </p>
               )}
+              {!isTabValid && !saving && (
+                <p className="text-amber-600 text-[11px] font-semibold flex items-center gap-1 animate-pulse">
+                  <AlertCircle size={13} />
+                  {activeTab === 'educational' && 'বিশ্ববিদ্যালয়ের নাম ও বিভাগ পূরণ করুন'}
+                  {activeTab === 'tuition' && 'জেলা, এলাকা, মাধ্যম, বেতন ও কমপক্ষে একটি বিষয় নির্বাচন করুন'}
+                  {activeTab === 'personal' && 'পূর্ণ নাম, লিঙ্গ ও অভিভাবকের আলাদা ফোন নম্বর পূরণ করুন'}
+                  {activeTab === 'documents' && 'NID নম্বর, NID সামনের ও পেছনের ছবি এবং Student ID আপলোড করুন'}
+                </p>
+              )}
               <button
                 onClick={handleSaveAndNext}
-                disabled={saving}
-                className="w-full sm:w-auto bg-primary text-white px-8 sm:px-12 py-3 sm:py-3.5 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 active:scale-95 disabled:opacity-50 cursor-pointer"
+                disabled={saving || !isTabValid}
+                title={!isTabValid ? 'সকল প্রয়োজনীয় তথ্য পূরণ করুন' : ''}
+                className={cn(
+                  "w-full sm:w-auto px-8 sm:px-12 py-3 sm:py-3.5 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95",
+                  saving || !isTabValid
+                    ? "bg-slate-300 text-slate-500 shadow-none cursor-not-allowed opacity-70"
+                    : "bg-primary text-white shadow-primary/20 hover:bg-primary-dark cursor-pointer"
+                )}
               >
                 {saving ? (
                   <Loader2 className="animate-spin" size={18} />
@@ -912,7 +1189,8 @@ function FormGroup({
   type = 'input',
   options = [],
   required = false,
-  disabled = false
+  disabled = false,
+  error,
 }: {
   label: string;
   value?: string;
@@ -922,6 +1200,7 @@ function FormGroup({
   options?: string[];
   required?: boolean;
   disabled?: boolean;
+  error?: string;
 }) {
   return (
     <div className="space-y-1.5">
@@ -937,8 +1216,9 @@ function FormGroup({
           disabled={disabled}
           placeholder={placeholder}
           className={cn(
-            "w-full border border-ink/10 rounded-xl px-4 py-2.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-ink/20",
-            disabled ? "bg-[#EBEDF0] text-ink cursor-not-allowed border-transparent" : "bg-white"
+            "w-full border rounded-xl px-4 py-2.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-ink/20",
+            disabled ? "bg-[#EBEDF0] text-ink cursor-not-allowed border-transparent" : "bg-white",
+            error ? "border-rose-400 focus:ring-rose-300/30 focus:border-rose-400" : "border-ink/10"
           )}
         />
       ) : type === 'textarea' ? (
@@ -959,6 +1239,11 @@ function FormGroup({
             <option key={opt} value={opt}>{opt}</option>
           ))}
         </select>
+      )}
+      {error && (
+        <p className="text-[11px] text-rose-500 font-semibold flex items-center gap-1">
+          <span>⚠</span> {error}
+        </p>
       )}
     </div>
   );

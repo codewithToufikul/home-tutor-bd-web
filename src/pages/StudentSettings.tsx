@@ -8,6 +8,7 @@ import {
   Navigation, Globe
 } from 'lucide-react';
 import { getDivisions, getDistricts, getUpazilas } from '@olism/bd-geo';
+import { getDhakaZones, getDhakaSubLocations } from '@/src/data/dhakaLocations';
 import StudentLayout from '@/src/components/StudentLayout';
 import { useAuth } from '@/src/context/AuthContext';
 import { useGetMeQuery, useUpdateProfileMutation } from '@/src/services/authApi';
@@ -80,13 +81,13 @@ export default function StudentSettings() {
   const [institution, setInstitution] = useState('');
   const [bio, setBio] = useState('');
 
-  // Location State with @olism/bd-geo
+  // Location State with @olism/bd-geo & dhakaLocations
   const [division, setDivision] = useState('Dhaka');
   const [divisionId, setDivisionId] = useState<number | ''>(3);
   const [district, setDistrict] = useState('Dhaka');
   const [districtId, setDistrictId] = useState<number | ''>(1);
   const [upazila, setUpazila] = useState('');
-  const [upazilaId, setUpazilaId] = useState<number | ''>('');
+  const [upazilaId, setUpazilaId] = useState<number | string | ''>('');
   const [area, setArea] = useState('');
   const [address, setAddress] = useState('');
   const [preferredTuitionMode, setPreferredTuitionMode] = useState<'Home Tutoring' | 'Online Tutoring' | 'Both' | ''>('Both');
@@ -109,6 +110,10 @@ export default function StudentSettings() {
   const [notifyTuition, setNotifyTuition] = useState(true);
   const [notifyTutorMatch, setNotifyTutorMatch] = useState(true);
 
+  const isDhaka = useMemo(() => {
+    return district.toLowerCase().includes('dhaka') || Number(districtId) === 1;
+  }, [district, districtId]);
+
   // Cascaded geo options
   const availableDistricts = useMemo(() => {
     if (!divisionId) return allDistricts;
@@ -117,8 +122,23 @@ export default function StudentSettings() {
 
   const availableUpazilas = useMemo(() => {
     if (!districtId) return [];
+    if (isDhaka) {
+      const zones = getDhakaZones();
+      return zones.map((zone) => ({
+        id: zone,
+        name: zone,
+        nameBn: '',
+      }));
+    }
     return allUpazilas.filter((u) => u.districtId === Number(districtId));
-  }, [allUpazilas, districtId]);
+  }, [allUpazilas, districtId, isDhaka]);
+
+  const availableAreas = useMemo(() => {
+    if (isDhaka) {
+      return getDhakaSubLocations(upazila);
+    }
+    return [];
+  }, [upazila, isDhaka]);
 
   // Load User Data
   useEffect(() => {
@@ -164,6 +184,7 @@ export default function StudentSettings() {
           (up) => up.name.toLowerCase() === userUpazilaName.toLowerCase()
         );
         if (matchedUp) setUpazilaId(matchedUp.id);
+        else setUpazilaId(userUpazilaName);
       }
 
       setArea((u as any).area || (u.location || ''));
@@ -209,11 +230,18 @@ export default function StudentSettings() {
   };
 
   const handleUpazilaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const upId = Number(e.target.value);
-    const up = availableUpazilas.find((u) => u.id === upId);
-    setUpazila(up ? up.name : '');
-    setUpazilaId(upId || '');
-    if (!area) setArea(up ? up.name : '');
+    const val = e.target.value;
+    if (isDhaka) {
+      setUpazila(val);
+      setUpazilaId(val);
+      if (!area) setArea(val);
+    } else {
+      const upId = Number(val);
+      const up = availableUpazilas.find((u) => u.id === upId);
+      setUpazila(up ? up.name : '');
+      setUpazilaId(upId || '');
+      if (!area) setArea(up ? up.name : '');
+    }
   };
 
   // Profile Completeness Calculation
@@ -714,11 +742,19 @@ export default function StudentSettings() {
                   </label>
                   <input
                     type="text"
+                    list="student-area-suggestions"
                     value={area}
                     onChange={(e) => setArea(e.target.value)}
                     placeholder="e.g. Dhanmondi 27, Mirpur-10, Sector-4, Zindabazar, Agrabad"
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                   />
+                  {availableAreas.length > 0 && (
+                    <datalist id="student-area-suggestions">
+                      {availableAreas.map((loc, idx) => (
+                        <option key={idx} value={loc} />
+                      ))}
+                    </datalist>
+                  )}
                 </div>
 
                 {/* Preferred Tuition Mode */}

@@ -76,17 +76,54 @@ export default function StudentJobApplications() {
     loadData();
   }, [jobId]);
 
-  const handleAcceptApp = async (appId: string, tutorName: string) => {
-    setAcceptModal({ open: true, appId, tutorName });
+  const [demoModal, setDemoModal] = useState<{ open: boolean; appId: string; tutorName: string } | null>(null);
+  const [finalModal, setFinalModal] = useState<{ open: boolean; appId: string; tutorName: string } | null>(null);
+
+  const handleDemoConfirm = (appId: string, tutorName: string) => {
+    setDemoModal({ open: true, appId, tutorName });
   };
 
-  const confirmAccept = async () => {
-    if (!acceptModal) return;
-    setAcceptModal(null);
+  const confirmDemo = async () => {
+    if (!demoModal) return;
+    const { appId, tutorName } = demoModal;
+    setDemoModal(null);
     setActionLoading(true);
     try {
-      await ApplicationRepository.accept(acceptModal.appId);
-      setSuccessModal({ open: true, message: '🎉 অভিনন্দন! টিউটর সফলভাবে কনফার্ম করা হয়েছে। এখন যোগাযোগের তথ্য দৃশ্যমান হয়েছে।' });
+      await ApplicationRepository.demoConfirm(appId);
+      setSuccessModal({ open: true, message: `🎉 অভিনন্দন! ${tutorName}-কে ডেমো ক্লাসের জন্য নিশ্চিত করা হয়েছে। যোগাযোগের তথ্য এখন উন্মুক্ত।` });
+      await loadData();
+    } catch (err: any) {
+      setSuccessModal({ open: true, message: `❌ ${err.message || 'সমস্যা হয়েছে। আবার চেষ্টা করুন।'}` });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDemoComplete = async (appId: string) => {
+    setActionLoading(true);
+    try {
+      await ApplicationRepository.demoComplete(appId);
+      setSuccessModal({ open: true, message: '✅ ডেমো ক্লাস সম্পন্ন হিসেবে চিহ্নিত করা হয়েছে।' });
+      await loadData();
+    } catch (err: any) {
+      setSuccessModal({ open: true, message: `❌ ${err.message || 'সমস্যা হয়েছে।'}` });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleFinalConfirm = (appId: string, tutorName: string) => {
+    setFinalModal({ open: true, appId, tutorName });
+  };
+
+  const confirmFinal = async () => {
+    if (!finalModal) return;
+    const { appId, tutorName } = finalModal;
+    setFinalModal(null);
+    setActionLoading(true);
+    try {
+      await ApplicationRepository.finalConfirm(appId);
+      setSuccessModal({ open: true, message: `🎉 অভিনন্দন! ${tutorName} আপনার চূড়ান্ত টিউটর হিসেবে চূড়ান্তভাবে নিশ্চিত (Deal Done) হয়েছে!` });
       await loadData();
     } catch (err: any) {
       setSuccessModal({ open: true, message: `❌ ${err.message || 'সমস্যা হয়েছে। আবার চেষ্টা করুন।'}` });
@@ -123,9 +160,9 @@ export default function StudentJobApplications() {
   return (
     <Layout>
       {/* ───────────────────────────────────────────────────────── */}
-      {/* Accept Confirmation Modal */}
+      {/* Demo Confirmation Modal */}
       <AnimatePresence>
-        {acceptModal?.open && (
+        {demoModal?.open && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -138,71 +175,100 @@ export default function StudentJobApplications() {
               exit={{ scale: 0.9, y: 20 }}
               className="bg-white rounded-[32px] shadow-2xl max-w-lg w-full overflow-hidden"
             >
-              {/* Header */}
-              <div className="bg-gradient-to-br from-emerald-500 to-teal-600 p-8 text-white">
-                <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mb-4">
-                  <ShieldCheck size={32} />
+              <div className="bg-gradient-to-br from-purple-600 to-indigo-700 p-7 text-white">
+                <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center mb-3">
+                  <Sparkles size={28} />
                 </div>
-                <h2 className="text-2xl font-display font-black">টিউটর নিশ্চিত করুন</h2>
-                <p className="text-emerald-100 text-sm mt-1 font-medium">
-                  <span className="text-white font-black">{acceptModal.tutorName}</span>-কে Accept করার আগে নিচের শর্তগুলো পড়ুন
+                <h2 className="text-xl font-display font-black">ডেমো ক্লাসের জন্য নিশ্চিত করুন</h2>
+                <p className="text-purple-100 text-xs mt-1 font-medium">
+                  <span className="text-white font-black">{demoModal.tutorName}</span>-কে ডেমো ক্লাসের জন্য নির্বাচন করতে যাচ্ছেন
                 </p>
               </div>
 
-              {/* Policy Content */}
-              <div className="p-6 space-y-4 max-h-[50vh] overflow-y-auto">
-
-                {/* Privacy Policy */}
-                <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 space-y-2">
-                  <div className="flex items-center gap-2 text-blue-700 font-black text-sm">
-                    <Lock size={16} /> গোপনীয়তা নীতি (Privacy Policy)
+              <div className="p-6 space-y-3.5 max-h-[50vh] overflow-y-auto text-xs">
+                <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4 space-y-1.5 text-purple-900">
+                  <div className="font-black text-sm flex items-center gap-1.5">
+                    <CheckCircle2 size={16} className="text-purple-600" /> ডেমো কনফার্ম করলে কী হবে?
                   </div>
-                  <ul className="space-y-1.5 text-xs text-blue-800 font-medium">
-                    <li className="flex items-start gap-2"><EyeOff size={12} className="mt-0.5 shrink-0" /> Accept-এর আগে টিউটরের ব্যক্তিগত তথ্য (নাম, ফোন, ছবি) সম্পূর্ণ গোপন থাকে।</li>
-                    <li className="flex items-start gap-2"><Eye size={12} className="mt-0.5 shrink-0" /> Accept করার পরেই শুধুমাত্র যোগাযোগের নম্বর ও প্রোফাইল দৃশ্যমান হবে।</li>
-                    <li className="flex items-start gap-2"><Shield size={12} className="mt-0.5 shrink-0" /> টিউটরের ব্যক্তিগত তথ্য তৃতীয় পক্ষের সাথে শেয়ার করা সম্পূর্ণ নিষিদ্ধ।</li>
-                  </ul>
-                </div>
-
-                {/* Platform Rules */}
-                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-2">
-                  <div className="flex items-center gap-2 text-amber-700 font-black text-sm">
-                    <FileText size={16} /> প্ল্যাটফর্ম বিধিমালা
-                  </div>
-                  <ul className="space-y-1.5 text-xs text-amber-800 font-medium">
-                    <li className="flex items-start gap-2"><Star size={12} className="mt-0.5 shrink-0" /> একটি টিউশনে শুধুমাত্র একজন টিউটর Confirm করা যাবে।</li>
-                    <li className="flex items-start gap-2"><Info size={12} className="mt-0.5 shrink-0" /> Accept করলে অন্য সকল আবেদন স্বয়ংক্রিয়ভাবে বাতিল হয়ে যাবে।</li>
-                    <li className="flex items-start gap-2"><AlertTriangle size={12} className="mt-0.5 shrink-0" /> টিউটর নির্বাচনে সততা বজায় রাখুন — অহেতুক Accept/Reject প্ল্যাটফর্মে আপনার বিশ্বাসযোগ্যতা কমায়।</li>
-                    <li className="flex items-start gap-2"><Check size={12} className="mt-0.5 shrink-0" /> টিউশন সফলভাবে শেষ হলে রিভিউ দিন — এটি অন্য গার্ডিয়ানদের সিদ্ধান্ত নিতে সাহায্য করে।</li>
-                  </ul>
-                </div>
-
-                {/* Contact Info Note */}
-                <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 space-y-2">
-                  <div className="flex items-center gap-2 text-emerald-700 font-black text-sm">
-                    <Phone size={16} /> Accept করলে কী হবে?
-                  </div>
-                  <ul className="space-y-1.5 text-xs text-emerald-800 font-medium">
-                    <li className="flex items-start gap-2"><CheckCircle2 size={12} className="mt-0.5 shrink-0" /> টিউটরের পূর্ণ নাম, ফোন নম্বর ও ছবি দৃশ্যমান হবে।</li>
-                    <li className="flex items-start gap-2"><CheckCircle2 size={12} className="mt-0.5 shrink-0" /> টিউটরও আপনার যোগাযোগের তথ্য দেখতে পাবেন।</li>
-                    <li className="flex items-start gap-2"><CheckCircle2 size={12} className="mt-0.5 shrink-0" /> উভয়পক্ষই সরাসরি যোগাযোগ করতে পারবেন।</li>
+                  <ul className="space-y-1 text-purple-800">
+                    <li>• টিউটরের ফোন ও যোগাযোগ মাধ্যম উন্মুক্ত হবে।</li>
+                    <li>• টিউটরের কাছে ডেমো নোটিফিকেশন যাবে এবং তিনি যোগাযোগ করবেন।</li>
+                    <li>• আপনার টিউশন পোস্টটি এখনও <strong>পাবলিক থাকবে</strong> এবং অন্য টিউটররাও আবেদন করতে পারবে।</li>
+                    <li>• আপনি চাইলে একাধিক টিউটরকে ডেমোর সুযোগ দিয়ে সেরা টিউটর বেছে নিতে পারবেন।</li>
                   </ul>
                 </div>
               </div>
 
-              {/* Footer Buttons */}
               <div className="p-6 pt-0 flex gap-3">
                 <button
-                  onClick={() => setAcceptModal(null)}
-                  className="flex-1 py-4 rounded-2xl border-2 border-ink/10 text-ink font-black text-sm hover:bg-ink/5 transition-all cursor-pointer"
+                  onClick={() => setDemoModal(null)}
+                  className="flex-1 py-3.5 rounded-2xl border-2 border-ink/10 text-ink font-black text-xs hover:bg-ink/5 transition-all cursor-pointer"
                 >
                   বাতিল করুন
                 </button>
                 <button
-                  onClick={confirmAccept}
-                  className="flex-1 py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black text-sm shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 transition-all cursor-pointer flex items-center justify-center gap-2"
+                  onClick={confirmDemo}
+                  className="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-700 text-white font-black text-xs shadow-lg shadow-purple-600/30 hover:shadow-purple-600/50 transition-all cursor-pointer flex items-center justify-center gap-1.5"
                 >
-                  <Check size={16} /> হ্যাঁ, Confirm করুন
+                  <Sparkles size={15} /> হ্যাঁ, ডেমো কনফার্ম করুন
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ───────────────────────────────────────────────────────── */}
+      {/* Final Hire (Deal Done) Confirmation Modal */}
+      <AnimatePresence>
+        {finalModal?.open && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/40 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="bg-white rounded-[32px] shadow-2xl max-w-lg w-full overflow-hidden"
+            >
+              <div className="bg-gradient-to-br from-emerald-600 to-teal-700 p-7 text-white">
+                <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center mb-3">
+                  <ShieldCheck size={28} />
+                </div>
+                <h2 className="text-xl font-display font-black">চূড়ান্ত টিউটর নিয়োগ (Deal Done)</h2>
+                <p className="text-emerald-100 text-xs mt-1 font-medium">
+                  <span className="text-white font-black">{finalModal.tutorName}</span>-কে আপনার ফাইনাল টিউটর হিসেবে কনফার্ম করছেন
+                </p>
+              </div>
+
+              <div className="p-6 space-y-3.5 max-h-[50vh] overflow-y-auto text-xs">
+                <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 space-y-1.5 text-emerald-900">
+                  <div className="font-black text-sm flex items-center gap-1.5">
+                    <CheckCircle2 size={16} className="text-emerald-600" /> ফাইনাল কনফার্ম করলে কী হবে?
+                  </div>
+                  <ul className="space-y-1 text-emerald-800">
+                    <li>• <span className="font-bold">{finalModal.tutorName}</span> স্থায়ীভাবে আপনার টিউটর হিসেবে নিযুক্ত হবেন।</li>
+                    <li>• টিউশন পোস্টটি পাবলিক বোর্ড থেকে বন্ধ (Matched) হবে এবং আর কোনো নতুন আবেদন নেওয়া হবে না।</li>
+                    <li>• অন্যান্য আবেদনকারীদের সম্মানজনকভাবে চূড়ান্ত সিলেকশনের তথ্য জানানো হবে।</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="p-6 pt-0 flex gap-3">
+                <button
+                  onClick={() => setFinalModal(null)}
+                  className="flex-1 py-3.5 rounded-2xl border-2 border-ink/10 text-ink font-black text-xs hover:bg-ink/5 transition-all cursor-pointer"
+                >
+                  বাতিল করুন
+                </button>
+                <button
+                  onClick={confirmFinal}
+                  className="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 text-white font-black text-xs shadow-lg shadow-emerald-600/30 hover:shadow-emerald-600/50 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <Check size={16} /> হ্যাঁ, Final Hire করুন ⭐
                 </button>
               </div>
             </motion.div>
@@ -390,6 +456,10 @@ export default function StudentJobApplications() {
               applications.map((app) => {
                 const appId = String(app._id || app.id);
                 const isAccepted = app.status === 'Accepted';
+                const isDemoConfirmed = app.status === 'Demo_Confirmed';
+                const isDemoCompleted = app.status === 'Demo_Completed';
+                const isContactUnlocked = isAccepted || isDemoConfirmed || isDemoCompleted;
+
                 const tutorUser = app.tutorId || {};
                 const tutorProfile = app.tutorProfile || {};
                 const tutorSnapshot = app.tutorSnapshot || {};
@@ -413,14 +483,22 @@ export default function StudentJobApplications() {
                     className={`p-6 rounded-3xl border transition-all space-y-4 ${
                       isAccepted
                         ? 'bg-emerald-50/70 border-emerald-300 shadow-md ring-2 ring-emerald-500/20'
-                        : 'bg-white border-ink/10 shadow-sm hover:border-ink/20'
+                        : isDemoConfirmed
+                          ? 'bg-purple-50/60 border-purple-300 shadow-md ring-2 ring-purple-500/20'
+                          : isDemoCompleted
+                            ? 'bg-blue-50/50 border-blue-300 shadow-sm'
+                            : 'bg-white border-ink/10 shadow-sm hover:border-ink/20'
                     }`}
                   >
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                       <div className="flex items-start gap-4">
                         {/* Avatar */}
                         <div className={`w-16 h-16 rounded-2xl flex items-center justify-center font-black text-xl overflow-hidden border shadow-sm shrink-0 ${
-                          isAccepted ? 'bg-emerald-600 text-white border-emerald-300' : 'bg-slate-100 text-ink-muted border-slate-200'
+                          isAccepted
+                            ? 'bg-emerald-600 text-white border-emerald-300'
+                            : isDemoConfirmed
+                              ? 'bg-purple-600 text-white border-purple-300'
+                              : 'bg-slate-100 text-ink-muted border-slate-200'
                         }`}>
                           {tutorAvatar ? (
                             <img 
@@ -451,7 +529,17 @@ export default function StudentJobApplications() {
                                 <ShieldCheck size={12} className="text-emerald-700" /> Verified Tutor
                               </span>
                             )}
-                            {(app.isAutoShortlisted || (app.matchScore && app.matchScore >= 85)) && (
+                            {isDemoConfirmed && (
+                              <span className="px-2.5 py-0.5 bg-purple-600 text-white text-[10px] font-black rounded-full flex items-center gap-1 shadow-sm">
+                                <Sparkles size={12} /> Demo Confirmed
+                              </span>
+                            )}
+                            {isAccepted && (
+                              <span className="px-2.5 py-0.5 bg-emerald-600 text-white text-[10px] font-black rounded-full flex items-center gap-1 shadow-sm">
+                                <CheckCircle2 size={12} /> Final Hired ⭐
+                              </span>
+                            )}
+                            {(app.isAutoShortlisted || (app.matchScore && app.matchScore >= 85)) && !isDemoConfirmed && !isAccepted && (
                               <span className="px-2.5 py-0.5 bg-purple-100 text-purple-700 text-[10px] font-black rounded-full flex items-center gap-1 border border-purple-200">
                                 <Sparkles size={12} className="text-purple-600" /> AI Matched ({app.matchScore || 90}%)
                               </span>
@@ -502,30 +590,39 @@ export default function StudentJobApplications() {
                         <span className={`px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider ${
                           isAccepted 
                             ? 'bg-emerald-600 text-white shadow-sm' 
-                            : app.status === 'Rejected' 
-                              ? 'bg-rose-100 text-rose-700' 
-                              : 'bg-amber-100 text-amber-800'
+                            : isDemoConfirmed
+                              ? 'bg-purple-600 text-white shadow-sm'
+                              : isDemoCompleted
+                                ? 'bg-blue-600 text-white shadow-sm'
+                                : app.status === 'Rejected' 
+                                  ? 'bg-rose-100 text-rose-700' 
+                                  : 'bg-amber-100 text-amber-800'
                         }`}>
-                          {isAccepted ? 'CONFIRMED' : app.status}
+                          {isAccepted ? 'FINAL HIRED' : isDemoConfirmed ? 'DEMO CONFIRMED' : isDemoCompleted ? 'DEMO DONE' : app.status}
                         </span>
                       </div>
                     </div>
 
-                    {/* Unlocked Contact Details (if confirmed) */}
-                    {isAccepted ? (
-                      <div className="bg-emerald-100/70 border border-emerald-300 p-4 rounded-2xl space-y-2">
-                        <p className="text-xs font-black text-emerald-900 flex items-center gap-1.5">
-                          <CheckCircle2 size={16} className="text-emerald-700" /> টিউটর কনফার্ম হয়েছে! যোগাযোগের তথ্য নিচে দেওয়া হলো:
+                    {/* Unlocked Contact Details (if confirmed for Demo or Final) */}
+                    {isContactUnlocked ? (
+                      <div className={`border p-4 rounded-2xl space-y-2 ${
+                        isAccepted 
+                          ? 'bg-emerald-100/70 border-emerald-300 text-emerald-950' 
+                          : 'bg-purple-50 border-purple-200 text-purple-950'
+                      }`}>
+                        <p className={`text-xs font-black flex items-center gap-1.5 ${isAccepted ? 'text-emerald-900' : 'text-purple-900'}`}>
+                          {isAccepted ? <CheckCircle2 size={16} className="text-emerald-700" /> : <Sparkles size={16} className="text-purple-600" />}
+                          {isAccepted ? 'চূড়ান্ত টিউটর কনফার্ম হয়েছে! যোগাযোগের তথ্য:' : 'ডেমো ক্লাসের জন্য নির্বাচিত! যোগাযোগের তথ্য নিচে উন্মুক্ত হলো:'}
                         </p>
-                        <div className="flex flex-wrap gap-4 text-xs font-bold text-emerald-950 pt-1">
+                        <div className="flex flex-wrap gap-3 text-xs font-bold pt-1">
                           {tutorUser.phone && (
-                            <a href={`tel:${tutorUser.phone}`} className="flex items-center gap-1.5 bg-white px-3.5 py-2 rounded-xl border border-emerald-300 hover:bg-emerald-50 transition-all shadow-sm">
+                            <a href={`tel:${tutorUser.phone}`} className="flex items-center gap-1.5 bg-white px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 transition-all shadow-xs">
                               <Phone size={14} className="text-emerald-700" /> {tutorUser.phone}
                             </a>
                           )}
                           {tutorUser.email && (
-                            <a href={`mailto:${tutorUser.email}`} className="flex items-center gap-1.5 bg-white px-3.5 py-2 rounded-xl border border-emerald-300 hover:bg-emerald-50 transition-all shadow-sm">
-                              <Mail size={14} className="text-emerald-700" /> {tutorUser.email}
+                            <a href={`mailto:${tutorUser.email}`} className="flex items-center gap-1.5 bg-white px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 transition-all shadow-xs">
+                              <Mail size={14} className="text-secondary" /> {tutorUser.email}
                             </a>
                           )}
                         </div>
@@ -534,7 +631,7 @@ export default function StudentJobApplications() {
                       /* Masked Contact Info with clear note */
                       <div className="bg-slate-50 border border-slate-200/80 p-3.5 rounded-2xl text-xs text-slate-600 font-medium flex items-center justify-between gap-2 flex-wrap">
                         <span className="flex items-center gap-2 font-bold text-slate-700">
-                          <Lock size={14} className="text-amber-600" /> যোগাযোগ নম্বর: <span className="text-slate-500 font-normal">টিউশন নিশ্চিত (Accept) করার পর উন্মুক্ত হবে</span>
+                          <Lock size={14} className="text-amber-600" /> যোগাযোগ নম্বর: <span className="text-slate-500 font-normal">ডেমো ক্লাস বা চূড়ান্ত নিয়োগ নিশ্চিত করার পর উন্মুক্ত হবে</span>
                         </span>
                         <span className="flex items-center gap-1.5 text-slate-400">
                           <Mail size={14} /> ইমেইল: সুরক্ষিত (Hidden)
@@ -565,9 +662,12 @@ export default function StudentJobApplications() {
                         )}
                       </div>
 
-                      {/* Action Buttons */}
+                      {/* Action Buttons based on stages */}
                       {isAccepted && (
                         <div className="flex items-center gap-2">
+                          <span className="px-3.5 py-2 bg-emerald-100 text-emerald-800 rounded-xl text-xs font-black flex items-center gap-1.5 border border-emerald-300">
+                            <CheckCircle2 size={15} /> চূড়ান্তভাবে নিযুক্ত টিউটর (Deal Done)
+                          </span>
                           <button
                             onClick={() => handleStartChatWithTutor(String(tutorUser?._id || tutorUser?.id || app.tutorId?._id || app.tutorId || ''))}
                             className="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-xl text-xs font-black shadow-md shadow-primary/20 transition-all cursor-pointer flex items-center gap-1.5"
@@ -578,21 +678,73 @@ export default function StudentJobApplications() {
                         </div>
                       )}
 
-                      {!isAccepted && app.status === 'Pending' && (
-                        <div className="flex items-center gap-2">
+                      {isDemoConfirmed && !isAccepted && (
+                        <div className="flex items-center gap-2 flex-wrap">
                           <button
                             onClick={() => handleRejectApp(appId)}
                             disabled={actionLoading}
-                            className="px-4 py-2 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-xl text-xs font-black transition-all cursor-pointer"
+                            className="px-3 py-2 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-xl text-xs font-black transition-all cursor-pointer"
                           >
                             Reject
                           </button>
                           <button
-                            onClick={() => handleAcceptApp(appId, tutorName)}
+                            onClick={() => handleDemoComplete(appId)}
                             disabled={actionLoading}
-                            className="px-5 py-2.5 bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl text-xs font-black shadow-md shadow-emerald-600/20 transition-all cursor-pointer flex items-center gap-1.5"
+                            className="px-3.5 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-xl text-xs font-black border border-blue-200 transition-all cursor-pointer flex items-center gap-1.5"
                           >
-                            <Check size={15} /> Accept & Confirm Tutor
+                            <Check size={14} /> ডেমো সম্পন্ন
+                          </button>
+                          <button
+                            onClick={() => handleFinalConfirm(appId, tutorName)}
+                            disabled={actionLoading}
+                            className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-700 hover:to-teal-700 rounded-xl text-xs font-black shadow-md shadow-emerald-600/20 transition-all cursor-pointer flex items-center gap-1.5"
+                          >
+                            <Star size={14} className="fill-amber-300 text-amber-300" /> Final Confirm & Deal Done ⭐
+                          </button>
+                        </div>
+                      )}
+
+                      {isDemoCompleted && !isAccepted && (
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <button
+                            onClick={() => handleRejectApp(appId)}
+                            disabled={actionLoading}
+                            className="px-3 py-2 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-xl text-xs font-black transition-all cursor-pointer"
+                          >
+                            Reject
+                          </button>
+                          <button
+                            onClick={() => handleFinalConfirm(appId, tutorName)}
+                            disabled={actionLoading}
+                            className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-700 hover:to-teal-700 rounded-xl text-xs font-black shadow-md shadow-emerald-600/20 transition-all cursor-pointer flex items-center gap-1.5"
+                          >
+                            <Star size={14} className="fill-amber-300 text-amber-300" /> Final Confirm & Deal Done ⭐
+                          </button>
+                        </div>
+                      )}
+
+                      {!isContactUnlocked && app.status === 'Pending' && (
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <button
+                            onClick={() => handleRejectApp(appId)}
+                            disabled={actionLoading}
+                            className="px-3 py-2 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-xl text-xs font-black transition-all cursor-pointer"
+                          >
+                            Reject
+                          </button>
+                          <button
+                            onClick={() => handleDemoConfirm(appId, tutorName)}
+                            disabled={actionLoading}
+                            className="px-4 py-2 bg-purple-600 text-white hover:bg-purple-700 rounded-xl text-xs font-black shadow-md shadow-purple-600/20 transition-all cursor-pointer flex items-center gap-1.5"
+                          >
+                            <Sparkles size={14} /> Confirm for Demo
+                          </button>
+                          <button
+                            onClick={() => handleFinalConfirm(appId, tutorName)}
+                            disabled={actionLoading}
+                            className="px-4 py-2 bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl text-xs font-black shadow-md shadow-emerald-600/20 transition-all cursor-pointer flex items-center gap-1.5"
+                          >
+                            <Check size={14} /> Direct Final Hire
                           </button>
                         </div>
                       )}

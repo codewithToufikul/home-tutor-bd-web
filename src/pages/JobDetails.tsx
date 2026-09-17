@@ -21,6 +21,7 @@ import { useAuth } from '@/src/context/AuthContext.tsx';
 import { can } from '@/src/shared/authorization.ts';
 import { PERMISSIONS } from '@/src/shared/constants/permissions.ts';
 import { useGetMyTutorProfileQuery } from '@/src/services/tutorApi.ts';
+import { checkTutorApplicationEligibility } from '@/src/lib/profileCompletion.ts';
 
 export default function JobDetails() {
   const { id } = useParams();
@@ -36,13 +37,18 @@ export default function JobDetails() {
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
 
-  // Fetch tutor profile only when logged in as a tutor (for verification check)
+  // Fetch tutor profile only when logged in as a tutor (for verification & profile completeness check)
   const { data: myTutorProfileData } = useGetMyTutorProfileQuery(undefined, {
     skip: user?.role !== 'tutor',
   });
   const myTutorProfile = (myTutorProfileData as any)?.data;
   const isTutorVerified = Boolean(user?.isApproved || myTutorProfile?.isVerified);
   const tutorVerificationStatus: string = myTutorProfile?.verificationStatus || (isTutorVerified ? 'Approved' : 'Unsubmitted');
+
+  const tutorEligibility = useMemo(() => {
+    if (user?.role !== 'tutor') return null;
+    return checkTutorApplicationEligibility(myTutorProfile, user);
+  }, [myTutorProfile, user]);
 
   useEffect(() => {
     const loadJob = async () => {
@@ -179,11 +185,17 @@ export default function JobDetails() {
       return;
     }
 
-    // Strict Verification Guard for Tutors:
-    // Tutor must have documents submitted AND admin-approved to apply for jobs.
-    if (user.role === 'tutor' && !isTutorVerified) {
-      setShowVerificationRequiredModal(true);
-      return;
+    // Strict Profile & Verification Guard for Tutors:
+    // Tutor must complete all 5 sections: Educational, Tuition, Personal, Documents (NID front/back + Student ID), and Verification.
+    if (user.role === 'tutor') {
+      if (tutorEligibility && !tutorEligibility.canApply) {
+        setShowVerificationRequiredModal(true);
+        return;
+      }
+      if (!isTutorVerified) {
+        setShowVerificationRequiredModal(true);
+        return;
+      }
     }
 
     setShowApplyModal(true);
@@ -835,7 +847,7 @@ export default function JobDetails() {
         </div>
       </div>
 
-      {/* ─── Verification Required Modal ────────────────────────── */}
+      {/* ─── 5-Section Profile & Verification Required Modal ──────── */}
       <AnimatePresence>
         {showVerificationRequiredModal && (
           <div 
@@ -846,54 +858,96 @@ export default function JobDetails() {
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="relative max-w-md w-full bg-white rounded-[2.5rem] p-6 sm:p-8 shadow-2xl space-y-6 text-center"
+              className="relative max-w-lg w-full bg-white rounded-[2.5rem] p-6 sm:p-8 shadow-2xl space-y-6 text-left"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className={cn(
-                "w-16 h-16 rounded-3xl flex items-center justify-center mx-auto shadow-md",
-                tutorVerificationStatus === 'Pending'
-                  ? "bg-sky-100 text-sky-600 shadow-sky-500/10"
-                  : tutorVerificationStatus === 'Rejected'
-                  ? "bg-rose-100 text-rose-600 shadow-rose-500/10"
-                  : "bg-amber-100 text-amber-600 shadow-amber-500/10"
-              )}>
-                {tutorVerificationStatus === 'Pending' ? (
-                  <Clock size={34} />
-                ) : (
-                  <ShieldAlert size={34} />
-                )}
-              </div>
+              {/* Top icon and header */}
+              <div className="text-center space-y-2">
+                <div className={cn(
+                  "w-16 h-16 rounded-3xl flex items-center justify-center mx-auto shadow-md",
+                  tutorVerificationStatus === 'Pending'
+                    ? "bg-sky-100 text-sky-600 shadow-sky-500/10"
+                    : tutorVerificationStatus === 'Rejected'
+                    ? "bg-rose-100 text-rose-600 shadow-rose-500/10"
+                    : "bg-amber-100 text-amber-600 shadow-amber-500/10"
+                )}>
+                  {tutorVerificationStatus === 'Pending' ? (
+                    <Clock size={34} />
+                  ) : (
+                    <ShieldAlert size={34} />
+                  )}
+                </div>
 
-              <div className="space-y-2">
                 <h3 className="text-xl font-black text-ink">
                   {tutorVerificationStatus === 'Pending'
                     ? 'ভেরিফিকেশন পর্যালোচনায় রয়েছে (Pending)'
                     : tutorVerificationStatus === 'Rejected'
                     ? 'ভেরিফিকেশন সম্পন্ন হয়নি (Rejected)'
-                    : 'টিউটর ভেরিফিকেশন প্রয়োজন'}
+                    : 'প্রোফাইল পূরণ ও ভেরিফিকেশন প্রয়োজন'}
                 </h3>
                 <p className="text-xs text-ink-muted leading-relaxed">
-                  {tutorVerificationStatus === 'Pending' ? (
-                    <>
-                      আপনার <strong className="text-slate-800">NID কার্ড</strong> ও <strong className="text-slate-800">স্টুডেন্ট আইডি কার্ড</strong> সফলভাবে জমা দেওয়া হয়েছে এবং বর্তমানে অ্যাডমিন পর্যালোচনায় রয়েছে। অ্যাডমিন অনুমোদন দিলেই আপনি সরাসরি টিউশন জবে আবেদন করতে পারবেন।
-                    </>
-                  ) : tutorVerificationStatus === 'Rejected' ? (
-                    <>
-                      আপনার পূর্ববর্তী ভেরিফিকেশন আবেদনটি বাতিল করা হয়েছে। টিউশন জবে আবেদন করতে দয়া করে সঠিক <strong className="text-slate-800">NID কার্ড</strong> ও <strong className="text-slate-800">স্টুডেন্ট আইডি কার্ড</strong> পুনরায় আপলোড করুন।
-                    </>
-                  ) : (
-                    <>
-                      অভিভাবকদের আস্থা ও শিক্ষার্থীদের নিরাপত্তা বজায় রাখতে টিউশন জবে আবেদন করার পূর্বে আপনার <strong className="text-slate-800">NID কার্ড</strong> এবং <strong className="text-slate-800">স্টুডেন্ট/টিউটর আইডি কার্ড</strong> আপলোড করে অ্যাডমিন ভেরিফিকেশন সম্পন্ন করতে হবে।
-                    </>
-                  )}
+                  টিউশন জবে আবেদন করার জন্য আপনার প্রোফাইলের ৫টি সেকশন সঠিকভাবে পূরণ ও অ্যাডমিন অনুমোদন থাকা বাধ্যতামূলক।
                 </p>
               </div>
 
-              <div className="space-y-3 pt-2">
+              {/* 5-Section Checklist Breakdown */}
+              <div className="space-y-2.5 bg-slate-50/80 p-4 rounded-2xl border border-slate-200/80">
+                <p className="text-[11px] font-black uppercase tracking-wider text-slate-500 mb-2">
+                  প্রোফাইল চেকলিস্ট ({tutorEligibility?.sections.filter((s: any) => s.isComplete).length || 0}/5 সম্পন্ন)
+                </p>
+
+                {tutorEligibility?.sections.map((section: any, idx: number) => (
+                  <div
+                    key={section.id}
+                    className={cn(
+                      "flex items-center justify-between p-2.5 rounded-xl border text-xs transition-all",
+                      section.isComplete
+                        ? "bg-emerald-50/60 border-emerald-200 text-emerald-900"
+                        : "bg-white border-amber-200/80 text-slate-800 shadow-sm"
+                    )}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={cn(
+                        "w-6 h-6 rounded-lg flex items-center justify-center font-bold text-xs shrink-0",
+                        section.isComplete
+                          ? "bg-emerald-500 text-white"
+                          : "bg-amber-100 text-amber-700"
+                      )}>
+                        {section.isComplete ? <Check size={14} /> : (idx + 1)}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-extrabold text-[12px] truncate">
+                          {section.label}
+                          <span className="ml-1 font-normal text-slate-500 text-[11px]">({section.nameBn})</span>
+                        </div>
+                        {!section.isComplete && section.missingDetails && (
+                          <p className="text-[10px] text-amber-700 font-medium truncate">
+                            {section.missingDetails}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {!section.isComplete && (
+                      <Link
+                        to={`/tutor/profile?tab=${section.id}`}
+                        onClick={() => setShowVerificationRequiredModal(false)}
+                        className="shrink-0 ml-2 px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white font-bold text-[10px] rounded-lg shadow-sm transition-all"
+                      >
+                        পূরণ করুন
+                      </Link>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="space-y-2.5 pt-1">
                 <Link
-                  to="/tutor/verification"
+                  to="/tutor/profile?tab=educational"
+                  onClick={() => setShowVerificationRequiredModal(false)}
                   className={cn(
-                    "w-full py-4 px-6 rounded-2xl text-white font-bold text-xs uppercase tracking-wider shadow-lg transition-all flex items-center justify-center gap-2",
+                    "w-full py-3.5 px-6 rounded-2xl text-white font-bold text-xs uppercase tracking-wider shadow-lg transition-all flex items-center justify-center gap-2",
                     tutorVerificationStatus === 'Pending'
                       ? "bg-sky-600 hover:bg-sky-700 shadow-sky-600/25"
                       : "bg-primary hover:bg-primary-dark shadow-primary/25"
@@ -905,14 +959,14 @@ export default function JobDetails() {
                       ? 'Check Verification Status'
                       : tutorVerificationStatus === 'Rejected'
                       ? 'Re-upload Documents'
-                      : 'Upload Documents & Verify Now'}
+                      : 'Complete Profile & Verify Now'}
                   </span>
                 </Link>
 
                 <button
                   type="button"
                   onClick={() => setShowVerificationRequiredModal(false)}
-                  className="w-full py-3 text-xs font-bold text-slate-500 hover:text-slate-700 transition-colors cursor-pointer"
+                  className="w-full py-2.5 text-xs font-bold text-slate-500 hover:text-slate-700 transition-colors cursor-pointer text-center"
                 >
                   Close
                 </button>

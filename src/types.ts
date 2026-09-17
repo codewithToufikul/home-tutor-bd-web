@@ -44,6 +44,9 @@ export interface TuitionJob {
   subjects: string[];
   location: string;
   area: string;
+  detailedAddress?: string;
+  upazila?: string;
+  fullLocation?: string;
   salary: number;
   medium: string;
   genderPreference?: 'Male' | 'Female' | 'Any';

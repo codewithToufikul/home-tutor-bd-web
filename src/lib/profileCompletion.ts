@@ -191,3 +191,124 @@ export function calculateTutorProfileCompletion(profile: any): ProfileCompletion
     missingItems,
   };
 }
+
+export interface TutorSectionStatus {
+  id: 'educational' | 'tuition' | 'personal' | 'documents' | 'verification';
+  label: string;
+  nameBn: string;
+  isComplete: boolean;
+  missingDetails?: string;
+}
+
+export interface TutorApplicationEligibilityResult {
+  canApply: boolean;
+  sections: TutorSectionStatus[];
+  missingCount: number;
+}
+
+/**
+ * Checks if a tutor has filled all 5 sections and has been verified by admin
+ * before they can apply for any tuition job.
+ */
+export function checkTutorApplicationEligibility(profile: any, user: any): TutorApplicationEligibilityResult {
+  const filled = (val: any): boolean => {
+    if (val === null || val === undefined) return false;
+    if (typeof val === 'number') return val > 0;
+    if (typeof val === 'string') {
+      const t = val.trim().toLowerCase();
+      return t !== '' && t !== 'select one' && t !== 'select...' && t !== '0';
+    }
+    if (Array.isArray(val)) return val.length > 0 && val.some((v) => filled(v));
+    return false;
+  };
+
+  // 1. Educational Info
+  const hasEducational = Boolean(
+    (filled(profile?.university) && (filled(profile?.department) || filled(profile?.qualification))) ||
+    (filled(profile?.sscInstitute) && filled(profile?.sscResult)) ||
+    (filled(profile?.hscInstitute) && filled(profile?.hscResult)) ||
+    (filled(profile?.gradInstitute) && filled(profile?.gradDept))
+  );
+
+  // 2. Tuition Info
+  const hasTuition = Boolean(
+    (filled(profile?.subjects) || filled(profile?.preferredSubjects)) &&
+    (
+      filled(profile?.preferredAreas) ||
+      filled(profile?.location?.district) ||
+      filled(profile?.tuitionDistrict) ||
+      filled(profile?.preferredArea) ||
+      filled(profile?.mediums) ||
+      filled(profile?.preferredMedium)
+    )
+  );
+
+  // 3. Personal Info
+  const hasPersonal = Boolean(
+    (filled(profile?.fullName) || filled(user?.name) || filled(profile?.name)) &&
+    (filled(profile?.phone) || filled(user?.phone)) &&
+    filled(profile?.gender) &&
+    (filled(profile?.currentCity) || filled(profile?.currentArea) || filled(profile?.location?.district) || filled(profile?.permanentAddress) || filled(profile?.bio) || filled(profile?.tuitionDistrict))
+  );
+
+  // 4. Documents Info (NID number + NID Front + Student ID)
+  const hasNidNumber = filled(profile?.nid);
+  const hasNidFront = filled(profile?.nidCard);
+  const hasStudentId = filled(profile?.studentIdCard);
+  const hasDocuments = Boolean(hasNidNumber && hasNidFront && hasStudentId);
+
+  // 5. Verification Info (Admin Approval)
+  const isVerified = Boolean(profile?.isVerified || user?.isApproved || profile?.verificationStatus === 'Approved');
+
+  const sections: TutorSectionStatus[] = [
+    {
+      id: 'educational',
+      label: 'EDUCATIONAL-INFO',
+      nameBn: 'শিক্ষাগত তথ্য',
+      isComplete: hasEducational,
+      missingDetails: hasEducational ? undefined : 'SSC, HSC বা বিশ্ববিদ্যালয়ের তথ্য দিন',
+    },
+    {
+      id: 'tuition',
+      label: 'TUITION-INFO',
+      nameBn: 'টিউশন পছন্দসমূহ',
+      isComplete: hasTuition,
+      missingDetails: hasTuition ? undefined : 'পছন্দের বিষয় ও এলাকা সিলেক্ট করুন',
+    },
+    {
+      id: 'personal',
+      label: 'PERSONAL-INFO',
+      nameBn: 'ব্যক্তিগত তথ্য',
+      isComplete: hasPersonal,
+      missingDetails: hasPersonal ? undefined : 'নাম, মোবাইল, লিঙ্গ ও ঠিকানা দিন',
+    },
+    {
+      id: 'documents',
+      label: 'DOCUMENTS-INFO',
+      nameBn: 'ডকুমেন্টস (NID ও Student ID)',
+      isComplete: hasDocuments,
+      missingDetails: hasDocuments ? undefined : 'NID নম্বর, NID কার্ড এবং স্টুডেন্ট আইডি কার্ড আপলোড করুন',
+    },
+    {
+      id: 'verification',
+      label: 'VERIFICATION-INFO',
+      nameBn: 'অ্যাডমিন অনুমোদন ও ভেরিফিকেশন',
+      isComplete: isVerified,
+      missingDetails: isVerified
+        ? undefined
+        : profile?.verificationStatus === 'Pending'
+        ? 'আপনার আবেদন অ্যাডমিন পর্যালোচনায় রয়েছে'
+        : 'প্রোফাইল ভেরিফিকেশন সাবমিট ও অনুমোদন প্রয়োজন',
+    },
+  ];
+
+  const canApply = sections.every((s) => s.isComplete);
+  const missingCount = sections.filter((s) => !s.isComplete).length;
+
+  return {
+    canApply,
+    sections,
+    missingCount,
+  };
+}
+

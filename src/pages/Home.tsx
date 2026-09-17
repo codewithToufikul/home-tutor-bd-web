@@ -5,6 +5,7 @@ import {
   Sparkles, School, Palette, Landmark, Cpu, Stethoscope, Building2, Sprout, Globe, Laptop, HelpCircle
 } from 'lucide-react';
 import { getDivisions, getDistricts, getUpazilas, getAreas } from '@olism/bd-geo';
+import { getDhakaZones, getDhakaSubLocations } from '@/src/data/dhakaLocations';
 import useEmblaCarousel from 'embla-carousel-react';
 import Autoplay from 'embla-carousel-autoplay';
 import { SUBJECTS, DISTRICTS, DISTRICT_WISE_AREAS, CATEGORIES_DATA } from '@/src/constants';
@@ -707,6 +708,10 @@ export default function Home() {
     return list;
   }, [classCategoryFilter, classSearchQuery]);
 
+  const isDhaka = useMemo(() => {
+    return formData.district.toLowerCase() === 'dhaka' || Number(formData.districtId) === 1;
+  }, [formData.district, formData.districtId]);
+
   // Cascaded geo options
   const availableDistricts = useMemo(() => {
     if (!formData.divisionId) return [];
@@ -715,18 +720,37 @@ export default function Home() {
 
   const availableUpazilas = useMemo(() => {
     if (!formData.districtId) return [];
+    if (isDhaka) {
+      const zones = getDhakaZones();
+      return zones.map((zone) => ({
+        id: zone,
+        name: zone,
+        nameBn: '',
+        type: 'zone',
+      }));
+    }
     return allUpazilas.filter((u) => u.districtId === Number(formData.districtId));
-  }, [allUpazilas, formData.districtId]);
+  }, [allUpazilas, formData.districtId, isDhaka]);
 
   const availableUnions = useMemo(() => {
+    if (isDhaka) return [];
     if (!formData.upazilaId) return [];
     return allAreas.filter((a) => a.upazilaId === Number(formData.upazilaId) && a.type === 'union');
-  }, [allAreas, formData.upazilaId]);
+  }, [allAreas, formData.upazilaId, isDhaka]);
 
   const availableWards = useMemo(() => {
+    if (isDhaka) {
+      const list = getDhakaSubLocations(formData.upazila);
+      return list.map((item, idx) => ({
+        id: `dhaka-${idx + 1}`,
+        name: item,
+        nameBn: '',
+        type: 'ward',
+      }));
+    }
     if (!formData.upazilaId) return [];
     return allAreas.filter((a) => a.upazilaId === Number(formData.upazilaId) && a.type === 'ward');
-  }, [allAreas, formData.upazilaId]);
+  }, [allAreas, formData.upazilaId, formData.upazila, isDhaka]);
 
   const handleDivisionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const divId = Number(e.target.value);
@@ -767,18 +791,32 @@ export default function Home() {
   const [isWardDropdownOpen, setIsWardDropdownOpen] = useState(false);
 
   const handleUpazilaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const upId = Number(e.target.value);
-    const up = allUpazilas.find((u) => u.id === upId);
-    setFormData((prev) => ({
-      ...prev,
-      upazila: up ? up.name : '',
-      upazilaId: upId || '',
-      union: '',
-      unionId: '',
-      ward: '',
-      wardId: '',
-      area: up ? up.name : '',
-    }));
+    const val = e.target.value;
+    if (isDhaka) {
+      setFormData((prev) => ({
+        ...prev,
+        upazila: val,
+        upazilaId: val,
+        union: '',
+        unionId: '',
+        ward: '',
+        wardId: '',
+        area: val,
+      }));
+    } else {
+      const upId = Number(val);
+      const up = allUpazilas.find((u) => u.id === upId);
+      setFormData((prev) => ({
+        ...prev,
+        upazila: up ? up.name : '',
+        upazilaId: upId || '',
+        union: '',
+        unionId: '',
+        ward: '',
+        wardId: '',
+        area: up ? up.name : '',
+      }));
+    }
   };
 
   const handleWardTextChange = (text: string) => {
@@ -792,7 +830,7 @@ export default function Home() {
     }));
   };
 
-  const handleSelectWard = (wd: { id: number; name: string; nameBn?: string }) => {
+  const handleSelectWard = (wd: { id: number | string; name: string; nameBn?: string }) => {
     setFormData((prev) => ({
       ...prev,
       ward: wd.name,

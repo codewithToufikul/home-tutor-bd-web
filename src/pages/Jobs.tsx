@@ -118,19 +118,45 @@ export default function Jobs() {
     return raw.map((j: any) => {
       const locArea = typeof j.location === 'object' ? String(j.location?.area || '') : String(j.area || '');
       const locDistrict = typeof j.location === 'object' ? String(j.location?.district || '') : String(typeof j.location === 'string' ? j.location : '');
+      const locDetailed = typeof j.location === 'object' ? String(j.location?.detailedAddress || '') : String(j.detailedAddress || '');
+      const locUpazila = typeof j.location === 'object' ? String(j.location?.upazila || '') : '';
+
+      // Build readable, full location without duplicate segments
+      const locParts = [locDetailed, locArea, locUpazila, locDistrict]
+        .map(s => s.trim())
+        .filter(Boolean);
+      const uniqueLocParts = locParts.filter((item, pos) => locParts.indexOf(item) === pos);
+      const fullLocation = uniqueLocParts.join(', ') || locArea || locDistrict || 'Location N/A';
+
+      // Tutoring Days format
+      const tutoringDays = Array.isArray(j.tutoringDays) && j.tutoringDays.length > 0
+        ? (j.tutoringDays.length <= 4 ? j.tutoringDays.join(', ') : `${j.tutoringDays.length} Days / Week`)
+        : (typeof j.tutoringDays === 'string' && j.tutoringDays.trim() ? j.tutoringDays : '3-4 Days / Week');
+
+      // Duration & Timing format
+      const duration = j.duration && String(j.duration).trim() ? String(j.duration) : 'Long Term (Regular)';
+      const startTime = j.startTime && String(j.startTime).trim() ? String(j.startTime) : '';
+
       return {
         ...j,
         id: String(j._id || j.id || ''),
         _id: String(j._id || j.id || ''),
         location: locDistrict,
         area: locArea,
+        detailedAddress: locDetailed,
+        upazila: locUpazila,
+        fullLocation,
         studentClass: j.studentClass || 'N/A',
-        subjects: Array.isArray(j.subjects) ? j.subjects : [j.subject || 'General'],
+        subjects: Array.isArray(j.subjects) && j.subjects.length > 0 ? j.subjects : [j.subject || 'General'],
         salary: Number(j.salary || 0),
         medium: j.medium || 'Bangla Medium',
         tuitionType: j.tuitionType || 'Home Tuition',
         genderPreference: j.genderPreference || 'Any',
-        tutoringDays: Array.isArray(j.tutoringDays) ? j.tutoringDays : [],
+        tutoringDays,
+        duration,
+        startTime,
+        numStudents: j.numStudents || 1,
+        studentGender: j.studentGender || 'Any',
         createdAt: j.createdAt || new Date().toISOString(),
       };
     }) as TuitionJob[];
@@ -483,7 +509,6 @@ export default function Jobs() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {activeJobs.map((job, idx) => {
-                  const locStr = [job.area, job.location].filter(Boolean).join(', ') || 'Location N/A';
                   const isOnline = job.tuitionType?.toLowerCase().includes('online');
                   return (
                     <motion.div
@@ -492,63 +517,131 @@ export default function Jobs() {
                       initial={{ opacity: 0, y: 16 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: idx * 0.04 }}
-                      className="bg-white rounded-2xl border border-ink/8 shadow-sm hover:shadow-lg hover:shadow-primary/8 hover:-translate-y-0.5 transition-all duration-200 overflow-hidden flex flex-col group"
+                      className="bg-white rounded-3xl border border-slate-200/90 shadow-sm hover:shadow-xl hover:shadow-primary/10 hover:border-primary/40 transition-all duration-300 overflow-hidden flex flex-col group relative"
                     >
-                      {/* Card Header */}
-                      <div className="px-5 py-3 flex justify-between items-center border-b border-ink/5">
-                        <div className="flex items-center gap-1.5 text-ink-muted font-bold text-[11px] truncate max-w-[65%]">
-                          <MapPin size={12} className="text-primary shrink-0" />
-                          <span className="truncate">{locStr}</span>
+                      {/* Top Highlighted Location & ID Banner */}
+                      <div className="p-4 bg-gradient-to-r from-emerald-50/90 via-teal-50/70 to-blue-50/60 border-b border-teal-100/90 space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-6 h-6 rounded-lg bg-teal-600 text-white shadow-xs flex items-center justify-center">
+                              <MapPin size={13} className="shrink-0 animate-bounce" />
+                            </span>
+                            <span className="text-[10px] font-black uppercase tracking-wider text-teal-800">
+                              Location Details
+                            </span>
+                          </div>
+                          <span className="px-2.5 py-1 rounded-xl bg-white/95 text-primary font-black text-[10px] border border-primary/20 shadow-xs whitespace-nowrap font-mono">
+                            ID: {job.customId || `#${String(job.id).slice(-6).toUpperCase()}`}
+                          </span>
                         </div>
-                        <span className="px-2.5 py-1 rounded-lg bg-primary/8 text-primary font-black text-[10px] border border-primary/15 whitespace-nowrap">
-                          ID: {job.customId || `#${String(job.id).slice(-6).toUpperCase()}`}
-                        </span>
+
+                        {/* Full Location with clear, non-truncated highlight */}
+                        <div className="bg-white/90 backdrop-blur-xs rounded-xl p-2.5 border border-teal-200/70 shadow-2xs">
+                          <p className="text-xs font-black text-slate-800 leading-snug break-words">
+                            {job.fullLocation}
+                          </p>
+                        </div>
                       </div>
 
                       {/* Card Body */}
                       <div className="p-5 flex-1 space-y-4">
-                        {/* Title */}
-                        <h3 className="text-base font-display font-black text-ink leading-snug group-hover:text-primary transition-colors line-clamp-2">
-                          Tutor Needed For {job.medium}
-                        </h3>
+                        {/* Title & Badges */}
+                        <div>
+                          <div className="flex flex-wrap items-center gap-1.5 mb-2.5">
+                            <span className={cn(
+                              "inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-black shadow-2xs",
+                              isOnline ? "bg-blue-50 text-blue-700 border border-blue-200" : "bg-teal-50 text-teal-700 border border-teal-200"
+                            )}>
+                              {isOnline ? <Wifi size={11} /> : <Home size={11} />}
+                              {job.tuitionType}
+                            </span>
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs">
+                              <BadgeCheck size={11} /> Active Job
+                            </span>
+                            {job.genderPreference && job.genderPreference !== 'Any' && (
+                              <span className={cn(
+                                "inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-black shadow-2xs",
+                                job.genderPreference === 'Female' ? "bg-pink-50 text-pink-700 border border-pink-200" : "bg-indigo-50 text-indigo-700 border border-indigo-200"
+                              )}>
+                                <Users size={11} />
+                                {job.genderPreference} Tutor
+                              </span>
+                            )}
+                          </div>
 
-                        {/* Badges */}
-                        <div className="flex flex-wrap gap-1.5">
-                          <span className={cn(
-                            "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-black",
-                            isOnline ? "bg-blue-50 text-blue-700" : "bg-primary/10 text-primary"
-                          )}>
-                            {isOnline ? <Wifi size={10} /> : <Home size={10} />}
-                            {job.tuitionType}
-                          </span>
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-black bg-emerald-50 text-emerald-700">
-                            <BadgeCheck size={10} /> Active Job
-                          </span>
+                          <h3 className="text-base font-display font-black text-ink leading-snug group-hover:text-primary transition-colors">
+                            Tutor Needed For {job.studentClass} ({job.medium})
+                          </h3>
                         </div>
 
-                        {/* Info Grid */}
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                          <InfoCell label="Medium" value={job.medium} />
-                          <InfoCell label="Class" value={job.studentClass} />
-                          <InfoCell label="Preferred Tutor" value={job.genderPreference || 'Any'} />
-                          <div className="space-y-0.5">
-                            <span className="text-[10px] font-black uppercase text-ink-muted tracking-wide">Salary</span>
-                            <p className="font-black text-primary text-base leading-none">
-                              {job.salary.toLocaleString()} <span className="text-xs">৳</span>
-                              <span className="text-[10px] font-normal text-ink-muted">/mo</span>
+                        {/* Highlighted Specs Grid (4 key feature cards) */}
+                        <div className="grid grid-cols-2 gap-2.5">
+                          {/* 1. Monthly Salary Card */}
+                          <div className="p-3 bg-gradient-to-br from-emerald-50 to-teal-50/50 rounded-2xl border border-emerald-200/80 flex flex-col justify-between">
+                            <span className="text-[10px] font-black uppercase text-emerald-800 tracking-wider flex items-center gap-1">
+                              <DollarSign size={12} className="text-emerald-600" />
+                              Salary Budget
+                            </span>
+                            <p className="font-display font-black text-emerald-700 text-base sm:text-lg leading-tight mt-1">
+                              ৳{job.salary.toLocaleString()}{' '}
+                              <span className="text-[10px] font-bold text-emerald-600/80">/mo</span>
+                            </p>
+                          </div>
+
+                          {/* 2. Weekly Schedule (Weekly koidin) Card */}
+                          <div className="p-3 bg-gradient-to-br from-purple-50 to-indigo-50/50 rounded-2xl border border-purple-200/80 flex flex-col justify-between">
+                            <span className="text-[10px] font-black uppercase text-purple-900 tracking-wider flex items-center gap-1">
+                              <Calendar size={12} className="text-purple-600" />
+                              Weekly Schedule
+                            </span>
+                            <p className="font-black text-purple-950 text-xs mt-1 leading-snug">
+                              {job.tutoringDays}
+                            </p>
+                          </div>
+
+                          {/* 3. Tuition Duration (Kotodin colbe) Card */}
+                          <div className="p-3 bg-gradient-to-br from-amber-50 to-orange-50/50 rounded-2xl border border-amber-200/80 flex flex-col justify-between">
+                            <span className="text-[10px] font-black uppercase text-amber-900 tracking-wider flex items-center gap-1">
+                              <Clock size={12} className="text-amber-600" />
+                              Duration / Period
+                            </span>
+                            <p className="font-black text-amber-950 text-xs mt-1 leading-snug">
+                              {job.duration}
+                            </p>
+                          </div>
+
+                          {/* 4. Class & Medium Card */}
+                          <div className="p-3 bg-gradient-to-br from-blue-50 to-sky-50/50 rounded-2xl border border-blue-200/80 flex flex-col justify-between">
+                            <span className="text-[10px] font-black uppercase text-blue-900 tracking-wider flex items-center gap-1">
+                              <GraduationCap size={12} className="text-blue-600" />
+                              Class & Medium
+                            </span>
+                            <p className="font-black text-blue-950 text-xs mt-1 leading-snug">
+                              {job.studentClass} • {job.medium}
                             </p>
                           </div>
                         </div>
 
-                        {/* Subjects */}
-                        <div className="pt-3 border-t border-ink/5 space-y-2">
-                          <span className="text-[10px] font-black uppercase text-ink-muted tracking-wide">Subjects</span>
+                        {/* Subjects Section */}
+                        <div className="pt-2.5 border-t border-ink/5 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase text-ink-muted tracking-wider flex items-center gap-1">
+                              <BookOpen size={11} className="text-primary" />
+                              Subjects to Teach
+                            </span>
+                            {job.numStudents && job.numStudents > 1 && (
+                              <span className="text-[10px] font-bold text-ink-muted">
+                                👥 {job.numStudents} Students
+                              </span>
+                            )}
+                          </div>
+
                           <div className="flex flex-wrap gap-1.5">
                             {job.subjects?.slice(0, 5).map((sub, i) => (
                               <span
                                 key={sub}
                                 className={cn(
-                                  "px-2 py-0.5 rounded-md text-[10px] font-black uppercase border",
+                                  "px-2.5 py-1 rounded-lg text-[10px] font-black uppercase border shadow-2xs",
                                   subjectColors[i % subjectColors.length]
                                 )}
                               >
@@ -556,8 +649,8 @@ export default function Jobs() {
                               </span>
                             ))}
                             {job.subjects?.length > 5 && (
-                              <span className="px-2 py-0.5 rounded-md text-[10px] font-black text-ink-muted bg-ink/5">
-                                +{job.subjects.length - 5}
+                              <span className="px-2 py-0.5 rounded-lg text-[10px] font-black text-ink-muted bg-ink/5 border border-ink/10">
+                                +{job.subjects.length - 5} more
                               </span>
                             )}
                           </div>
@@ -565,16 +658,18 @@ export default function Jobs() {
                       </div>
 
                       {/* Card Footer */}
-                      <div className="px-5 py-3.5 bg-[#F8FAFC] border-t border-ink/5 flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-1 text-[11px] text-ink-muted font-medium">
-                          <Calendar size={11} />
-                          {new Date(job.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      <div className="px-5 py-3.5 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-semibold">
+                          <Calendar size={12} className="text-slate-400" />
+                          <span>{new Date(job.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                         </div>
+
                         <Link
                           to={`/job/${job.id}`}
-                          className="inline-flex items-center gap-1.5 bg-primary text-white px-4 py-2 rounded-xl font-bold text-xs shadow-md shadow-primary/20 hover:bg-primary-dark hover:gap-2.5 transition-all active:scale-95 whitespace-nowrap"
+                          className="inline-flex items-center gap-1.5 bg-gradient-to-r from-primary to-teal-600 hover:from-primary-dark hover:to-teal-700 text-white px-4 py-2.5 rounded-xl font-black text-xs shadow-md shadow-primary/25 hover:shadow-lg hover:shadow-primary/30 hover:gap-2.5 transition-all active:scale-95 whitespace-nowrap cursor-pointer"
                         >
-                          View Details <ArrowRight size={13} />
+                          <span>View Details</span>
+                          <ArrowRight size={13} />
                         </Link>
                       </div>
                     </motion.div>

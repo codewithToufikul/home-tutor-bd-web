@@ -14,6 +14,8 @@ import { Link } from 'react-router-dom';
 import AdminLayout from '@/src/components/AdminLayout.tsx';
 import {
   useGetAdminApplicationsQuery,
+  useDemoConfirmAdminApplicationMutation,
+  useFinalConfirmAdminApplicationMutation,
   useAcceptAdminApplicationMutation,
   useRejectAdminApplicationMutation
 } from '@/src/services/adminApi';
@@ -24,7 +26,7 @@ const ITEMS_PER_PAGE = 8;
 
 export default function AdminHirePending() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'all' | 'guest_requests' | 'pending' | 'accepted' | 'my_requests'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'guest_requests' | 'pending' | 'demo' | 'accepted' | 'my_requests'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedApp, setSelectedApp] = useState<any | null>(null);
@@ -32,6 +34,8 @@ export default function AdminHirePending() {
   const [actionSuccessMsg, setActionSuccessMsg] = useState<string | null>(null);
 
   const { data: appsData, isLoading, refetch, isFetching } = useGetAdminApplicationsQuery(undefined);
+  const [demoConfirmApplication, { isLoading: isDemoConfirming }] = useDemoConfirmAdminApplicationMutation();
+  const [finalConfirmApplication, { isLoading: isFinalConfirming }] = useFinalConfirmAdminApplicationMutation();
   const [acceptApplication, { isLoading: isAccepting }] = useAcceptAdminApplicationMutation();
   const [rejectApplication, { isLoading: isRejecting }] = useRejectAdminApplicationMutation();
 
@@ -47,20 +51,38 @@ export default function AdminHirePending() {
     window.open(`${baseUrl}/applications/${appId}/contract-deed`, '_blank');
   };
 
-  // Handle Accept / Hire Application
-  const handleAcceptApp = async (appId: string) => {
+  // Handle Demo Confirm Application
+  const handleDemoConfirmApp = async (appId: string) => {
     try {
-      await acceptApplication(appId).unwrap();
-      setActionSuccessMsg('Tutor application accepted and tuition matched successfully! 🎉');
+      await demoConfirmApplication(appId).unwrap();
+      setActionSuccessMsg('Tutor application confirmed for Demo Class! 🎯');
+      refetch();
+      if (selectedApp && selectedApp.id === appId) {
+        setSelectedApp({ ...selectedApp, status: 'demo_confirmed', rawStatus: 'Demo_Confirmed' });
+      }
+      setTimeout(() => setActionSuccessMsg(null), 3500);
+    } catch (err: any) {
+      alert(err?.data?.message || err?.message || 'Failed to confirm demo.');
+    }
+  };
+
+  // Handle Final Confirm & Deal Done
+  const handleFinalConfirmApp = async (appId: string) => {
+    try {
+      await finalConfirmApplication(appId).unwrap();
+      setActionSuccessMsg('Tutor finalized and tuition matched successfully! Deal Done 🎉');
       refetch();
       if (selectedApp && selectedApp.id === appId) {
         setSelectedApp({ ...selectedApp, status: 'accepted', rawStatus: 'Accepted' });
       }
       setTimeout(() => setActionSuccessMsg(null), 3500);
     } catch (err: any) {
-      alert(err?.data?.message || err?.message || 'Failed to accept application.');
+      alert(err?.data?.message || err?.message || 'Failed to finalize application.');
     }
   };
+
+  // Handle Accept / Hire Application (Fallback alias)
+  const handleAcceptApp = handleFinalConfirmApp;
 
   // Handle Reject Application
   const handleRejectApp = async (appId: string) => {
@@ -121,8 +143,12 @@ export default function AdminHirePending() {
       const detailedAddress = descDetailsMatch ? descDetailsMatch[1].trim() : (job.location?.detailedAddress || '');
 
       const rawStatus = String(a.status || 'Pending').toLowerCase();
-      let normalizedStatus: 'pending' | 'accepted' | 'rejected' | 'shortlisted' = 'pending';
-      if (rawStatus === 'accepted' || rawStatus === 'approved' || rawStatus === 'matched') {
+      let normalizedStatus: 'pending' | 'demo_confirmed' | 'demo_completed' | 'accepted' | 'rejected' | 'shortlisted' = 'pending';
+      if (rawStatus === 'demo_confirmed') {
+        normalizedStatus = 'demo_confirmed';
+      } else if (rawStatus === 'demo_completed') {
+        normalizedStatus = 'demo_completed';
+      } else if (rawStatus === 'accepted' || rawStatus === 'approved' || rawStatus === 'matched') {
         normalizedStatus = 'accepted';
       } else if (rawStatus === 'rejected' || rawStatus === 'cancelled') {
         normalizedStatus = 'rejected';
@@ -198,6 +224,7 @@ export default function AdminHirePending() {
     return {
       all: applications.length,
       guestRequests: applications.filter(a => a.isGuestRequest).length,
+      demo: applications.filter(a => a.status === 'demo_confirmed' || a.status === 'demo_completed').length,
       pending: applications.filter(a => a.status === 'pending' || a.status === 'shortlisted').length,
       accepted: applications.filter(a => a.status === 'accepted').length,
       myRequests: applications.filter(a => a.isAdminPosted).length,
@@ -210,10 +237,11 @@ export default function AdminHirePending() {
       const matchesTab =
         activeTab === 'all' ? true :
           activeTab === 'guest_requests' ? app.isGuestRequest :
-            activeTab === 'pending' ? (app.status === 'pending' || app.status === 'shortlisted') :
-              activeTab === 'accepted' ? (app.status === 'accepted') :
-                activeTab === 'my_requests' ? app.isAdminPosted :
-                  true;
+            activeTab === 'demo' ? (app.status === 'demo_confirmed' || app.status === 'demo_completed') :
+              activeTab === 'pending' ? (app.status === 'pending' || app.status === 'shortlisted') :
+                activeTab === 'accepted' ? (app.status === 'accepted') :
+                  activeTab === 'my_requests' ? app.isAdminPosted :
+                    true;
 
       const q = searchQuery.toLowerCase().trim();
       const matchesSearch = !q ||
@@ -269,13 +297,14 @@ export default function AdminHirePending() {
         </div>
 
         {/* 📊 2. KPI Summary Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-4">
           {[
             { id: 'all', label: 'All Applications', count: counts.all, icon: Briefcase, color: 'text-blue-600 bg-blue-50 border-blue-200/60' },
-            { id: 'guest_requests', label: 'Guest / Direct Requests', count: counts.guestRequests, icon: Globe, color: 'text-teal-700 bg-teal-50 border-teal-200/80', badge: 'Homepage' },
+            { id: 'demo', label: 'Demo Running', count: counts.demo, icon: Sparkles, color: 'text-purple-600 bg-purple-50 border-purple-200/80', badge: 'Active Demo' },
             { id: 'pending', label: 'Student Reviewing', count: counts.pending, icon: Clock, color: 'text-amber-600 bg-amber-50 border-amber-200/60' },
             { id: 'accepted', label: 'Accepted & Matched', count: counts.accepted, icon: CheckCircle2, color: 'text-emerald-600 bg-emerald-50 border-emerald-200/60' },
-            { id: 'my_requests', label: 'My Tuition Posts', count: counts.myRequests, icon: Inbox, color: 'text-purple-600 bg-purple-50 border-purple-200/60', badge: 'Staff' },
+            { id: 'guest_requests', label: 'Guest / Direct Requests', count: counts.guestRequests, icon: Globe, color: 'text-teal-700 bg-teal-50 border-teal-200/80', badge: 'Homepage' },
+            { id: 'my_requests', label: 'My Tuition Posts', count: counts.myRequests, icon: Inbox, color: 'text-indigo-600 bg-indigo-50 border-indigo-200/60', badge: 'Staff' },
           ].map((card) => {
             const isSelected = activeTab === card.id;
             return (
@@ -653,14 +682,27 @@ export default function AdminHirePending() {
                                 <div className="space-y-1.5">
                                   <span className={cn(
                                     "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider inline-flex items-center gap-1.5 border",
-                                    isAccepted
+                                    app.status === 'accepted'
                                       ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-                                      : isPending
-                                        ? (isStaffJob ? "bg-violet-50 text-violet-800 border-violet-200" : app.isGuestRequest ? "bg-teal-50 text-teal-800 border-teal-200" : "bg-amber-50 text-amber-800 border-amber-200")
-                                        : "bg-rose-50 text-rose-800 border-rose-200"
+                                      : app.status === 'demo_confirmed'
+                                        ? "bg-purple-50 text-purple-800 border-purple-300"
+                                        : app.status === 'demo_completed'
+                                          ? "bg-blue-50 text-blue-800 border-blue-200"
+                                          : isPending
+                                            ? (isStaffJob ? "bg-violet-50 text-violet-800 border-violet-200" : app.isGuestRequest ? "bg-teal-50 text-teal-800 border-teal-200" : "bg-amber-50 text-amber-800 border-amber-200")
+                                            : "bg-rose-50 text-rose-800 border-rose-200"
                                   )}>
-                                    <span className={cn("w-1.5 h-1.5 rounded-full", isAccepted ? "bg-emerald-500" : isPending ? (isStaffJob ? "bg-violet-500 animate-pulse" : app.isGuestRequest ? "bg-teal-500 animate-pulse" : "bg-amber-500 animate-pulse") : "bg-rose-500")} />
-                                    {isAccepted ? 'Accepted / Hired' : isPending ? (isStaffJob ? 'Staff Reviewing' : app.isGuestRequest ? 'Guest Job Reviewing' : 'Student Reviewing') : 'Rejected'}
+                                    <span className={cn(
+                                      "w-1.5 h-1.5 rounded-full",
+                                      app.status === 'accepted' ? "bg-emerald-500" :
+                                        app.status === 'demo_confirmed' ? "bg-purple-500 animate-pulse" :
+                                          app.status === 'demo_completed' ? "bg-blue-500" :
+                                            isPending ? "bg-amber-500 animate-pulse" : "bg-rose-500"
+                                    )} />
+                                    {app.status === 'accepted' ? 'Deal Done 🎉' :
+                                      app.status === 'demo_confirmed' ? 'Demo Confirmed 🎯' :
+                                        app.status === 'demo_completed' ? 'Demo Done' :
+                                          isPending ? (isStaffJob ? 'Staff Review' : app.isGuestRequest ? 'Guest Job' : 'Pending Review') : 'Rejected'}
                                   </span>
                                 </div>
                               </td>
@@ -668,26 +710,58 @@ export default function AdminHirePending() {
                               {/* Actions Column */}
                               <td className="px-6 py-4 text-right">
                                 <div className="flex items-center justify-end gap-1.5">
-                                  {(isStaffJob || app.isGuestRequest) && isPending && (
+                                  {(app.status === 'pending' || app.status === 'shortlisted') && (
                                     <>
                                       <button
-                                        onClick={() => handleAcceptApp(app.id)}
-                                        disabled={isAccepting}
+                                        onClick={() => handleDemoConfirmApp(app.id)}
+                                        disabled={isDemoConfirming}
+                                        className="px-2.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-[10px] font-black uppercase shadow-xs transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                                        title="Confirm Tutor for Demo Class"
+                                      >
+                                        <Sparkles size={11} />
+                                        <span>Demo</span>
+                                      </button>
+
+                                      <button
+                                        onClick={() => handleFinalConfirmApp(app.id)}
+                                        disabled={isFinalConfirming}
                                         className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase shadow-xs transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
-                                        title="Accept & Match this Tutor for Guardian"
+                                        title="Final Hire Tutor (Deal Done)"
                                       >
                                         <Check size={11} />
-                                        <span>Match</span>
+                                        <span>Hire</span>
                                       </button>
 
                                       <button
                                         onClick={() => handleRejectApp(app.id)}
                                         disabled={isRejecting}
-                                        className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-[10px] font-black uppercase transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                                        className="px-2 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-[10px] font-black uppercase transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
                                         title="Reject Application"
                                       >
                                         <X size={11} />
-                                        <span>Reject</span>
+                                      </button>
+                                    </>
+                                  )}
+
+                                  {app.status === 'demo_confirmed' && (
+                                    <>
+                                      <button
+                                        onClick={() => handleFinalConfirmApp(app.id)}
+                                        disabled={isFinalConfirming}
+                                        className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase shadow-xs transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                                        title="Final Hire Tutor (Deal Done)"
+                                      >
+                                        <Check size={11} />
+                                        <span>Final Hire</span>
+                                      </button>
+
+                                      <button
+                                        onClick={() => handleRejectApp(app.id)}
+                                        disabled={isRejecting}
+                                        className="px-2 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-[10px] font-black uppercase transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                                        title="Reject / Cancel Demo"
+                                      >
+                                        <X size={11} />
                                       </button>
                                     </>
                                   )}
@@ -795,14 +869,46 @@ export default function AdminHirePending() {
                       {/* Mobile Action Buttons — app-style full-width rows */}
                       <div className="pt-1 border-t border-ink/5 space-y-2">
                         {isStaffJob && isPending && (
+                          <div className="grid grid-cols-3 gap-1.5">
+                            <button
+                              onClick={() => handleDemoConfirmApp(app.id)}
+                              disabled={isDemoConfirming}
+                              className="py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 active:from-purple-700 active:to-indigo-700 text-white rounded-xl text-[11px] font-black uppercase flex items-center justify-center gap-1 disabled:opacity-50"
+                              title="Confirm Demo"
+                            >
+                              {isDemoConfirming ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                              <span>Demo</span>
+                            </button>
+                            <button
+                              onClick={() => handleFinalConfirmApp(app.id)}
+                              disabled={isFinalConfirming}
+                              className="py-2.5 bg-emerald-600 active:bg-emerald-700 text-white rounded-xl text-[11px] font-black uppercase flex items-center justify-center gap-1 disabled:opacity-50"
+                              title="Final Hire"
+                            >
+                              {isFinalConfirming ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                              <span>Hire</span>
+                            </button>
+                            <button
+                              onClick={() => handleRejectApp(app.id)}
+                              disabled={isRejecting}
+                              className="py-2.5 bg-rose-50 active:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-[11px] font-black uppercase flex items-center justify-center gap-1 disabled:opacity-50"
+                              title="Reject Application"
+                            >
+                              <X size={12} />
+                              <span>Reject</span>
+                            </button>
+                          </div>
+                        )}
+
+                        {isStaffJob && (app.status === 'demo_confirmed' || app.status === 'demo_completed') && (
                           <div className="grid grid-cols-2 gap-2">
                             <button
-                              onClick={() => handleAcceptApp(app.id)}
-                              disabled={isAccepting}
+                              onClick={() => handleFinalConfirmApp(app.id)}
+                              disabled={isFinalConfirming}
                               className="py-2.5 bg-emerald-600 active:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase flex items-center justify-center gap-1.5 disabled:opacity-50"
                             >
-                              {isAccepting ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
-                              <span>Hire</span>
+                              {isFinalConfirming ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                              <span>⭐ Final Hire</span>
                             </button>
                             <button
                               onClick={() => handleRejectApp(app.id)}
@@ -810,7 +916,7 @@ export default function AdminHirePending() {
                               className="py-2.5 bg-rose-50 active:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-xs font-black uppercase flex items-center justify-center gap-1.5 disabled:opacity-50"
                             >
                               <X size={13} />
-                              <span>Reject</span>
+                              <span>Reject Demo</span>
                             </button>
                           </div>
                         )}
@@ -997,61 +1103,104 @@ export default function AdminHirePending() {
                       </div>
                     )}
 
-                    <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 pt-1">
+                    <div className="space-y-3 pt-1">
                       {selectedApp.status === 'pending' || selectedApp.status === 'shortlisted' ? (
-                        <>
+                        <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
                           <button
-                            onClick={() => handleAcceptApp(selectedApp.id)}
-                            disabled={isAccepting}
-                            className="col-span-2 sm:col-span-1 sm:flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                            onClick={() => handleDemoConfirmApp(selectedApp.id)}
+                            disabled={isDemoConfirming}
+                            className="sm:col-span-5 py-2.5 px-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 active:scale-[0.98] text-white rounded-2xl text-xs font-black uppercase shadow-md shadow-purple-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                           >
-                            {isAccepting ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
-                            <span>Accept & Match Tutor</span>
+                            {isDemoConfirming ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} className="text-purple-200" />}
+                            <span className="whitespace-nowrap">Confirm Demo 🎯</span>
+                          </button>
+
+                          <button
+                            onClick={() => handleFinalConfirmApp(selectedApp.id)}
+                            disabled={isFinalConfirming}
+                            className="sm:col-span-5 py-2.5 px-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-[0.98] text-white rounded-2xl text-xs font-black uppercase shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                          >
+                            {isFinalConfirming ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} className="text-emerald-200" />}
+                            <span className="whitespace-nowrap">Final Hire ⭐</span>
                           </button>
 
                           <button
                             onClick={() => handleRejectApp(selectedApp.id)}
                             disabled={isRejecting}
-                            className="col-span-2 sm:col-span-1 py-2.5 px-4 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-xs font-black uppercase transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                            className="sm:col-span-2 py-2.5 px-3 bg-rose-50 hover:bg-rose-100 active:scale-[0.98] text-rose-600 border border-rose-200 rounded-2xl text-xs font-black uppercase transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                            title="Reject Application"
                           >
-                            <XCircle size={14} />
-                            <span>Reject</span>
+                            {isRejecting ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
+                            <span className="sm:hidden">Reject</span>
                           </button>
-                        </>
+                        </div>
+                      ) : selectedApp.status === 'demo_confirmed' || selectedApp.status === 'demo_completed' ? (
+                        <div className="space-y-2">
+                          <div className="w-full p-2.5 bg-gradient-to-r from-purple-100/90 to-indigo-100/90 border border-purple-300 text-purple-950 rounded-2xl text-xs font-black flex items-center justify-between gap-2 shadow-xs">
+                            <span className="flex items-center gap-1.5">
+                              <Sparkles size={15} className="text-purple-600" />
+                              <span>ডেমো ক্লাসের জন্য নির্বাচিত (Demo in Progress)</span>
+                            </span>
+                            <span className="text-[10px] px-2.5 py-0.5 bg-purple-600 text-white rounded-full font-black">ACTIVE DEMO</span>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <button
+                              onClick={() => handleFinalConfirmApp(selectedApp.id)}
+                              disabled={isFinalConfirming}
+                              className="py-2.5 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-[0.98] text-white rounded-2xl text-xs font-black uppercase shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                            >
+                              {isFinalConfirming ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} className="text-emerald-200" />}
+                              <span className="whitespace-nowrap">⭐ Final Hire (Deal Done)</span>
+                            </button>
+
+                            <button
+                              onClick={() => handleRejectApp(selectedApp.id)}
+                              disabled={isRejecting}
+                              className="py-2.5 px-4 bg-rose-50 hover:bg-rose-100 active:scale-[0.98] text-rose-600 border border-rose-200 rounded-2xl text-xs font-black uppercase transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                            >
+                              {isRejecting ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
+                              <span className="whitespace-nowrap">Cancel / Reject Demo</span>
+                            </button>
+                          </div>
+                        </div>
                       ) : selectedApp.status === 'accepted' ? (
-                        <div className="col-span-2 w-full p-2.5 bg-emerald-100/70 border border-emerald-300 text-emerald-800 rounded-xl text-xs font-black flex items-center justify-center gap-2">
-                          <CheckCircle2 size={16} className="text-emerald-700" />
-                          <span>This Tutor was Approved & Matched for this Tuition</span>
+                        <div className="w-full p-3 bg-emerald-50 border border-emerald-300 text-emerald-800 rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-xs">
+                          <CheckCircle2 size={16} className="text-emerald-600" />
+                          <span>This Tutor was Approved & Final Matched (Deal Done)</span>
                         </div>
                       ) : (
-                        <div className="col-span-2 w-full p-2.5 bg-rose-100/70 border border-rose-300 text-rose-800 rounded-xl text-xs font-black flex items-center justify-center gap-2">
-                          <XCircle size={16} className="text-rose-700" />
+                        <div className="w-full p-3 bg-rose-50 border border-rose-300 text-rose-800 rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-xs">
+                          <XCircle size={16} className="text-rose-600" />
                           <span>This Application was Rejected</span>
                         </div>
                       )}
 
-                      {/* Print Law PDF Button */}
-                      <button
-                        type="button"
-                        onClick={() => openLawPdf(selectedApp.id)}
-                        className="col-span-2 sm:col-span-1 py-2.5 px-4 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
-                      >
-                        <FileText size={14} className="text-amber-400" />
-                        <span>Print Official Law PDF</span>
-                      </button>
-
-                      {/* Direct WhatsApp Contact Tutor Button */}
-                      {selectedApp.tutor.phone && selectedApp.tutor.phone !== 'N/A' && (
-                        <a
-                          href={`https://wa.me/880${selectedApp.tutor.phone.replace(/[^0-9]/g, '').slice(-10)}?text=${encodeURIComponent(`আসসালামু আলাইকুম ${selectedApp.tutor.name}, Home Tutor BD থেকে আপনার আবেদনকৃত টিউশন (${selectedApp.job.studentClass} - ${selectedApp.job.medium}) সংক্রান্ত বিষয়ে যোগাযোগ করা হচ্ছে।`)}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="col-span-2 sm:col-span-1 py-2.5 px-4 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5"
+                      {/* Secondary Utility Row: Print Law PDF & WhatsApp Tutor */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-indigo-100">
+                        <button
+                          type="button"
+                          onClick={() => openLawPdf(selectedApp.id)}
+                          className="w-full py-2.5 px-3 bg-slate-900 hover:bg-black active:scale-[0.98] text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
                         >
-                          <MessageSquare size={13} className="text-emerald-600" />
-                          <span>WhatsApp Tutor</span>
-                        </a>
-                      )}
+                          <FileText size={13} className="text-amber-400 shrink-0" />
+                          <span className="whitespace-nowrap">Print Official Law PDF</span>
+                        </button>
+
+                        {selectedApp.tutor.phone && selectedApp.tutor.phone !== 'N/A' ? (
+                          <a
+                            href={`https://wa.me/880${selectedApp.tutor.phone.replace(/[^0-9]/g, '').slice(-10)}?text=${encodeURIComponent(`আসসালামু আলাইকুম ${selectedApp.tutor.name}, Home Tutor BD থেকে আপনার আবেদনকৃত টিউশন (${selectedApp.job.studentClass} - ${selectedApp.job.medium}) সংক্রান্ত বিষয়ে যোগাযোগ করা হচ্ছে।`)}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="w-full py-2.5 px-3 bg-emerald-50 hover:bg-emerald-100 active:scale-[0.98] text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <MessageSquare size={13} className="text-emerald-600 shrink-0" />
+                            <span className="whitespace-nowrap">WhatsApp Tutor</span>
+                          </a>
+                        ) : (
+                          <div />
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}

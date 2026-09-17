@@ -9,6 +9,7 @@ import {
   Clock, DollarSign, CheckCircle2
 } from 'lucide-react';
 import { getDivisions, getDistricts, getUpazilas, getAreas } from '@olism/bd-geo';
+import { getDhakaZones, getDhakaSubLocations } from '@/src/data/dhakaLocations';
 import { SUBJECTS } from '@/src/constants';
 import { cn } from '@/src/lib/utils';
 import { useNavigate } from 'react-router-dom';
@@ -117,6 +118,8 @@ export default function AdminCreateJob() {
 
   // Custom inputs
   const [customSubInput, setCustomSubInput] = useState('');
+  const [customClassInput, setCustomClassInput] = useState('');
+  const [customMediumInput, setCustomMediumInput] = useState('');
 
   // Bangladesh Geo Data
   const allDivisions = useMemo(() => getDivisions(), []);
@@ -139,11 +142,11 @@ export default function AdminCreateJob() {
     district: 'Dhaka',
     districtId: 1 as number | '',
     upazila: '',
-    upazilaId: '' as number | '',
+    upazilaId: '' as number | string | '',
     union: '',
-    unionId: '' as number | '',
+    unionId: '' as number | string | '',
     ward: '',
-    wardId: '' as number | '',
+    wardId: '' as number | string | '',
     area: '',
     detailedAddress: '',
 
@@ -180,6 +183,10 @@ export default function AdminCreateJob() {
     }
   }, [user]);
 
+  const isDhaka = useMemo(() => {
+    return formData.district.toLowerCase() === 'dhaka' || Number(formData.districtId) === 1;
+  }, [formData.district, formData.districtId]);
+
   // Cascaded geo options
   const availableDistricts = useMemo(() => {
     if (!formData.divisionId) return [];
@@ -188,18 +195,37 @@ export default function AdminCreateJob() {
 
   const availableUpazilas = useMemo(() => {
     if (!formData.districtId) return [];
+    if (isDhaka) {
+      const zones = getDhakaZones();
+      return zones.map((zone) => ({
+        id: zone,
+        name: zone,
+        nameBn: '',
+        type: 'zone',
+      }));
+    }
     return allUpazilas.filter(u => u.districtId === Number(formData.districtId));
-  }, [allUpazilas, formData.districtId]);
+  }, [allUpazilas, formData.districtId, isDhaka]);
 
   const availableUnions = useMemo(() => {
+    if (isDhaka) return [];
     if (!formData.upazilaId) return [];
     return allAreas.filter(a => a.upazilaId === Number(formData.upazilaId) && a.type === 'union');
-  }, [allAreas, formData.upazilaId]);
+  }, [allAreas, formData.upazilaId, isDhaka]);
 
   const availableWards = useMemo(() => {
+    if (isDhaka) {
+      const list = getDhakaSubLocations(formData.upazila);
+      return list.map((item, idx) => ({
+        id: `dhaka-${idx + 1}`,
+        name: item,
+        nameBn: '',
+        type: 'ward',
+      }));
+    }
     if (!formData.upazilaId) return [];
     return allAreas.filter(a => a.upazilaId === Number(formData.upazilaId) && a.type === 'ward');
-  }, [allAreas, formData.upazilaId]);
+  }, [allAreas, formData.upazilaId, formData.upazila, isDhaka]);
 
   const handleDivisionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const divId = Number(e.target.value);
@@ -216,9 +242,23 @@ export default function AdminCreateJob() {
   const [isWardDropdownOpen, setIsWardDropdownOpen] = useState(false);
 
   const handleUpazilaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const upId = Number(e.target.value);
-    const up = allUpazilas.find(u => u.id === upId);
-    setFormData(prev => ({ ...prev, upazila: up ? up.name : '', upazilaId: upId || '', union: '', unionId: '', ward: '', wardId: '', area: up ? up.name : '' }));
+    const val = e.target.value;
+    if (isDhaka) {
+      setFormData(prev => ({
+        ...prev,
+        upazila: val,
+        upazilaId: val,
+        union: '',
+        unionId: '',
+        ward: '',
+        wardId: '',
+        area: val,
+      }));
+    } else {
+      const upId = Number(val);
+      const up = allUpazilas.find(u => u.id === upId);
+      setFormData(prev => ({ ...prev, upazila: up ? up.name : '', upazilaId: upId || '', union: '', unionId: '', ward: '', wardId: '', area: up ? up.name : '' }));
+    }
   };
 
   const handleWardTextChange = (text: string) => {
@@ -232,7 +272,7 @@ export default function AdminCreateJob() {
     }));
   };
 
-  const handleSelectWard = (wd: { id: number; name: string; nameBn?: string }) => {
+  const handleSelectWard = (wd: { id: number | string; name: string; nameBn?: string }) => {
     setFormData((prev) => ({
       ...prev,
       ward: wd.name,
@@ -320,6 +360,26 @@ export default function AdminCreateJob() {
       }
       setCustomSubInput('');
     }
+  };
+
+  const addCustomClass = () => {
+    const val = customClassInput.trim();
+    if (!val) return;
+    const formatted = toSentenceCase(val);
+    if (!formData.classes.includes(formatted)) {
+      setFormData(prev => ({ ...prev, classes: [...prev.classes, formatted] }));
+    }
+    setCustomClassInput('');
+  };
+
+  const addCustomMedium = () => {
+    const val = customMediumInput.trim();
+    if (!val) return;
+    const formatted = toSentenceCase(val);
+    if (!formData.mediums.includes(formatted)) {
+      setFormData(prev => ({ ...prev, mediums: [...prev.mediums, formatted] }));
+    }
+    setCustomMediumInput('');
   };
 
   const toggleRequirement = (req: string) => {
@@ -681,6 +741,25 @@ export default function AdminCreateJob() {
                       )}
                     </div>
 
+                    {/* Custom Class Type Input */}
+                    <div className="flex gap-2 pt-1">
+                      <input
+                        type="text"
+                        placeholder="Type custom class or course and press Add..."
+                        value={customClassInput}
+                        onChange={e => setCustomClassInput(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addCustomClass())}
+                        className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:bg-white transition"
+                      />
+                      <button
+                        type="button"
+                        onClick={addCustomClass}
+                        className="bg-violet-600 active:bg-violet-700 text-white px-4 py-2 rounded-xl font-bold text-xs hover:bg-violet-700 transition cursor-pointer shrink-0 active:scale-95"
+                      >
+                        Add
+                      </button>
+                    </div>
+
                     {/* Admission Panel */}
                     {isAdmissionMode && (
                       <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
@@ -764,6 +843,25 @@ export default function AdminCreateJob() {
                           </button>
                         );
                       })}
+                    </div>
+
+                    {/* Custom Medium Type Input */}
+                    <div className="flex gap-2 pt-1">
+                      <input
+                        type="text"
+                        placeholder="Type custom medium and press Add..."
+                        value={customMediumInput}
+                        onChange={e => setCustomMediumInput(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addCustomMedium())}
+                        className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:bg-white transition"
+                      />
+                      <button
+                        type="button"
+                        onClick={addCustomMedium}
+                        className="bg-violet-600 active:bg-violet-700 text-white px-4 py-2 rounded-xl font-bold text-xs hover:bg-violet-700 transition cursor-pointer shrink-0 active:scale-95"
+                      >
+                        Add
+                      </button>
                     </div>
                   </div>
 

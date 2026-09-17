@@ -141,9 +141,30 @@ export const adminApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['User', 'AdminStats'],
     }),
+    demoConfirmAdminApplication: builder.mutation({
+      query: (id: string) => ({
+        url: `/applications/${id}/demo-confirm`,
+        method: 'PATCH',
+      }),
+      invalidatesTags: ['Application', 'TuitionJob', 'AdminStats'],
+    }),
+    demoCompleteAdminApplication: builder.mutation({
+      query: (id: string) => ({
+        url: `/applications/${id}/demo-complete`,
+        method: 'PATCH',
+      }),
+      invalidatesTags: ['Application', 'TuitionJob', 'AdminStats'],
+    }),
+    finalConfirmAdminApplication: builder.mutation({
+      query: (id: string) => ({
+        url: `/applications/${id}/final-confirm`,
+        method: 'PATCH',
+      }),
+      invalidatesTags: ['Application', 'TuitionJob', 'AdminStats'],
+    }),
     acceptAdminApplication: builder.mutation({
       query: (id: string) => ({
-        url: `/applications/${id}/accept`,
+        url: `/applications/${id}/final-confirm`,
         method: 'PATCH',
       }),
       invalidatesTags: ['Application', 'TuitionJob', 'AdminStats'],
@@ -256,6 +277,9 @@ export const {
   useUpdateStaffStatusMutation,
   useUpdateStaffPermissionsMutation,
   useDeleteStaffMutation,
+  useDemoConfirmAdminApplicationMutation,
+  useDemoCompleteAdminApplicationMutation,
+  useFinalConfirmAdminApplicationMutation,
   useAcceptAdminApplicationMutation,
   useRejectAdminApplicationMutation,
   useGetNoticesQuery,

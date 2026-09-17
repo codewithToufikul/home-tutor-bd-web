@@ -6,6 +6,7 @@ import {
   AlertCircle, Briefcase, Plus, Trash2
 } from 'lucide-react';
 import { getDivisions, getDistricts, getUpazilas, getAreas } from '@olism/bd-geo';
+import { getDhakaZones } from '@/src/data/dhakaLocations';
 import { SUBJECTS } from '@/src/constants';
 import { useUpdateTuitionJobMutation } from '@/src/services/adminApi';
 import { cn } from '@/src/lib/utils';
@@ -135,10 +136,15 @@ export default function AdminEditJobModal({
   }, [allDistricts, currentDivObj]);
 
   const currentDistObj = allDistricts.find(d => d.name === district || d.id === (district as any));
+  const isDhaka = Boolean(district && district.toLowerCase().includes('dhaka'));
   const availableUpazilas = useMemo(() => {
+    if (isDhaka) {
+      const zones = getDhakaZones();
+      return zones.map((z) => ({ id: z, name: z, nameBn: '' }));
+    }
     if (!currentDistObj) return allUpazilas;
     return allUpazilas.filter(u => u.districtId === currentDistObj.id);
-  }, [allUpazilas, currentDistObj]);
+  }, [allUpazilas, currentDistObj, isDhaka]);
 
   // Subject helpers
   const handleAddSubject = (sub: string) => {

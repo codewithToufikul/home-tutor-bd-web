@@ -8,6 +8,7 @@ import {
   Building2, Sprout, Sparkles, Layers
 } from 'lucide-react';
 import { getDivisions, getDistricts, getUpazilas, getAreas } from '@olism/bd-geo';
+import { getDhakaZones, getDhakaSubLocations } from '@/src/data/dhakaLocations';
 import { SUBJECTS, DISTRICTS, DISTRICT_WISE_AREAS } from '@/src/constants';
 import { cn } from '@/src/lib/utils';
 import { useNavigate, Link } from 'react-router-dom';
@@ -328,17 +329,17 @@ export default function RequestTutor() {
     mediums: ['Bangla Medium'] as string[],
     subjects: [] as string[],
 
-    // Location Info using @olism/bd-geo
+    // Location Info using @olism/bd-geo & dhakaLocations
     division: 'Dhaka',
     divisionId: 3 as number | '',
     district: 'Dhaka',
     districtId: 1 as number | '',
     upazila: '',
-    upazilaId: '' as number | '',
+    upazilaId: '' as number | string | '',
     union: '',
-    unionId: '' as number | '',
+    unionId: '' as number | string | '',
     ward: '',
-    wardId: '' as number | '',
+    wardId: '' as number | string | '',
     area: '',
     detailedAddress: '',
 
@@ -364,6 +365,10 @@ export default function RequestTutor() {
     agreedToTerms: true,
   });
 
+  const isDhaka = useMemo(() => {
+    return formData.district.toLowerCase() === 'dhaka' || Number(formData.districtId) === 1;
+  }, [formData.district, formData.districtId]);
+
   // Cascaded geo options
   const availableDistricts = useMemo(() => {
     if (!formData.divisionId) return [];
@@ -372,18 +377,37 @@ export default function RequestTutor() {
 
   const availableUpazilas = useMemo(() => {
     if (!formData.districtId) return [];
+    if (isDhaka) {
+      const zones = getDhakaZones();
+      return zones.map((zone) => ({
+        id: zone,
+        name: zone,
+        nameBn: '',
+        type: 'zone',
+      }));
+    }
     return allUpazilas.filter((u) => u.districtId === Number(formData.districtId));
-  }, [allUpazilas, formData.districtId]);
+  }, [allUpazilas, formData.districtId, isDhaka]);
 
   const availableUnions = useMemo(() => {
+    if (isDhaka) return [];
     if (!formData.upazilaId) return [];
     return allAreas.filter((a) => a.upazilaId === Number(formData.upazilaId) && a.type === 'union');
-  }, [allAreas, formData.upazilaId]);
+  }, [allAreas, formData.upazilaId, isDhaka]);
 
   const availableWards = useMemo(() => {
+    if (isDhaka) {
+      const list = getDhakaSubLocations(formData.upazila);
+      return list.map((item, idx) => ({
+        id: `dhaka-${idx + 1}`,
+        name: item,
+        nameBn: '',
+        type: 'ward',
+      }));
+    }
     if (!formData.upazilaId) return [];
     return allAreas.filter((a) => a.upazilaId === Number(formData.upazilaId) && a.type === 'ward');
-  }, [allAreas, formData.upazilaId]);
+  }, [allAreas, formData.upazilaId, formData.upazila, isDhaka]);
 
   const handleDivisionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const divId = Number(e.target.value);
@@ -424,18 +448,32 @@ export default function RequestTutor() {
   const [isWardDropdownOpen, setIsWardDropdownOpen] = useState(false);
 
   const handleUpazilaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const upId = Number(e.target.value);
-    const up = allUpazilas.find((u) => u.id === upId);
-    setFormData((prev) => ({
-      ...prev,
-      upazila: up ? up.name : '',
-      upazilaId: upId || '',
-      union: '',
-      unionId: '',
-      ward: '',
-      wardId: '',
-      area: up ? up.name : '',
-    }));
+    const val = e.target.value;
+    if (isDhaka) {
+      setFormData((prev) => ({
+        ...prev,
+        upazila: val,
+        upazilaId: val,
+        union: '',
+        unionId: '',
+        ward: '',
+        wardId: '',
+        area: val,
+      }));
+    } else {
+      const upId = Number(val);
+      const up = allUpazilas.find((u) => u.id === upId);
+      setFormData((prev) => ({
+        ...prev,
+        upazila: up ? up.name : '',
+        upazilaId: upId || '',
+        union: '',
+        unionId: '',
+        ward: '',
+        wardId: '',
+        area: up ? up.name : '',
+      }));
+    }
   };
 
   const handleWardTextChange = (text: string) => {
@@ -449,7 +487,7 @@ export default function RequestTutor() {
     }));
   };
 
-  const handleSelectWard = (wd: { id: number; name: string; nameBn?: string }) => {
+  const handleSelectWard = (wd: { id: number | string; name: string; nameBn?: string }) => {
     setFormData((prev) => ({
       ...prev,
       ward: wd.name,
@@ -1231,6 +1269,44 @@ export default function RequestTutor() {
                         </div>
                       )}
                     </div>
+
+                    {/* Custom Class Type Input */}
+                    <div className="flex items-center gap-2 pt-1">
+                      <input
+                        type="text"
+                        placeholder="Type custom class or course and press Add..."
+                        value={customAreaInput}
+                        onChange={(e) => setCustomAreaInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && customAreaInput.trim()) {
+                            e.preventDefault();
+                            const val = toSentenceCase(customAreaInput.trim());
+                            if (!formData.classes.includes(val)) {
+                              setFormData(prev => ({ ...prev, classes: [...prev.classes, val] }));
+                            }
+                            setCustomAreaInput('');
+                          }
+                        }}
+                        className="flex-1 px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 placeholder:text-slate-400"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const val = toSentenceCase(customAreaInput.trim());
+                          if (val && !formData.classes.includes(val)) {
+                            setFormData(prev => ({ ...prev, classes: [...prev.classes, val] }));
+                          }
+                          setCustomAreaInput('');
+                        }}
+                        disabled={!customAreaInput.trim()}
+                        className="shrink-0 px-3 py-2 rounded-xl bg-primary text-white text-xs font-semibold transition active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        Add
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-slate-400">
+                      উপরের লিস্টে না থাকলে নিজে টাইপ করে Add করুন
+                    </p>
 
                     {/* 🎯 Interactive Admission Category & Unit Selector (Only shows when admission is selected) */}
                     {isAdmissionMode && (

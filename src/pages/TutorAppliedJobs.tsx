@@ -79,8 +79,10 @@ export default function TutorAppliedJobs() {
 
           // Status normalization
           const rawStatus = (a.status || 'pending').toLowerCase();
-          let normalizedStatus: 'pending' | 'shortlisted' | 'accepted' | 'hired' | 'rejected' = 'pending';
-          if (rawStatus === 'shortlisted') normalizedStatus = 'shortlisted';
+          let normalizedStatus: 'pending' | 'demo_confirmed' | 'demo_completed' | 'shortlisted' | 'accepted' | 'hired' | 'rejected' = 'pending';
+          if (rawStatus === 'demo_confirmed') normalizedStatus = 'demo_confirmed';
+          else if (rawStatus === 'demo_completed') normalizedStatus = 'demo_completed';
+          else if (rawStatus === 'shortlisted') normalizedStatus = 'shortlisted';
           else if (rawStatus === 'accepted' || rawStatus === 'approved') normalizedStatus = 'accepted';
           else if (rawStatus === 'hired') normalizedStatus = 'hired';
           else if (rawStatus === 'rejected') normalizedStatus = 'rejected';
@@ -138,10 +140,11 @@ export default function TutorAppliedJobs() {
   const stats = useMemo(() => {
     const total = appliedJobs.length;
     const pending = appliedJobs.filter((j) => j.status === 'pending').length;
+    const demo = appliedJobs.filter((j) => j.status === 'demo_confirmed' || j.status === 'demo_completed').length;
     const shortlisted = appliedJobs.filter((j) => j.status === 'shortlisted').length;
     const accepted = appliedJobs.filter((j) => j.status === 'accepted' || j.status === 'hired').length;
     const rejected = appliedJobs.filter((j) => j.status === 'rejected').length;
-    return { total, pending, shortlisted, accepted, rejected };
+    return { total, pending, demo, shortlisted, accepted, rejected };
   }, [appliedJobs]);
 
   // Filtering
@@ -158,6 +161,7 @@ export default function TutorAppliedJobs() {
       const matchesStatus =
         activeStatusFilter === 'All' ||
         (activeStatusFilter === 'Pending' && job.status === 'pending') ||
+        (activeStatusFilter === 'Demo' && (job.status === 'demo_confirmed' || job.status === 'demo_completed')) ||
         (activeStatusFilter === 'Shortlisted' && job.status === 'shortlisted') ||
         (activeStatusFilter === 'Accepted' && (job.status === 'accepted' || job.status === 'hired')) ||
         (activeStatusFilter === 'Rejected' && job.status === 'rejected');
@@ -180,9 +184,9 @@ export default function TutorAppliedJobs() {
   const STATUS_FILTERS = [
     { key: 'All', label: 'All Applications', count: stats.total },
     { key: 'Pending', label: 'Pending Review', count: stats.pending },
-    { key: 'Shortlisted', label: 'Shortlisted', count: stats.shortlisted },
-    { key: 'Accepted', label: 'Accepted / Hired', count: stats.accepted },
-    { key: 'Rejected', label: 'Rejected', count: stats.rejected },
+    { key: 'Demo', label: 'Demo Confirmed 🎯', count: stats.demo },
+    { key: 'Accepted', label: 'Accepted / Hired 🎉', count: stats.accepted },
+    { key: 'Rejected', label: 'Not Selected', count: stats.rejected },
   ];
 
   const MEDIUM_FILTERS = ['All', 'Bangla Medium', 'English Medium', 'English Version', 'Madrasah'];
@@ -196,6 +200,20 @@ export default function TutorAppliedJobs() {
           icon: Clock,
           desc: 'Guardian or Admin is reviewing your profile',
         };
+      case 'demo_confirmed':
+        return {
+          label: 'Demo Confirmed 🎯',
+          color: 'bg-purple-50 text-purple-700 border-purple-300 font-black',
+          icon: Sparkles,
+          desc: 'Selected for Demo Class! Contact guardian below',
+        };
+      case 'demo_completed':
+        return {
+          label: 'Demo Done 👍',
+          color: 'bg-blue-50 text-blue-700 border-blue-200 font-black',
+          icon: CheckCircle2,
+          desc: 'Demo class conducted; awaiting final decision',
+        };
       case 'shortlisted':
         return {
           label: 'Shortlisted ★',
@@ -206,10 +224,10 @@ export default function TutorAppliedJobs() {
       case 'accepted':
       case 'hired':
         return {
-          label: 'Accepted / Hired 🎉',
+          label: 'Final Hired (Deal Done) 🎉',
           color: 'bg-emerald-50 text-emerald-700 border-emerald-200 font-black',
           icon: CheckCircle2,
-          desc: 'Selected! Please follow up or pay platform fee',
+          desc: 'Selected! You are the official tutor for this tuition',
         };
       case 'rejected':
         return {
@@ -468,13 +486,20 @@ export default function TutorAppliedJobs() {
                         </div>
                       </div>
 
-                      {/* Confirmed Guardian Contact Details Box (Visible when Accepted / Hired) */}
-                      {(job.status === 'accepted' || job.status === 'hired') && (
-                        <div className="p-3.5 sm:p-4 bg-emerald-50/70 rounded-xl sm:rounded-2xl border border-emerald-200 shadow-xs space-y-2.5">
+                      {/* Confirmed Guardian Contact Details Box (Visible when Demo Confirmed or Accepted / Hired) */}
+                      {(job.status === 'accepted' || job.status === 'hired' || job.status === 'demo_confirmed' || job.status === 'demo_completed') && (
+                        <div className={`p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border shadow-xs space-y-2.5 ${
+                          (job.status === 'accepted' || job.status === 'hired') ? 'bg-emerald-50/70 border-emerald-200' : 'bg-purple-50/70 border-purple-200'
+                        }`}>
                           <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black uppercase text-emerald-800 tracking-wider flex items-center gap-1.5">
-                              <ShieldCheck size={14} className="text-emerald-600" />
-                              গার্ডিয়ান / যোগাযোগের তথ্য (Confirmed)
+                            <span className={`text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 ${
+                              (job.status === 'accepted' || job.status === 'hired') ? 'text-emerald-800' : 'text-purple-800'
+                            }`}>
+                              {(job.status === 'accepted' || job.status === 'hired') ? (
+                                <><ShieldCheck size={14} className="text-emerald-600" /> গার্ডিয়ান / যোগাযোগের তথ্য (Final Hired)</>
+                              ) : (
+                                <><Sparkles size={14} className="text-purple-600" /> গার্ডিয়ান / যোগাযোগের তথ্য (Demo Class Contact)</>
+                              )}
                             </span>
                             {job.detailedAddress && (
                               <span className="text-[10px] font-bold text-ink-muted truncate max-w-[160px] sm:max-w-[240px]">
@@ -525,7 +550,7 @@ export default function TutorAppliedJobs() {
                                 const waUrl = digits.startsWith('880') ? digits : digits.startsWith('01') ? ('88' + digits) : digits;
                                 return (
                                   <a
-                                    href={`https://wa.me/${waUrl}?text=${encodeURIComponent(`আসসালামু আলাইকুম ${job.guardianName || 'সম্মানিত অভিভাবক'}, আমি ${user?.displayName || 'আপনার নিয়োগপ্রাপ্ত টিউটর'}, Home Tutor BD-তে আপনার পোস্টকৃত টিউশনের বিষয়ে যোগাযোগ করছি।`)}`}
+                                    href={`https://wa.me/${waUrl}?text=${encodeURIComponent(`আসসালামু আলাইকুম ${job.guardianName || 'সম্মানিত অভিভাবক'}, আমি ${user?.name || 'আপনার নিয়োগপ্রাপ্ত টিউটর'}, Home Tutor BD-তে আপনার পোস্টকৃত টিউশনের বিষয়ে যোগাযোগ করছি।`)}`}
                                     target="_blank"
                                     rel="noreferrer"
                                     className="px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-xl font-black text-xs uppercase flex items-center gap-1 border border-emerald-200 transition-all cursor-pointer active:scale-95"
@@ -821,13 +846,20 @@ export default function TutorAppliedJobs() {
                     </div>
                   </div>
 
-                  {/* Confirmed Guardian Contact in Modal (when accepted / hired) */}
-                  {(selectedJobDetails.status === 'accepted' || selectedJobDetails.status === 'hired') && (
-                    <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 space-y-2.5">
+                  {/* Confirmed Guardian Contact in Modal (when Demo Confirmed or accepted / hired) */}
+                  {(selectedJobDetails.status === 'accepted' || selectedJobDetails.status === 'hired' || selectedJobDetails.status === 'demo_confirmed' || selectedJobDetails.status === 'demo_completed') && (
+                    <div className={`p-4 rounded-2xl border space-y-2.5 ${
+                      (selectedJobDetails.status === 'accepted' || selectedJobDetails.status === 'hired') ? 'bg-emerald-50 border-emerald-200' : 'bg-purple-50 border-purple-200'
+                    }`}>
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-black uppercase text-emerald-800 tracking-wider flex items-center gap-1.5">
-                          <ShieldCheck size={14} className="text-emerald-600" />
-                          গার্ডিয়ান / যোগাযোগের তথ্য (Confirmed)
+                        <span className={`text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 ${
+                          (selectedJobDetails.status === 'accepted' || selectedJobDetails.status === 'hired') ? 'text-emerald-800' : 'text-purple-800'
+                        }`}>
+                          {(selectedJobDetails.status === 'accepted' || selectedJobDetails.status === 'hired') ? (
+                            <><ShieldCheck size={14} className="text-emerald-600" /> গার্ডিয়ান / যোগাযোগের তথ্য (Final Hired)</>
+                          ) : (
+                            <><Sparkles size={14} className="text-purple-600" /> গার্ডিয়ান / যোগাযোগের তথ্য (Demo Class Contact)</>
+                          )}
                         </span>
                         {selectedJobDetails.detailedAddress && (
                           <span className="text-[10px] font-bold text-ink-muted truncate max-w-[200px]">
@@ -878,7 +910,7 @@ export default function TutorAppliedJobs() {
                             const waUrl = digits.startsWith('880') ? digits : digits.startsWith('01') ? ('88' + digits) : digits;
                             return (
                               <a
-                                href={`https://wa.me/${waUrl}?text=${encodeURIComponent(`আসসালামু আলাইকুম ${selectedJobDetails.guardianName || 'সম্মানিত অভিভাবক'}, আমি ${user?.displayName || 'আপনার নিয়োগপ্রাপ্ত টিউটর'}, Home Tutor BD-তে আপনার পোস্টকৃত টিউশনের বিষয়ে যোগাযোগ করছি।`)}`}
+                                href={`https://wa.me/${waUrl}?text=${encodeURIComponent(`আসসালামু আলাইকুম ${selectedJobDetails.guardianName || 'সম্মানিত অভিভাবক'}, আমি ${user?.name || 'আপনার নিয়োগপ্রাপ্ত টিউটর'}, Home Tutor BD-তে আপনার পোস্টকৃত টিউশনের বিষয়ে যোগাযোগ করছি।`)}`}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-xl font-black text-xs uppercase flex items-center gap-1 border border-emerald-200 transition-all cursor-pointer active:scale-95"

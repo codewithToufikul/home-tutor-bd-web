@@ -586,7 +586,7 @@ export default function TutorDashboard() {
                                 const waUrl = digits.startsWith('880') ? digits : digits.startsWith('01') ? ('88' + digits) : digits;
                                 return (
                                   <a
-                                    href={`https://wa.me/${waUrl}?text=${encodeURIComponent(`আসসালামু আলাইকুম ${tuition.guardianName || 'সম্মানিত অভিভাবক'}, আমি ${user?.displayName || 'আপনার নিয়োগপ্রাপ্ত টিউটর'}, Home Tutor BD-তে আপনার পোস্টকৃত টিউশনের বিষয়ে যোগাযোগ করছি।`)}`}
+                                    href={`https://wa.me/${waUrl}?text=${encodeURIComponent(`আসসালামু আলাইকুম ${tuition.guardianName || 'সম্মানিত অভিভাবক'}, আমি ${user?.name || 'আপনার নিয়োগপ্রাপ্ত টিউটর'}, Home Tutor BD-তে আপনার পোস্টকৃত টিউশনের বিষয়ে যোগাযোগ করছি।`)}`}
                                     target="_blank"
                                     rel="noreferrer"
                                     className="px-3.5 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-xl font-black text-xs uppercase flex items-center gap-1 border border-emerald-200 transition-all cursor-pointer active:scale-95"
