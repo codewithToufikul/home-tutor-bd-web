@@ -11,6 +11,7 @@ import CoachingSettings from '@/src/pages/CoachingSettings.tsx';
 import CoachingEnrollments from '@/src/pages/CoachingEnrollments.tsx';
 import CoachingNotices from '@/src/pages/CoachingNotices.tsx';
 import CoachingDownloads from '@/src/pages/CoachingDownloads.tsx';
+import CoachingTuitionRequests from '@/src/pages/CoachingTuitionRequests.tsx';
 
 export const coachingRoutes: RouteObject[] = [
   { path: 'coaching-centers', element: <PublicCoachingExplorer /> },
@@ -23,4 +24,5 @@ export const coachingRoutes: RouteObject[] = [
   { path: 'coaching/downloads', element: <AuthGuard allowedRoles={['coaching']}><CoachingDownloads /></AuthGuard> },
   { path: 'coaching/settings', element: <AuthGuard allowedRoles={['coaching']}><CoachingSettings /></AuthGuard> },
   { path: 'coaching/enrollments', element: <AuthGuard allowedRoles={['coaching']}><CoachingEnrollments /></AuthGuard> },
+  { path: 'coaching/tuition-posts', element: <AuthGuard allowedRoles={['coaching']}><CoachingTuitionRequests /></AuthGuard> },
 ];

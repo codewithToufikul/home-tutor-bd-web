@@ -13,7 +13,8 @@ import {
   Home,
   ClipboardList,
   Megaphone,
-  FileDown
+  FileDown,
+  Briefcase
 } from 'lucide-react';
 import { useAuth } from '@/src/context/AuthContext.tsx';
 import { cn } from '@/src/lib/utils';
@@ -55,6 +56,7 @@ export default function CoachingLayout({ children, title }: CoachingLayoutProps)
   const navItems = [
     { label: 'Dashboard', path: '/coaching/dashboard', icon: LayoutDashboard },
     { label: 'Manage Batches', path: '/coaching/batches', icon: BookOpen },
+    { label: 'Tuition Posts', path: '/coaching/tuition-posts', icon: Briefcase },
     { label: 'Tutors & Students', path: '/coaching/members', icon: Users },
     { label: 'Enrollment', path: '/coaching/enrollments', icon: ClipboardList, badge: pendingCount },
     { label: 'Notice Board', path: '/coaching/notices', icon: Megaphone },

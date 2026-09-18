@@ -27,6 +27,11 @@ import tutorialIllustration from '@/src/assets/tutorial_illustration.png';
 import { useAuth } from '@/src/context/AuthContext.tsx';
 import { can } from '@/src/shared/authorization.ts';
 import { PERMISSIONS } from '@/src/shared/constants/permissions.ts';
+import {
+  allUniversitiesGrouped,
+  allUniversitiesList,
+  popularUniversities
+} from '@/src/data/universities.ts';
 
 export const COURSE_CATEGORIES = [
   {
@@ -2189,29 +2194,56 @@ export default function Home() {
                           </div>
 
                           {/* University Preference (পছন্দের বিশ্ববিদ্যালয়) */}
-                          <div className="space-y-1.5">
+                          <div className="space-y-2">
                             <label className="block text-[10px] font-bold text-ink-muted uppercase tracking-wider">
                               Preferred University (পছন্দের বিশ্ববিদ্যালয়)
                             </label>
-                            <div className="relative">
-                              <GraduationCap className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted" size={15} />
-                              <input
-                                type="text"
-                                placeholder="e.g. BUET, DU, Medical, NSU, Any..."
-                                value={formData.universityPreference}
-                                onChange={(e) => setFormData({ ...formData, universityPreference: e.target.value })}
-                                className="w-full pl-10 pr-3 py-2 rounded-xl border border-ink/10 bg-background text-xs font-medium text-ink focus:ring-2 focus:ring-primary/20 outline-none"
-                              />
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                              <select
+                                value={allUniversitiesList.includes(formData.universityPreference) ? formData.universityPreference : ''}
+                                onChange={(e) => {
+                                  if (e.target.value) {
+                                    setFormData({ ...formData, universityPreference: e.target.value === 'Any University' ? '' : e.target.value });
+                                  }
+                                }}
+                                className="w-full px-2.5 py-2 rounded-xl border border-ink/10 bg-background text-xs font-medium text-ink focus:ring-2 focus:ring-primary/20 outline-none cursor-pointer"
+                              >
+                                <option value="">-- ড্রপডাউন থেকে বাছুন --</option>
+                                <option value="Any University">Any University (যে কোনো বিশ্ববিদ্যালয়)</option>
+                                {allUniversitiesGrouped.map((group) => (
+                                  <optgroup key={group.group} label={group.group}>
+                                    {group.items.map((uni) => (
+                                      <option key={uni} value={uni}>{uni}</option>
+                                    ))}
+                                  </optgroup>
+                                ))}
+                              </select>
+                              <div className="relative">
+                                <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted" size={14} />
+                                <input
+                                  type="text"
+                                  list="home-modal-universities-list"
+                                  placeholder="বা সার্চ / টাইপ করুন..."
+                                  value={formData.universityPreference}
+                                  onChange={(e) => setFormData({ ...formData, universityPreference: e.target.value })}
+                                  className="w-full pl-8 pr-2.5 py-2 rounded-xl border border-ink/10 bg-background text-xs font-medium text-ink focus:ring-2 focus:ring-primary/20 outline-none"
+                                />
+                                <datalist id="home-modal-universities-list">
+                                  {allUniversitiesList.map((u) => (
+                                    <option key={u} value={u} />
+                                  ))}
+                                </datalist>
+                              </div>
                             </div>
                             <div className="flex gap-1 overflow-x-auto pb-0.5 scrollbar-thin">
-                              {['BUET', 'DU (Dhaka Univ)', 'Medical College', 'Engineering', 'NSU / BRAC', 'Public Univ', 'Any'].map((uni) => (
+                              {popularUniversities.slice(0, 10).map((uni) => (
                                 <button
                                   key={uni}
                                   type="button"
-                                  onClick={() => setFormData({ ...formData, universityPreference: uni === 'Any' ? '' : uni })}
+                                  onClick={() => setFormData({ ...formData, universityPreference: uni === 'Any University' ? '' : uni })}
                                   className={cn(
                                     "px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all whitespace-nowrap cursor-pointer border",
-                                    formData.universityPreference === uni || (uni === 'Any' && !formData.universityPreference)
+                                    formData.universityPreference === uni || (uni === 'Any University' && !formData.universityPreference)
                                       ? "bg-primary text-white border-primary shadow-2xs"
                                       : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
                                   )}

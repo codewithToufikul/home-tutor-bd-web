@@ -7,9 +7,18 @@ import {
 } from 'lucide-react';
 import { getDivisions, getDistricts, getUpazilas, getAreas } from '@olism/bd-geo';
 import { getDhakaZones } from '@/src/data/dhakaLocations';
-import { SUBJECTS } from '@/src/constants';
+import {
+  SUBJECTS,
+  tutoringTimeOptions,
+  classOrCourseOptions,
+  curriculumMediumOptions
+} from '@/src/constants';
 import { useUpdateTuitionJobMutation } from '@/src/services/adminApi';
 import { cn } from '@/src/lib/utils';
+import {
+  allUniversitiesGrouped,
+  allUniversitiesList
+} from '@/src/data/universities.ts';
 
 interface AdminEditJobModalProps {
   job: any;
@@ -17,36 +26,12 @@ interface AdminEditJobModalProps {
   onSuccess?: (updatedJob: any) => void;
 }
 
-const CUSTOM_CLASSES = [
-  'Play', 'Nursery', 'KG', 'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5',
-  'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'SSC', 'HSC', 'O-Level',
-  'A-Level', 'Public University Admission Test',
-  'Medical College Admission Test', 'Engineering University Admission Test',
-  'Medical Admission', 'Cadet Admission', 'College Admission', 'Admission Candidate',
-  'BA', 'BBA', 'BSC', 'Degree', 'Diploma Engineering', 'Engineering',
-  'Medical - MBBS', 'Medical - BDS', 'Law', 'Honours', 'University', 'Undergraduate',
-  'BCS', 'Bank', 'IELTS', 'Islamic Studies', 'Drawing & Painting', 'Handwriting'
-];
+const CUSTOM_CLASSES = classOrCourseOptions;
 
-const CUSTOM_MEDIUMS = [
-  'Bangla Medium', 'English Medium', 'English Version', 'Madrasah Medium',
-  'Admission Candidate', 'Admission Help', 'International Exam Preparation',
-  'Religious and Moral Studies', 'Language', 'Arts and Crafts',
-  'Special Skills Mastery', 'Skills Development', 'Job Preparation'
-];
+const CUSTOM_MEDIUMS = curriculumMediumOptions;
 
 const DAYS_OPTIONS = [
   '2 Days/Week', '3 Days/Week', '4 Days/Week', '5 Days/Week', '6 Days/Week', 'Negotiable'
-];
-
-const TIME_SLOT_OPTIONS = [
-  'Flexible', 'Morning (8:00 AM - 12:00 PM)', 'Afternoon (12:00 PM - 4:00 PM)',
-  'Evening (4:00 PM - 8:00 PM)', 'Night (8:00 PM - 10:00 PM)'
-];
-
-const POPULAR_UNIVERSITIES = [
-  'Any University', 'BUET', 'DU (Dhaka University)', 'DMC (Medical)',
-  'NSU', 'BRACU', 'JU (Jahangirnagar)', 'RUET', 'CUET', 'SUST', 'IUT', 'BUP'
 ];
 
 export default function AdminEditJobModal({
@@ -417,7 +402,7 @@ export default function AdminEditJobModal({
                     onChange={(e) => setTimeSlot(e.target.value)}
                     className="w-full px-3.5 py-2.5 bg-white rounded-xl border border-ink/10 text-xs font-bold text-ink focus:outline-none focus:border-primary transition-all"
                   >
-                    {TIME_SLOT_OPTIONS.map(ts => (
+                    {tutoringTimeOptions.map(ts => (
                       <option key={ts} value={ts}>{ts}</option>
                     ))}
                   </select>
@@ -524,15 +509,38 @@ export default function AdminEditJobModal({
                 {/* University Preference */}
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-ink">পছন্দের বিশ্ববিদ্যালয় (University)</label>
-                  <select
-                    value={universityPreference}
-                    onChange={(e) => setUniversityPreference(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-white rounded-xl border border-ink/10 text-xs font-bold text-ink focus:outline-none focus:border-primary transition-all"
-                  >
-                    {POPULAR_UNIVERSITIES.map(u => (
-                      <option key={u} value={u}>{u}</option>
-                    ))}
-                  </select>
+                  <div className="space-y-1.5">
+                    <select
+                      value={allUniversitiesList.includes(universityPreference) ? universityPreference : ''}
+                      onChange={(e) => {
+                        if (e.target.value) setUniversityPreference(e.target.value);
+                      }}
+                      className="w-full px-3.5 py-2.5 bg-white rounded-xl border border-ink/10 text-xs font-bold text-ink focus:outline-none focus:border-primary transition-all"
+                    >
+                      <option value="">-- ড্রপডাউন থেকে নির্বাচন করুন --</option>
+                      <option value="Any University">Any University (যে কোনো বিশ্ববিদ্যালয়)</option>
+                      {allUniversitiesGrouped.map(group => (
+                        <optgroup key={group.group} label={group.group}>
+                          {group.items.map(u => (
+                            <option key={u} value={u}>{u}</option>
+                          ))}
+                        </optgroup>
+                      ))}
+                    </select>
+                    <input
+                      type="text"
+                      list="admin-edit-universities-list"
+                      placeholder="বা নাম লিখুন / সার্চ করুন..."
+                      value={universityPreference}
+                      onChange={(e) => setUniversityPreference(e.target.value)}
+                      className="w-full px-3.5 py-2 bg-white rounded-xl border border-ink/10 text-xs font-medium text-ink focus:outline-none focus:border-primary transition-all"
+                    />
+                    <datalist id="admin-edit-universities-list">
+                      {allUniversitiesList.map(u => (
+                        <option key={u} value={u} />
+                      ))}
+                    </datalist>
+                  </div>
                 </div>
 
                 {/* Job Status */}

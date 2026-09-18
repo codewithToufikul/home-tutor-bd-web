@@ -43,7 +43,7 @@ export const publicRoutes: RouteObject[] = [
   { path: 'tutor/:id', element: <TutorProfilePage /> },
   { path: 'jobs', element: <Jobs /> },
   { path: 'job/:id', element: <JobDetails /> },
-  { path: 'request-tutor', element: <AuthGuard allowedRoles={['student', 'guardian']}><RequestTutor /></AuthGuard> },
+  { path: 'request-tutor', element: <AuthGuard allowedRoles={['student', 'guardian', 'coaching', 'admin', 'super_admin']}><RequestTutor /></AuthGuard> },
   { path: 'for-tutors', element: <ForTutors /> },
   { path: 'login', element: <AuthGuard guestOnly><Login /></AuthGuard> },
   { path: 'register', element: <AuthGuard guestOnly><Register /></AuthGuard> },

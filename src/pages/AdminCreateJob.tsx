@@ -10,12 +10,28 @@ import {
 } from 'lucide-react';
 import { getDivisions, getDistricts, getUpazilas, getAreas } from '@olism/bd-geo';
 import { getDhakaZones, getDhakaSubLocations } from '@/src/data/dhakaLocations';
-import { SUBJECTS } from '@/src/constants';
+import {
+  SUBJECTS,
+  tutoringTimeOptions,
+  tutorQualificationOptions,
+  specialRequirementOptions,
+  classOrCourseOptions,
+  curriculumMediumOptions
+} from '@/src/constants';
 import { cn } from '@/src/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/src/context/AuthContext.tsx';
 import { useCreateTuitionJobMutation } from '@/src/services/tuitionApi.ts';
 import AdminLayout from '@/src/components/AdminLayout.tsx';
+import {
+  publicUniversities,
+  privateUniversities,
+  medicalColleges,
+  nationalUniversityColleges,
+  popularUniversities,
+  allUniversitiesGrouped,
+  allUniversitiesList
+} from '@/src/data/universities.ts';
 
 // ── Constants ───────────────────────────────────────────────────────────────
 
@@ -76,28 +92,13 @@ const ADMISSION_CATEGORIES = [
   }
 ];
 
-const CUSTOM_MEDIUMS = [
-  'Bangla Medium', 'English Medium', 'English Version', 'Madrasah Medium', 'Admission Candidate', 'Admission Help',
-  'International Exam Preparation', 'Religious and Moral Studies', 'Language', 'Arts and Crafts',
-  'Special Skills Mastery', 'Skills Development', 'Graduate Program', 'Job Preparation', 'Medical Admission'
-];
-
-const POPULAR_UNIVERSITIES = [
-  'Any University', 'BUET', 'DU (Dhaka University)', 'DMC (Medical)', 'NSU', 'BRACU', 'JU (Jahangirnagar)',
-  'RUET', 'CUET', 'SUST', 'IUT', 'BUP', 'EWU', 'AIUB', 'AUST'
-];
+const CUSTOM_MEDIUMS = curriculumMediumOptions;
 
 const SALARY_PRESETS = ['3000', '4000', '5000', '6000', '7000', '8000', '10000', '12000', '15000'];
 
-const TUTOR_QUALIFICATIONS = [
-  'Any Qualification', 'Public University Student', 'BUET / Engineering Student', 'Medical (MBBS) Student',
-  'Top Private University (NSU/BRAC)', 'Experienced School/College Teacher', 'Post Graduate / Masters Passed'
-];
+const TUTOR_QUALIFICATIONS = tutorQualificationOptions;
 
-const POPULAR_REQUIREMENTS = [
-  'Punctual and regular', 'Special care for weak student', 'Strong in Math and Science',
-  'Fluent in English communication', 'Interactive teaching method', 'Weekly test and progress report'
-];
+const POPULAR_REQUIREMENTS = specialRequirementOptions;
 
 // ── Component ───────────────────────────────────────────────────────────────
 
@@ -170,6 +171,17 @@ export default function AdminCreateJob() {
     sameAsPhone: true,
     additional: '',
   });
+
+  const [uniCategoryTab, setUniCategoryTab] = useState<'popular' | 'public' | 'private' | 'medical' | 'nu' | 'all'>('popular');
+
+  const displayedUniversities = useMemo(() => {
+    if (uniCategoryTab === 'popular') return popularUniversities;
+    if (uniCategoryTab === 'public') return publicUniversities;
+    if (uniCategoryTab === 'private') return privateUniversities;
+    if (uniCategoryTab === 'medical') return medicalColleges;
+    if (uniCategoryTab === 'nu') return nationalUniversityColleges;
+    return allUniversitiesList;
+  }, [uniCategoryTab]);
 
   // Prefill from admin user
   useEffect(() => {
@@ -1108,34 +1120,154 @@ export default function AdminCreateJob() {
 
                   {/* Tutor Qualification */}
                   <div className="space-y-1.5">
-                    <label className={labelCls}>Preferred Tutor Qualification</label>
-                    <select value={formData.tutorQualification} onChange={e => setFormData({ ...formData, tutorQualification: e.target.value })} className={inputCls}>
-                      {TUTOR_QUALIFICATIONS.map(q => <option key={q} value={q}>{q}</option>)}
-                    </select>
+                    <label className={labelCls}>Preferred Tutor Qualification (টিউটরের যোগ্যতা)</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <select value={formData.tutorQualification} onChange={e => setFormData({ ...formData, tutorQualification: e.target.value })} className={inputCls}>
+                        {tutorQualificationOptions.map(q => <option key={q} value={q}>{q}</option>)}
+                      </select>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          list="admin-create-qualifications-list"
+                          placeholder="বা সার্চ / টাইপ করুন..."
+                          value={formData.tutorQualification}
+                          onChange={e => setFormData({ ...formData, tutorQualification: e.target.value })}
+                          className={inputCls}
+                        />
+                        <datalist id="admin-create-qualifications-list">
+                          {tutorQualificationOptions.map(q => <option key={q} value={q} />)}
+                        </datalist>
+                      </div>
+                    </div>
                   </div>
 
                   {/* University Preference */}
-                  <div className="space-y-1.5">
-                    <label className={labelCls}>University Preference</label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {POPULAR_UNIVERSITIES.map(uni => (
-                        <button key={uni} type="button" onClick={() => setFormData({ ...formData, universityPreference: uni })}
-                          className={cn("px-3 py-2 rounded-xl border text-xs font-medium transition cursor-pointer active:scale-95",
-                            formData.universityPreference === uni ? "bg-violet-600 text-white border-violet-600 font-bold shadow-xs" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50")}
-                        >{uni}</button>
-                      ))}
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <label className={labelCls}>University Preference (পছন্দের বিশ্ববিদ্যালয়)</label>
+                      {formData.universityPreference && (
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, universityPreference: '' })}
+                          className="text-[11px] text-slate-400 hover:text-rose-500 cursor-pointer transition font-medium"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Dual Selection Controls: Grouped Dropdown & Text Input with Datalist */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div>
+                        <select
+                          value={allUniversitiesList.includes(formData.universityPreference) ? formData.universityPreference : ''}
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              setFormData({ ...formData, universityPreference: e.target.value });
+                            }
+                          }}
+                          className={inputCls}
+                        >
+                          <option value="">-- ড্রপডাউন থেকে নির্বাচন করুন --</option>
+                          <option value="Any University">Any University (যে কোনো বিশ্ববিদ্যালয়)</option>
+                          {allUniversitiesGrouped.map((group) => (
+                            <optgroup key={group.group} label={group.group}>
+                              {group.items.map((uni) => (
+                                <option key={uni} value={uni}>{uni}</option>
+                              ))}
+                            </optgroup>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="relative">
+                        <input
+                          type="text"
+                          list="admin-create-universities-list"
+                          placeholder="বা নাম লিখুন / সার্চ করুন..."
+                          value={formData.universityPreference}
+                          onChange={(e) => setFormData({ ...formData, universityPreference: e.target.value })}
+                          className={inputCls}
+                        />
+                        <datalist id="admin-create-universities-list">
+                          {allUniversitiesList.map((u) => (
+                            <option key={u} value={u} />
+                          ))}
+                        </datalist>
+                      </div>
+                    </div>
+
+                    {/* Category Tabs & Quick Pick Pills */}
+                    <div className="bg-slate-50 p-2 rounded-xl border border-slate-200/80 space-y-2">
+                      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-[11px]">
+                        {[
+                          { id: 'popular', label: '🔥 Popular' },
+                          { id: 'public', label: '🏛️ Public (55+)' },
+                          { id: 'private', label: '🏢 Private (75+)' },
+                          { id: 'medical', label: '🩺 Medical (15+)' },
+                          { id: 'nu', label: '📚 National Univ' },
+                          { id: 'all', label: '🌐 All List' },
+                        ].map((tab) => (
+                          <button
+                            key={tab.id}
+                            type="button"
+                            onClick={() => setUniCategoryTab(tab.id as any)}
+                            className={cn(
+                              "px-2.5 py-1 rounded-lg font-semibold whitespace-nowrap transition cursor-pointer text-[11px]",
+                              uniCategoryTab === tab.id
+                                ? "bg-white text-violet-700 shadow-2xs border border-slate-200"
+                                : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
+                            )}
+                          >
+                            {tab.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
+                        {displayedUniversities.map((uni) => {
+                          const isSel = formData.universityPreference?.trim().toLowerCase() === uni.toLowerCase();
+                          return (
+                            <button
+                              key={uni}
+                              type="button"
+                              onClick={() => setFormData({ ...formData, universityPreference: uni })}
+                              className={cn(
+                                "px-2.5 py-1 rounded-lg border text-xs font-medium transition cursor-pointer active:scale-95 text-left",
+                                isSel
+                                  ? "bg-violet-600 text-white border-violet-600 font-bold shadow-2xs"
+                                  : "bg-white border-slate-200 text-slate-700 hover:bg-slate-100/70"
+                              )}
+                            >
+                              {isSel && <Check size={11} strokeWidth={3} className="inline mr-1 shrink-0" />}
+                              {uni}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
 
                   {/* Special Requirements */}
                   <div className="space-y-1.5">
-                    <label className={labelCls}>Special Requirements <span className="text-slate-400 font-normal">(optional)</span></label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {POPULAR_REQUIREMENTS.map(req => {
+                    <div className="flex items-center justify-between">
+                      <label className={labelCls}>Special Requirements <span className="text-slate-400 font-normal">(optional)</span></label>
+                      {formData.requirements.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, requirements: [] })}
+                          className="text-[11px] text-slate-400 hover:text-rose-500 cursor-pointer transition font-medium"
+                        >
+                          Clear All ({formData.requirements.length})
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto p-2.5 bg-slate-50 rounded-xl border border-slate-200/80">
+                      {specialRequirementOptions.map(req => {
                         const isSel = formData.requirements.includes(req);
                         return (
                           <button key={req} type="button" onClick={() => toggleRequirement(req)}
-                            className={cn("px-3 py-2 rounded-xl border text-xs font-medium transition cursor-pointer active:scale-95",
+                            className={cn("px-3 py-1.5 rounded-xl border text-xs font-medium transition cursor-pointer active:scale-95",
                               isSel ? "bg-emerald-600 text-white border-emerald-600 font-bold shadow-xs" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50")}
                           >{isSel && <Check size={12} strokeWidth={3} className="inline mr-1" />}{req}</button>
                         );
@@ -1170,9 +1302,9 @@ export default function AdminCreateJob() {
                       </select>
                     </div>
                     <div className="space-y-1">
-                      <label className={labelCls}>Preferred Time</label>
+                      <label className={labelCls}>Preferred Time (পছন্দের সময়)</label>
                       <select value={formData.startTime} onChange={e => setFormData({ ...formData, startTime: e.target.value })} className={inputCls}>
-                        {['Morning (6:00 AM - 10:00 AM)', 'Afternoon (12:00 PM - 4:00 PM)', 'Evening (4:00 PM - 8:00 PM)', 'Night (8:00 PM - 11:00 PM)', 'Flexible'].map(t => <option key={t} value={t}>{t}</option>)}
+                        {tutoringTimeOptions.map(t => <option key={t} value={t}>{t}</option>)}
                       </select>
                     </div>
                   </div>

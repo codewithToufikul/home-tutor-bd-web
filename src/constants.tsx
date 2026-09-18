@@ -323,3 +323,484 @@ export const CATEGORIES_DATA = [
     ]
   }
 ];
+
+export const tutoringTimeOptions = [
+  "Any Time",
+  "Any Time  Evening",
+  "Morning (6:00 AM - 10:00 AM)",
+  "Late Morning (10:00 AM - 12:00 PM)",
+  "Afternoon (12:00 PM - 3:00 PM)",
+  "Late Afternoon (3:00 PM - 4:00 PM)",
+  "Evening (4:00 PM - 8:00 PM)",
+  "Night (8:00 PM - 11:00 PM)",
+  "Flexible"
+];
+
+export const tutorQualificationOptions = [
+  "Any Qualification",
+
+  // Academic Year
+  "1st Year Student",
+  "2nd Year Student",
+  "3rd Year Student",
+  "4th Year Student",
+  "Graduate",
+  "Postgraduate",
+
+  // Subject Experts
+  "Science Expert",
+  "Math Expert",
+  "Higher Math Expert",
+  "English Expert",
+  "Bangla Expert",
+  "Physics Expert",
+  "Chemistry Expert",
+  "Biology Expert",
+  "ICT Expert",
+  "Computer Science Expert",
+  "Accounting Expert",
+  "Finance Expert",
+  "Economics Expert",
+  "Business Studies Expert",
+  "Statistics Expert",
+  "Social Science Expert",
+  "History Expert",
+  "Geography Expert",
+  "Islamic Studies Expert",
+  "Arabic Expert",
+
+  // Academic Level Experts
+  "Primary Level Expert",
+  "Junior School Expert",
+  "Secondary Level Expert",
+  "SSC Expert",
+  "HSC Expert",
+  "University Level Expert",
+
+  // Medium & Curriculum
+  "Bangla Medium Expert",
+  "English Version Expert",
+  "English Medium Expert",
+  "O Level Expert",
+  "A Level Expert",
+  "IGCSE Expert",
+  "AS Level Expert",
+  "A2 Level Expert",
+  "Cambridge Curriculum Expert",
+  "Edexcel Curriculum Expert",
+
+  // Admission & Test Preparation
+  "Admission Test Expert",
+  "University Admission Expert",
+  "Medical Admission Expert",
+  "Engineering Admission Expert",
+  "IELTS Expert",
+  "TOEFL Expert",
+  "SAT Expert",
+  "GRE Expert",
+  "GMAT Expert",
+
+  // Special Skills
+  "Drawing Expert",
+  "Art & Craft Expert",
+  "Spoken English Expert",
+  "English Grammar Expert",
+  "Creative Writing Expert",
+  "Public Speaking Expert",
+  "Programming Expert",
+  "Coding Expert",
+  "MS Office Expert",
+  "Quran & Arabic Expert",
+
+  // Experience
+  "Experienced Home Tutor",
+  "Experienced School Teacher",
+  "Experienced College Teacher",
+  "Subject-Related Expert",
+  "Subject Specialist",
+  "Curriculum Specialist",
+  "Exam Preparation Expert",
+  "Experienced English Medium Tutor",
+  "Experienced English Version Tutor"
+];
+
+export const specialRequirementOptions = [
+  "Experienced Tutor",
+  "Good Communication Skills",
+  "Patient & Friendly",
+  "Child-Friendly",
+  "Punctual & Regular",
+  "Responsible & Dedicated",
+  "Strong Academic Background",
+
+  "Strong in Mathematics",
+  "Strong in Higher Mathematics",
+  "Strong in English",
+  "Strong in Bangla",
+  "Strong in Science",
+  "Strong in Physics",
+  "Strong in Chemistry",
+  "Strong in Biology",
+  "Strong in ICT",
+  "Strong in Accounting",
+
+  "English Medium Experience",
+  "English Version Experience",
+  "Bangla Medium Experience",
+  "O Level Experience",
+  "A Level Experience",
+  "IGCSE Experience",
+  "Cambridge Curriculum Experience",
+  "Edexcel Curriculum Experience",
+
+  "Exam Preparation Experience",
+  "SSC Preparation Experience",
+  "HSC Preparation Experience",
+  "Admission Preparation Experience",
+  "Medical Admission Preparation",
+  "Engineering Admission Preparation",
+
+  "IELTS Teaching Experience",
+  "Spoken English Teaching Experience",
+  "Grammar Teaching Experience",
+
+  "Drawing / Art Experience",
+  "Arabic Teaching Experience",
+  "Quran Teaching Experience",
+
+  "Primary Level Teaching Experience",
+  "Secondary Level Teaching Experience",
+  "Home Tutoring Experience",
+  "Online Tutoring Experience",
+
+  "Nearby Tutor Preferred",
+  "Regular Homework Support",
+  "Weekly Test & Assessment",
+  "Extra Class When Needed",
+  "Other"
+];
+
+export const classOrCourseOptions = [
+  // GENERAL
+  "Any Class / Course",
+
+  // PRE-SCHOOL / PRE-PRIMARY
+  "Pre-School",
+  "Play Group",
+  "Nursery",
+  "KG",
+  "KG 1",
+  "KG 2",
+
+  // PRIMARY
+  "Class 1",
+  "Class 2",
+  "Class 3",
+  "Class 4",
+  "Class 5",
+
+  // SECONDARY
+  "Class 6",
+  "Class 7",
+  "Class 8",
+  "Class 9",
+  "Class 10",
+  "SSC",
+
+  // HIGHER SECONDARY
+  "Class 11",
+  "Class 12",
+  "HSC",
+
+  // ENGLISH MEDIUM
+  "O Level",
+  "AS Level",
+  "A Level",
+  "IGCSE",
+
+  // SCHOOL / COLLEGE ADMISSION
+  "School Admission",
+  "School Admission Test",
+  "College Admission",
+  "College Admission Test",
+  "Admission",
+  "Admission Candidate",
+  "Admission Test Preparation",
+
+  // UNIVERSITY / HIGHER EDUCATION
+  "University",
+  "Undergraduate",
+  "Honours",
+  "Honours 1st Year",
+  "Honours 2nd Year",
+  "Honours 3rd Year",
+  "Honours 4th Year",
+  "Degree",
+  "Masters",
+  "MPhil",
+  "PhD",
+  "BA",
+  "BBA",
+  "BSc",
+  "BBS",
+  "Law",
+  "Diploma",
+  "Diploma Engineering",
+  "Engineering",
+
+  // UNIVERSITY ADMISSION
+  "University Admission",
+  "Public University Admission",
+  "Private University Admission",
+  "University Admission Test",
+  "Public University Admission Test",
+  "Private University Admission Test",
+
+  // DHAKA UNIVERSITY
+  "DU Admission",
+  "DU A Unit",
+  "DU B Unit",
+  "DU C Unit",
+  "DU D Unit",
+  "DU Fine Arts Unit",
+  "DU IBA Admission",
+
+  // JAHANGIRNAGAR UNIVERSITY
+  "JU Admission",
+  "JU A Unit",
+  "JU B Unit",
+  "JU C Unit",
+  "JU D Unit",
+  "JU E Unit",
+  "JU IBA Admission",
+
+  // UNIVERSITY OF RAJSHAHI
+  "RU Admission",
+  "RU A Unit",
+  "RU B Unit",
+  "RU C Unit",
+
+  // UNIVERSITY OF CHITTAGONG
+  "CU Admission",
+  "CU A Unit",
+  "CU B Unit",
+  "CU C Unit",
+  "CU D Unit",
+  "CU B1 Sub-Unit",
+  "CU D1 Sub-Unit",
+
+  // OTHER PUBLIC UNIVERSITY ADMISSION
+  "BUP Admission",
+  "JNU Admission",
+  "SUST Admission",
+  "KU Admission",
+  "BU Admission",
+  "BRUR Admission",
+  "JKKNIU Admission",
+  "NSTU Admission",
+  "Comilla University Admission",
+  "Barishal University Admission",
+  "Islamic University Admission",
+
+  // MEDICAL
+  "Medical",
+  "Medical Admission",
+  "Medical College Admission Test",
+  "Public Medical Admission",
+  "Private Medical Admission",
+  "Medical Admission Test",
+  "Medical - MBBS",
+
+  // DENTAL
+  "Dental",
+  "Dental Admission",
+  "Dental Admission Test",
+  "Public Dental Admission",
+  "Private Dental Admission",
+  "Medical - BDS",
+
+  // NURSING
+  "Nursing",
+  "Nursing Admission",
+  "Nursing Admission Test",
+  "BSc Nursing",
+  "Diploma Nursing",
+
+  // ENGINEERING
+  "Engineering Admission",
+  "Engineering University Admission Test",
+  "Public Engineering Admission",
+  "Private Engineering Admission",
+  "BUET Admission",
+  "RUET Admission",
+  "KUET Admission",
+  "CUET Admission",
+  "MIST Admission",
+  "Textile Engineering",
+  "Textile Engineering Admission",
+
+  // ARCHITECTURE
+  "Architecture",
+  "Architecture Admission",
+  "Architecture Admission Test",
+  "Public Architecture Admission",
+  "Private Architecture Admission",
+
+  // AGRICULTURE
+  "Agriculture",
+  "Agriculture University Admission",
+  "Agriculture Admission Test",
+  "Public Agriculture University Admission",
+
+  // NATIONAL UNIVERSITY
+  "National University",
+  "National University Admission",
+  "National University Honours",
+  "National University Degree",
+  "National University Masters",
+
+  // INTERNATIONAL CURRICULUM
+  "IB Primary",
+  "IB Middle Years",
+  "IB Diploma",
+
+  // INTERNATIONAL EXAMS
+  "IELTS",
+  "TOEFL",
+  "PTE",
+  "SAT",
+  "GRE",
+  "GMAT",
+  "ACT",
+
+  // COMPETITIVE / JOB PREPARATION
+  "BCS",
+  "Bank Job Preparation",
+  "Primary Teacher",
+  "Primary Teacher Recruitment",
+  "NTRCA",
+  "School Teacher Recruitment",
+  "College Teacher Recruitment",
+  "Sub-Inspector",
+  "Government Job Preparation",
+  "Competitive Exam Preparation",
+  "Cadet Admission",
+
+  // MADRASA
+  "Ebtedayee",
+  "Dakhil",
+  "Alim",
+  "Fazil",
+  "Kamil",
+
+  // ISLAMIC / RELIGIOUS EDUCATION
+  "Quran",
+  "Quran Recitation",
+  "Tajweed",
+  "Arabic",
+  "Arabic Language",
+  "Islamic Studies",
+
+  // ENGLISH / LANGUAGE
+  "Spoken English",
+  "English Grammar",
+  "English Writing",
+  "English Conversation",
+  "Academic English",
+
+  // COMPUTER / IT
+  "Computer Course",
+  "Basic Computer",
+  "Microsoft Office",
+  "Computer Programming",
+  "Programming / Coding",
+  "C",
+  "C++",
+  "Java",
+  "JavaScript",
+  "Python",
+  "Web Design",
+  "Web Development",
+  "Graphic Design",
+  "Data Science",
+  "Artificial Intelligence",
+  "Digital Marketing",
+
+  // ART / CREATIVE
+  "Drawing",
+  "Drawing & Painting",
+  "Painting",
+  "Art & Craft",
+  "Calligraphy",
+  "Handwriting",
+
+  // BUSINESS / PROFESSIONAL
+  "Accounting",
+  "Finance",
+  "Business Studies",
+  "Marketing",
+  "Economics",
+  "Management",
+
+  // OTHER
+  "Other Course"
+];
+
+export const curriculumMediumOptions = [
+  // Main Curriculum / Medium
+  "Bangla Medium",
+  "English Medium",
+  "English Version",
+  "Madrasah Medium",
+
+  // International Curriculum
+  "Cambridge Curriculum",
+  "Edexcel Curriculum",
+  "IB Curriculum",
+
+  // International Exams
+  "IELTS",
+  "TOEFL",
+  "PTE",
+  "SAT",
+  "GRE",
+  "GMAT",
+  "ACT",
+  "International Exam Preparation",
+
+  // Admission
+  "Admission Candidate",
+  "Admission Help",
+  "Medical Admission",
+  "Engineering Admission",
+  "University Admission",
+  "College Admission",
+  "School Admission",
+
+  // Language
+  "Language",
+  "Spoken English",
+  "English Grammar",
+  "Arabic Language",
+
+  // Religious Education
+  "Religious and Moral Studies",
+  "Islamic Studies",
+  "Quran Studies",
+
+  // Arts & Creative
+  "Drawing",
+  "Drawing & Painting",
+  "Painting",
+  "Arts and Crafts",
+  "Calligraphy",
+  "Handwriting",
+
+  // Skills
+  "Special Skills Mastery",
+  "Skills Development",
+
+  // Higher Education / Career
+  "Graduate Program",
+  "Job Preparation"
+];
