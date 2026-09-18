@@ -43,7 +43,7 @@ export const adminApi = baseApi.injectEndpoints({
     getAllTuitionJobs: builder.query({
       query: (params?: Record<string, unknown>) => ({
         url: '/tuition-jobs',
-        params: { approvalStatus: 'all', ...params },
+        params: { approvalStatus: 'all', limit: 1000, ...params },
       }),
       providesTags: ['TuitionJob'],
     }),

@@ -6,7 +6,7 @@ import {
   Users, Globe, AlertCircle, CheckCircle2, XCircle
 } from 'lucide-react';
 import AdminLayout from '@/src/components/AdminLayout.tsx';
-import { cn } from '@/src/lib/utils';
+import { cn, matchFlexibleId } from '@/src/lib/utils';
 import { useGetAllTuitionJobsQuery, useApproveJobMutation, useDeleteJobMutation } from '@/src/services/adminApi.ts';
 
 const ITEMS_PER_PAGE = 10;
@@ -44,13 +44,17 @@ export default function AdminAllJobs() {
   // Filtering + Tab Logic
   const filteredJobs = useMemo(() => {
     return rawJobs.filter(job => {
+      const q = searchQuery.toLowerCase();
       const matchesSearch =
-        (job.customId || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (job._id || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (job.location?.district || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (job.location?.area || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (job.subjects || []).join(',').toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (job.studentClass || '').toLowerCase().includes(searchQuery.toLowerCase());
+        matchFlexibleId(job.customId, searchQuery) ||
+        matchFlexibleId(job._id, searchQuery) ||
+        matchFlexibleId(job.id, searchQuery) ||
+        (job.customId || '').toLowerCase().includes(q) ||
+        (job._id || '').toLowerCase().includes(q) ||
+        (job.location?.district || '').toLowerCase().includes(q) ||
+        (job.location?.area || '').toLowerCase().includes(q) ||
+        (job.subjects || []).join(',').toLowerCase().includes(q) ||
+        (job.studentClass || '').toLowerCase().includes(q);
       const matchesTab = activeTab === 'all' || job.approvalStatus === activeTab;
       return matchesSearch && matchesTab;
     });

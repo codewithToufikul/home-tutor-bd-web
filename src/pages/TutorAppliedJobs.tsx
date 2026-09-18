@@ -13,7 +13,7 @@ import { ApplicationService } from '@/src/services/applicationService.ts';
 import { TuitionService } from '@/src/services/tuitionService.ts';
 import { TuitionJob } from '@/src/types';
 import { Link } from 'react-router-dom';
-import { cn } from '@/src/lib/utils';
+import { cn, matchFlexibleId } from '@/src/lib/utils';
 
 const ITEMS_PER_PAGE = 6;
 
@@ -152,6 +152,9 @@ export default function TutorAppliedJobs() {
     return appliedJobs.filter((job) => {
       const q = searchQuery.toLowerCase();
       const matchesSearch =
+        matchFlexibleId(job.customId, searchQuery) ||
+        matchFlexibleId(job.id, searchQuery) ||
+        matchFlexibleId(job._id, searchQuery) ||
         job.title.toLowerCase().includes(q) ||
         job.customId.toLowerCase().includes(q) ||
         job.location.toLowerCase().includes(q) ||

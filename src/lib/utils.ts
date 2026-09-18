@@ -26,3 +26,44 @@ export function sanitizePublicText(text: string): string {
     .replace(/\s*,\s*$/g, '')
     .trim();
 }
+
+/**
+ * Flexible ID matcher that matches Job Codes / Custom IDs regardless of hyphens, spaces, leading zeroes, or casing.
+ * Examples:
+ * - Target "DHA-031" matches "dha-031", "dha031", "dha 031", "dha-31", "dha31", "031", "31", "dha"
+ */
+export function matchFlexibleId(targetId: string | undefined | null, searchInput: string | undefined | null): boolean {
+  if (!targetId || !searchInput) return false;
+  const target = String(targetId).trim().toLowerCase();
+  const search = String(searchInput).trim().toLowerCase();
+  if (!target || !search) return false;
+
+  // Direct includes
+  if (target.includes(search)) return true;
+
+  // Strip all non-alphanumeric characters (hyphens, spaces, underscores, etc.)
+  const cleanTarget = target.replace(/[^a-z0-9]/g, '');
+  const cleanSearch = search.replace(/[^a-z0-9]/g, '');
+
+  if (!cleanTarget || !cleanSearch) return false;
+  if (cleanTarget.includes(cleanSearch)) return true;
+
+  // Strip leading zeroes after letter prefixes: e.g. "dha031" -> "dha31"
+  const targetNoZeroes = cleanTarget.replace(/([a-z]+)0+(\d+)/g, '$1$2');
+  const searchNoZeroes = cleanSearch.replace(/([a-z]+)0+(\d+)/g, '$1$2');
+
+  if (targetNoZeroes.includes(cleanSearch) || targetNoZeroes.includes(searchNoZeroes) || cleanTarget.includes(searchNoZeroes)) {
+    return true;
+  }
+
+  // If search is a number (e.g. "31" or "031"), check if it matches target's number part
+  const targetNumbers = cleanTarget.replace(/^[a-z]+/, '');
+  const searchNumbers = cleanSearch.replace(/^[a-z]+/, '');
+  if (searchNumbers && targetNumbers) {
+    if (parseInt(searchNumbers, 10) === parseInt(targetNumbers, 10)) {
+      return true;
+    }
+  }
+
+  return false;
+}

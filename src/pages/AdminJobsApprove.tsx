@@ -9,7 +9,7 @@ import {
   Check, X, Loader2, ArrowRight, UserCheck, Pencil
 } from 'lucide-react';
 import AdminLayout from '@/src/components/AdminLayout.tsx';
-import { cn } from '@/src/lib/utils';
+import { cn, matchFlexibleId } from '@/src/lib/utils';
 import { Link, useNavigate } from 'react-router-dom';
 import AdminEditJobModal from '@/src/components/admin/AdminEditJobModal';
 import {
@@ -219,6 +219,9 @@ export default function AdminJobsApprove() {
       const tutorName = confirmedTutor?.name?.toLowerCase() || '';
 
       const matchesSearch =
+        matchFlexibleId(job.jobCode, searchQuery) ||
+        matchFlexibleId(job.customId, searchQuery) ||
+        matchFlexibleId(job.id, searchQuery) ||
         job.jobCode.toLowerCase().includes(q) ||
         job.posterName.toLowerCase().includes(q) ||
         job.posterPhone.toLowerCase().includes(q) ||

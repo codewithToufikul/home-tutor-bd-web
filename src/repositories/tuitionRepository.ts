@@ -13,7 +13,7 @@ export interface TuitionJobRecord {
 }
 
 export const TuitionRepository = {
-  async getAll() { return apiGet<TuitionJobRecord[]>('/tuition-jobs'); },
+  async getAll() { return apiGet<TuitionJobRecord[]>('/tuition-jobs?limit=1000'); },
   async list(params?: Record<string, unknown>) {
     const qs = params ? '?' + new URLSearchParams(params as Record<string,string>).toString() : '';
     return apiGet<{ data: TuitionJobRecord[] }>(`/tuition-jobs${qs}`);
