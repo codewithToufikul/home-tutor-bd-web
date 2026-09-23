@@ -44,7 +44,7 @@ export const tutorApi = baseApi.injectEndpoints({
       invalidatesTags: ['Tutor', 'User'],
     }),
     submitTutorVerification: builder.mutation({
-      query: (body: { nidCard: string; studentIdCard: string; nid?: string }) => ({
+      query: (body: { nidCard: string; studentIdCard: string; nid?: string; nidBackCard?: string }) => ({
         url: '/tutors/verification',
         method: 'POST',
         body,

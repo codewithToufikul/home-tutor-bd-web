@@ -38,6 +38,10 @@ import { useSearchParams, Link } from 'react-router-dom';
 
 type TabType = 'educational' | 'tuition' | 'personal' | 'documents' | 'verification';
 
+const CURRENT_YEAR = new Date().getFullYear();
+// Dynamic passing years from next year down to 1970 (55+ years range)
+const PASSING_YEAR_OPTIONS = Array.from({ length: CURRENT_YEAR - 1970 + 2 }, (_, i) => String(CURRENT_YEAR + 1 - i));
+
 export default function TutorProfileDashboard() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -60,22 +64,23 @@ export default function TutorProfileDashboard() {
   const [profileData, setProfileData] = useState<any>({
     photoUrl: '',
     // Educational - Secondary
-    sscInstitute: '', sscCurriculum: 'Select One', sscGroup: 'Select One', sscYear: '2026', sscResult: '',
+    sscInstitute: '', sscCurriculum: 'Bangla Medium', sscGroup: 'Science', sscYear: '2026', sscResult: '',
     // Educational - Higher Secondary
-    hscInstitute: '', hscCurriculum: 'Select One', hscGroup: 'Select One', hscYear: '2026', hscResult: '',
+    hscInstitute: '', hscCurriculum: 'Bangla Medium', hscGroup: 'Science', hscYear: '2026', hscResult: '',
     // Educational - Graduation
-    gradInstituteType: 'Select One',
+    gradInstituteType: 'Public University',
     gradInstitute: '',
-    gradStudyType: 'Select One',
+    gradStudyType: 'Regular',
     gradDept: '',
-    gradCurriculum: 'Select One',
-    gradYear: 'First Year',
+    gradCurriculum: 'Bangla Medium',
+    gradYear: '1st Year',
+    gradSemester: 'Select Semester',
     gradCgpa: '',
 
     // Tuition
-    tuitionDistrict: 'Dhaka', preferredArea: '', preferredMedium: 'Select...', preferredClasses: [] as string[],
-    preferredSubjects: [] as string[], preferredSubject: '', daysPerWeek: '1 Day', timingShift: 'Morning', expectedSalary: 'Select One',
-    tutoringStyle: 'Private Tutoring', experienceYears: '0 year(s)',
+    tuitionDistrict: 'Dhaka', preferredArea: '', preferredMedium: 'Bangla Medium', preferredClasses: [] as string[],
+    preferredSubjects: [] as string[], preferredSubject: '', daysPerWeek: '4 Days/Week', timingShift: 'Morning', expectedSalary: '',
+    tutoringStyle: 'Private Tutoring (One to One)', experienceYears: '0 year(s)',
 
     // Personal
     fullName: user?.name || '', phone: user?.phone || '', altPhone: '', gender: 'Male',
@@ -115,7 +120,12 @@ export default function TutorProfileDashboard() {
             photoUrl: ex.photoUrl || ex.avatar || ex.userId?.avatar || prev.photoUrl || '',
             gradInstitute: ex.university || ex.gradInstitute || prev.gradInstitute || '',
             gradDept: ex.department || ex.gradDept || prev.gradDept || '',
-            expectedSalary: ex.salary ? String(ex.salary) : prev.expectedSalary,
+            gradYear: ex.gradYear || ex.year || prev.gradYear || '1st Year',
+            gradSemester: ex.gradSemester || ex.semester || prev.gradSemester || 'Select Semester',
+            tuitionDistrict: ex.location?.district || ex.tuitionDistrict || prev.tuitionDistrict || 'Dhaka',
+            preferredArea: ex.location?.area || ex.preferredArea || prev.preferredArea || '',
+            preferredMedium: (Array.isArray(ex.mediums) && ex.mediums.length > 0 ? ex.mediums[0] : ex.preferredMedium) || (prev.preferredMedium && prev.preferredMedium !== 'Select...' ? prev.preferredMedium : 'Bangla Medium'),
+            expectedSalary: ex.salary ? String(ex.salary) : (prev.expectedSalary && prev.expectedSalary !== 'Select One' ? prev.expectedSalary : ''),
             preferredSubjects: ex.subjects || prev.preferredSubjects || [],
             gender: ex.gender || prev.gender || 'Male',
             nid: ex.nid || prev.nid || '',
@@ -242,8 +252,17 @@ export default function TutorProfileDashboard() {
         name: profileData.fullName,
         university: profileData.gradInstitute,
         department: profileData.gradDept,
+        year: profileData.gradYear,
+        gradYear: profileData.gradYear,
+        semester: profileData.gradSemester,
+        gradSemester: profileData.gradSemester,
         salary: salaryNum,
         subjects: profileData.preferredSubjects,
+        mediums: profileData.preferredMedium ? [profileData.preferredMedium] : (Array.isArray(profileData.mediums) ? profileData.mediums : ['Bangla Medium']),
+        location: {
+          district: profileData.tuitionDistrict || 'Dhaka',
+          area: profileData.preferredArea || '',
+        },
       }).unwrap();
 
       refetch();
@@ -482,7 +501,7 @@ export default function TutorProfileDashboard() {
                   <FormGroup label="Group" type="select" options={['Science', 'Commerce', 'Humanities']} value={profileData.sscGroup} onChange={(v) => handleChange('sscGroup', v)} />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-6">
-                  <FormGroup label="Passing Year" type="select" options={['2026', '2025', '2024', '2023', '2022', '2021', '2020', '2019', '2018']} value={profileData.sscYear} onChange={(v) => handleChange('sscYear', v)} />
+                  <FormGroup label="Passing Year" type="select" options={PASSING_YEAR_OPTIONS} value={profileData.sscYear} onChange={(v) => handleChange('sscYear', v)} />
                   <FormGroup label="GPA / Result" placeholder="ex: 5.00" value={profileData.sscResult} onChange={(v) => handleChange('sscResult', v)} />
                 </div>
               </div>
@@ -498,7 +517,7 @@ export default function TutorProfileDashboard() {
                   <FormGroup label="Group" type="select" options={['Science', 'Commerce', 'Humanities']} value={profileData.hscGroup} onChange={(v) => handleChange('hscGroup', v)} />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-6">
-                  <FormGroup label="Passing Year" type="select" options={['2026', '2025', '2024', '2023', '2022', '2021', '2020', '2019', '2018']} value={profileData.hscYear} onChange={(v) => handleChange('hscYear', v)} />
+                  <FormGroup label="Passing Year" type="select" options={PASSING_YEAR_OPTIONS} value={profileData.hscYear} onChange={(v) => handleChange('hscYear', v)} />
                   <FormGroup label="GPA / Result" placeholder="ex: 5.00" value={profileData.hscResult} onChange={(v) => handleChange('hscResult', v)} />
                 </div>
               </div>
@@ -513,9 +532,51 @@ export default function TutorProfileDashboard() {
                   <FormGroup label="University Name" placeholder="ex: University of Dhaka" value={profileData.gradInstitute} onChange={(v) => handleChange('gradInstitute', v)} required />
                   <FormGroup label="Department / Major" placeholder="ex: Computer Science & Engineering" value={profileData.gradDept} onChange={(v) => handleChange('gradDept', v)} required />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-6">
-                  <FormGroup label="Current Year / Status" type="select" options={['First Year', 'Second Year', 'Third Year', 'Fourth Year', 'Graduated / Completed', 'Masters / Post-Grad']} value={profileData.gradYear} onChange={(v) => handleChange('gradYear', v)} />
-                  <FormGroup label="CGPA (Optional)" placeholder="ex: 3.85" value={profileData.gradCgpa} onChange={(v) => handleChange('gradCgpa', v)} />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-6">
+                  <FormGroup
+                    label="Current Year / Status"
+                    type="select"
+                    options={[
+                      '1st Year',
+                      '2nd Year',
+                      '3rd Year',
+                      '4th Year',
+                      '5th Year (Medical / Architecture)',
+                      'Graduated / Completed',
+                      'Masters / Post-Grad',
+                      'PhD / Research'
+                    ]}
+                    value={profileData.gradYear}
+                    onChange={(v) => handleChange('gradYear', v)}
+                  />
+                  <FormGroup
+                    label="Current Semester (Optional)"
+                    type="select"
+                    options={[
+                      'Select Semester',
+                      '1st Semester',
+                      '2nd Semester',
+                      '3rd Semester',
+                      '4th Semester',
+                      '5th Semester',
+                      '6th Semester',
+                      '7th Semester',
+                      '8th Semester',
+                      '9th Semester',
+                      '10th Semester',
+                      '11th Semester',
+                      '12th Semester',
+                      'Completed / Final Semester'
+                    ]}
+                    value={profileData.gradSemester}
+                    onChange={(v) => handleChange('gradSemester', v)}
+                  />
+                  <FormGroup
+                    label="CGPA (Optional)"
+                    placeholder="ex: 3.85"
+                    value={profileData.gradCgpa}
+                    onChange={(v) => handleChange('gradCgpa', v)}
+                  />
                 </div>
               </div>
             </div>

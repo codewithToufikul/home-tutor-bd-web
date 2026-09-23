@@ -632,7 +632,7 @@ export default function TutorProfilePage() {
                         </div>
                       </div>
                       <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-[10px] font-black rounded-lg">
-                        {tutor.gradYear || 'Current Study'}
+                        {[tutor.gradYear || tutor.year, (tutor.gradSemester || tutor.semester) && (tutor.gradSemester || tutor.semester) !== 'Select Semester' ? (tutor.gradSemester || tutor.semester) : ''].filter(Boolean).join(' • ') || 'Current Study'}
                       </span>
                     </div>
                     {tutor.qualification && (

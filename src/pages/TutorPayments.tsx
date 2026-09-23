@@ -54,7 +54,7 @@ export default function TutorPayments() {
   const paymentAccounts = {
     bkash: { name: 'bKash Personal (Send Money)', number: '01936456602', color: 'bg-pink-50 border-pink-200 text-pink-700' },
     nagad: { name: 'Nagad Personal (Send Money)', number: '01936456602', color: 'bg-orange-50 border-orange-200 text-orange-700' },
-    rocket: { name: 'Rocket Personal (Send Money)', number: '019364566028', color: 'bg-purple-50 border-purple-200 text-purple-700' },
+    rocket: { name: 'Rocket Personal (Send Money)', number: '01636456602', color: 'bg-purple-50 border-purple-200 text-purple-700' },
     bank: { name: 'Bank Transfer', number: 'Upcoming (Use MFS)', color: 'bg-slate-50 border-slate-200 text-slate-700' },
   };
 

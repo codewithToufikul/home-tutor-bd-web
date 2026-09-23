@@ -136,6 +136,10 @@ export default function StudentJobApplications() {
     setRejectModal({ open: true, appId });
   };
 
+  const handleAcceptApp = (appId: string, tutorName: string) => {
+    setFinalModal({ open: true, appId, tutorName });
+  };
+
   const confirmReject = async () => {
     if (!rejectModal) return;
     setRejectModal(null);

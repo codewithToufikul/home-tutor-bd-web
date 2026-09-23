@@ -632,6 +632,7 @@ export default function Home() {
     genderPreference: 'Any',
     tutoringDays: '3 Days/Week',
     salary: '5000',
+    salaryNegotiable: false,
     universityPreference: '',
     phone: '',
     whatsappNumber: '',
@@ -801,11 +802,11 @@ export default function Home() {
       setFormData((prev) => ({
         ...prev,
         upazila: val,
-        upazilaId: val,
+        upazilaId: '' as number | '',
         union: '',
-        unionId: '',
+        unionId: '' as number | '',
         ward: '',
-        wardId: '',
+        wardId: '' as number | '',
         area: val,
       }));
     } else {
@@ -831,7 +832,7 @@ export default function Home() {
     setFormData((prev) => ({
       ...prev,
       ward: text,
-      wardId: matchedWd ? matchedWd.id : '',
+      wardId: (matchedWd ? Number(matchedWd.id) : '') as number | '',
     }));
   };
 
@@ -839,7 +840,7 @@ export default function Home() {
     setFormData((prev) => ({
       ...prev,
       ward: wd.name,
-      wardId: wd.id,
+      wardId: (typeof wd.id === 'string' ? Number(wd.id) || '' : wd.id) as number | '',
     }));
     setIsWardDropdownOpen(false);
   };
@@ -980,7 +981,7 @@ export default function Home() {
       const classesStr = formData.classes.length > 0 ? formData.classes.join(', ') : 'Class 10';
       const subjectsList = formData.subjects.length > 0 ? formData.subjects : ['All General Subjects'];
       const subjectsStr = subjectsList.join(', ');
-      const salaryNum = parseInt(formData.salary, 10) || 5000;
+      const salaryNum = formData.salaryNegotiable ? 0 : (parseInt(formData.salary, 10) || 5000);
 
       const locationParts = [
         formData.ward ? `Ward: ${formData.ward}` : '',
@@ -1009,6 +1010,7 @@ export default function Home() {
           detailedAddress: formData.detailedAddress || '',
         },
         salary: salaryNum,
+        negotiable: formData.salaryNegotiable,
         medium: mediumsStr,
         genderPreference: formData.genderPreference || 'Any',
         tutoringDays: [formData.tutoringDays || '3 Days/Week'],
@@ -1021,7 +1023,7 @@ export default function Home() {
         contactName: formData.name.trim() || user?.name || '',
         whatsappNumber: whatsapp,
         universityPreference: formData.universityPreference || '',
-        description: `Tutor requested for: ${classesStr}. Medium: ${mediumsStr}. Subjects: ${subjectsStr}. Location: ${fullLocationText}${formData.detailedAddress ? ` (Details: ${formData.detailedAddress})` : ''}. University Preference: ${formData.universityPreference || 'Any'}. Tuition Type: ${formData.tuitionType}. Schedule: ${formData.tutoringDays}. Expected Salary: ৳${salaryNum.toLocaleString()}. Contact Phone: ${formData.phone}${whatsapp ? `, WhatsApp: ${whatsapp}` : ''}`,
+        description: `Tutor requested for: ${classesStr}. Medium: ${mediumsStr}. Subjects: ${subjectsStr}. Location: ${fullLocationText}${formData.detailedAddress ? ` (Details: ${formData.detailedAddress})` : ''}. University Preference: ${formData.universityPreference || 'Any'}. Tuition Type: ${formData.tuitionType}. Schedule: ${formData.tutoringDays}. Expected Salary: ${formData.salaryNegotiable ? 'Negotiable' : `৳${salaryNum.toLocaleString()}`}. Contact Phone: ${formData.phone}${whatsapp ? `, WhatsApp: ${whatsapp}` : ''}`,
         status: 'Open',
         approvalStatus: 'Approved',
       };
@@ -1065,6 +1067,7 @@ export default function Home() {
       genderPreference: 'Any',
       tutoringDays: '3 Days/Week',
       salary: '5000',
+      salaryNegotiable: false,
       universityPreference: '',
       phone: '',
       whatsappNumber: '',
@@ -1835,13 +1838,13 @@ export default function Home() {
                                 {/* Custom Dropdown Suggestion List for Wards */}
                                 {isWardDropdownOpen && availableWards.length > 0 && (
                                   <>
-                                    <div 
-                                      className="fixed inset-0 z-20" 
-                                      onClick={() => setIsWardDropdownOpen(false)} 
+                                    <div
+                                      className="fixed inset-0 z-20"
+                                      onClick={() => setIsWardDropdownOpen(false)}
                                     />
                                     <div className="absolute left-0 right-0 top-full mt-1 bg-surface border border-ink/10 rounded-xl shadow-xl max-h-44 overflow-y-auto z-30 divide-y divide-ink/5 scrollbar-thin">
                                       {availableWards
-                                        .filter((wd) => 
+                                        .filter((wd) =>
                                           !formData.ward ||
                                           wd.name.toLowerCase().includes(formData.ward.toLowerCase()) ||
                                           (wd.nameBn && wd.nameBn.includes(formData.ward))
@@ -1866,15 +1869,15 @@ export default function Home() {
                                             </button>
                                           );
                                         })}
-                                      {availableWards.filter((wd) => 
+                                      {availableWards.filter((wd) =>
                                         !formData.ward ||
                                         wd.name.toLowerCase().includes(formData.ward.toLowerCase()) ||
                                         (wd.nameBn && wd.nameBn.includes(formData.ward))
                                       ).length === 0 && (
-                                        <div className="px-3 py-2 text-xs text-ink-muted">
-                                          Custom: <span className="font-bold text-ink">{formData.ward}</span>
-                                        </div>
-                                      )}
+                                          <div className="px-3 py-2 text-xs text-ink-muted">
+                                            Custom: <span className="font-bold text-ink">{formData.ward}</span>
+                                          </div>
+                                        )}
                                     </div>
                                   </>
                                 )}
@@ -2260,35 +2263,56 @@ export default function Home() {
                               <label className="block text-[10px] font-bold text-ink-muted uppercase tracking-wider">
                                 Expected Salary / Budget (প্রত্যাশিত মাসিক বেতন) *
                               </label>
-                              <span className="text-xs font-black text-primary">৳{parseInt(formData.salary || '0', 10).toLocaleString()} /mo</span>
+                              <div className="flex items-center gap-2">
+                                {!formData.salaryNegotiable && (
+                                  <span className="text-xs font-black text-primary">৳{parseInt(formData.salary || '0', 10).toLocaleString()} /mo</span>
+                                )}
+                                <label className="flex items-center gap-1 cursor-pointer select-none">
+                                  <input
+                                    type="checkbox"
+                                    checked={formData.salaryNegotiable}
+                                    onChange={(e) => setFormData({ ...formData, salaryNegotiable: e.target.checked, salary: e.target.checked ? '0' : '5000' })}
+                                    className="w-3.5 h-3.5 accent-primary cursor-pointer"
+                                  />
+                                  <span className="text-[10px] font-bold text-emerald-600">Negotiable</span>
+                                </label>
+                              </div>
                             </div>
                             <div className="relative">
                               <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink font-bold text-xs">৳</span>
-                              <input
-                                type="number"
-                                placeholder="Enter salary amount (e.g. 5000)"
-                                value={formData.salary}
-                                onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
-                                className="w-full pl-8 pr-3 py-2 rounded-xl border border-ink/10 bg-background text-xs font-bold text-ink focus:ring-2 focus:ring-primary/20 outline-none"
-                              />
+                              {formData.salaryNegotiable ? (
+                                <div className="w-full pl-8 pr-3 py-2 rounded-xl border border-emerald-300 bg-emerald-50 text-xs font-bold text-emerald-700">
+                                  Negotiable
+                                </div>
+                              ) : (
+                                <input
+                                  type="number"
+                                  placeholder="Enter salary amount (e.g. 5000)"
+                                  value={formData.salary}
+                                  onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
+                                  className="w-full pl-8 pr-3 py-2 rounded-xl border border-ink/10 bg-background text-xs font-bold text-ink focus:ring-2 focus:ring-primary/20 outline-none"
+                                />
+                              )}
                             </div>
-                            <div className="flex gap-1 overflow-x-auto pb-0.5 scrollbar-thin">
-                              {['3000', '5000', '7000', '8000', '10000', '12000', '15000'].map((amt) => (
-                                <button
-                                  key={amt}
-                                  type="button"
-                                  onClick={() => setFormData({ ...formData, salary: amt })}
-                                  className={cn(
-                                    "px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all whitespace-nowrap cursor-pointer border",
-                                    formData.salary === amt
-                                      ? "bg-primary text-white border-primary shadow-2xs"
-                                      : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
-                                  )}
-                                >
-                                  ৳{parseInt(amt).toLocaleString()}
-                                </button>
-                              ))}
-                            </div>
+                            {!formData.salaryNegotiable && (
+                              <div className="flex gap-1 overflow-x-auto pb-0.5 scrollbar-thin">
+                                {['3000', '5000', '7000', '8000', '10000', '12000', '15000'].map((amt) => (
+                                  <button
+                                    key={amt}
+                                    type="button"
+                                    onClick={() => setFormData({ ...formData, salary: amt })}
+                                    className={cn(
+                                      "px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all whitespace-nowrap cursor-pointer border",
+                                      formData.salary === amt
+                                        ? "bg-primary text-white border-primary shadow-2xs"
+                                        : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                                    )}
+                                  >
+                                    ৳{parseInt(amt).toLocaleString()}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
                           </div>
 
                           {/* Name, Phone & WhatsApp */}

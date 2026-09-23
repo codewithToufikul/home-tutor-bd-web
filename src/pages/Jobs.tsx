@@ -555,8 +555,15 @@ export default function Jobs() {
                               {isOnline ? <Wifi size={11} /> : <Home size={11} />}
                               {job.tuitionType}
                             </span>
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs">
-                              <BadgeCheck size={11} /> Active Job
+                            <span className={cn(
+                              "inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-black shadow-2xs",
+                              (job.status || '').toLowerCase() === 'matched'
+                                ? "bg-amber-50 text-amber-700 border border-amber-200"
+                                : (job.status || '').toLowerCase() === 'closed'
+                                  ? "bg-slate-100 text-slate-600 border border-slate-200"
+                                  : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                            )}>
+                              <BadgeCheck size={11} /> {(job.status || '').toLowerCase() === 'matched' ? 'Tutor Appointed' : (job.status || '').toLowerCase() === 'closed' ? 'Closed' : 'Active Job'}
                             </span>
                             {job.genderPreference && job.genderPreference !== 'Any' && (
                               <span className={cn(

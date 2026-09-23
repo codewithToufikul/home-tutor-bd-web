@@ -7,7 +7,7 @@ import {
   CheckCircle2, Info, ShieldCheck, ShieldAlert, ArrowRight, Home,
   Eye, Send, Navigation, Banknote, List,
   MessageCircle, Facebook, Twitter, Copy, Check, Sparkles, Building2,
-  Monitor, Users, BadgeCheck, CheckSquare, Compass, Shield
+  Monitor, Users, BadgeCheck, CheckSquare, Compass, Shield, X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn, sanitizePublicText } from '@/src/lib/utils';
@@ -357,16 +357,33 @@ export default function JobDetails() {
 
                   <button
                     onClick={handleApplyClick}
-                    disabled={hasApplied}
+                    disabled={hasApplied || (job.status || '').toLowerCase() === 'matched' || (job.status || '').toLowerCase() === 'closed' || (job.status || '').toLowerCase() === 'hired'}
                     className={cn(
                       "px-7 py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 shrink-0",
-                      hasApplied
-                        ? "bg-slate-200 text-slate-600 shadow-none cursor-default"
-                        : "bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-600/25 hover:shadow-emerald-600/35 hover:-translate-y-0.5"
+                      (job.status || '').toLowerCase() === 'matched' || (job.status || '').toLowerCase() === 'closed' || (job.status || '').toLowerCase() === 'hired'
+                        ? "bg-amber-100 text-amber-800 border border-amber-300 shadow-none cursor-not-allowed"
+                        : hasApplied
+                          ? "bg-slate-200 text-slate-600 shadow-none cursor-default"
+                          : "bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-600/25 hover:shadow-emerald-600/35 hover:-translate-y-0.5"
                     )}
                   >
-                    {hasApplied ? <Check size={16} /> : <Send size={16} />}
-                    {hasApplied ? 'Already Applied' : 'Apply For Tuition'}
+                    {(job.status || '').toLowerCase() === 'matched' ? (
+                      <>
+                        <Check size={16} /> Tutor Appointed (Deal Done)
+                      </>
+                    ) : (job.status || '').toLowerCase() === 'closed' ? (
+                      <>
+                        <X size={16} /> Tuition Closed
+                      </>
+                    ) : hasApplied ? (
+                      <>
+                        <Check size={16} /> Already Applied
+                      </>
+                    ) : (
+                      <>
+                        <Send size={16} /> Apply For Tuition
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
@@ -832,16 +849,26 @@ export default function JobDetails() {
 
             <button
               onClick={handleApplyClick}
-              disabled={hasApplied}
+              disabled={hasApplied || (job.status || '').toLowerCase() === 'matched' || (job.status || '').toLowerCase() === 'closed' || (job.status || '').toLowerCase() === 'hired'}
               className={cn(
                 "px-6 py-3 rounded-xl font-black text-xs uppercase tracking-wider shadow-lg flex items-center gap-2 active:scale-95 transition-all",
-                hasApplied
-                  ? "bg-slate-200 text-slate-600 shadow-none"
-                  : "bg-emerald-600 text-white shadow-emerald-600/25"
+                (job.status || '').toLowerCase() === 'matched' || (job.status || '').toLowerCase() === 'closed' || (job.status || '').toLowerCase() === 'hired'
+                  ? "bg-amber-100 text-amber-800 border border-amber-300 shadow-none cursor-not-allowed"
+                  : hasApplied
+                    ? "bg-slate-200 text-slate-600 shadow-none"
+                    : "bg-emerald-600 text-white shadow-emerald-600/25"
               )}
             >
-              {hasApplied ? <Check size={16} /> : <Send size={16} />}
-              <span>{hasApplied ? 'Applied' : 'Apply Now'}</span>
+              {(job.status || '').toLowerCase() === 'matched' ? (
+                <span>Tutor Appointed</span>
+              ) : (job.status || '').toLowerCase() === 'closed' ? (
+                <span>Closed</span>
+              ) : (
+                <>
+                  {hasApplied ? <Check size={16} /> : <Send size={16} />}
+                  <span>{hasApplied ? 'Applied' : 'Apply Now'}</span>
+                </>
+              )}
             </button>
           </div>
         </div>
