@@ -5,7 +5,7 @@ import { AppProviders } from '@/src/app/providers/AppProviders.tsx';
 import { MaintenancePage } from '@/src/pages/MaintenancePage.tsx';
 
 // ⚙️ Maintenance Mode Switch (Set to false to bring the site back live)
-const IS_MAINTENANCE_MODE = true;
+const IS_MAINTENANCE_MODE = false;
 
 export default function App() {
   if (IS_MAINTENANCE_MODE) {
