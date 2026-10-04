@@ -251,7 +251,7 @@ export default function JobApplyModal({ jobId, jobTitle, salary, location, onClo
                 <div className="space-y-1">
                   <p className="font-black text-[#001F3F] uppercase text-[10px]">প্রথম পক্ষ (মিডিয়া কর্তৃপক্ষ)</p>
                   <p><strong>নাম:</strong> Home Tutor Provider BD</p>
-                  <p><strong>অফিসিয়াল হেল্পলাইন:</strong> +880 1832-302302</p>
+                  <p><strong>অফিসিয়াল হেল্পলাইন:</strong> +880 1928-325460</p>
                 </div>
                 <div className="space-y-1">
                   <p className="font-black text-[#001F3F] uppercase text-[10px]">দ্বিতীয় পক্ষ (আবেদনকারী শিক্ষক)</p>

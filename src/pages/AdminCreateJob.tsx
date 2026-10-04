@@ -413,7 +413,11 @@ export default function AdminCreateJob() {
       if (!formData.districtId) { setValidationError('Please select a district.'); return false; }
       if (!formData.upazilaId) { setValidationError('Please select an upazila / thana.'); return false; }
     } else if (currentStep === 4) {
-      if (!formData.salaryOffer || parseInt(formData.salaryOffer, 10) <= 0) { setValidationError('Please enter an expected salary amount.'); return false; }
+      const isNegotiable = formData.salaryOffer === 'Negotiable' || formData.salaryOffer === '0';
+      if (!isNegotiable && (!formData.salaryOffer || parseInt(formData.salaryOffer, 10) <= 0)) {
+        setValidationError('Please enter a valid expected salary amount or choose Negotiable.');
+        return false;
+      }
       if (!formData.phone.trim() || formData.phone.replace(/[^0-9]/g, '').length < 10) { setValidationError('Please provide a valid active phone number.'); return false; }
     }
     return true;
@@ -442,6 +446,9 @@ export default function AdminCreateJob() {
     const fullLocationDescription = locationParts.join(', ') + (formData.detailedAddress ? ` (Details: ${formData.detailedAddress})` : '');
     const whatsapp = formData.sameAsPhone ? formData.phone.trim() : (formData.whatsappNumber.trim() || formData.phone.trim());
 
+    const isSalaryNeg = formData.salaryOffer === 'Negotiable' || formData.salaryOffer === '0';
+    const finalSalary = isSalaryNeg ? 0 : (parseInt(formData.salaryOffer, 10) || 5000);
+
     const payload = {
       studentClass: classesStr,
       subjects: formData.subjects.length > 0 ? formData.subjects : ['General Subjects'],
@@ -454,7 +461,8 @@ export default function AdminCreateJob() {
         area: locationArea,
         detailedAddress: formData.detailedAddress.trim()
       },
-      salary: parseInt(formData.salaryOffer, 10) || 5000,
+      salary: finalSalary,
+      negotiable: isSalaryNeg,
       medium: mediumsStr,
       genderPreference: formData.genderPreference,
       tutoringDays: [formData.tutoringDays],
@@ -472,7 +480,7 @@ export default function AdminCreateJob() {
       tutorQualification: formData.tutorQualification,
       requirements: formData.requirements,
       preferredTime: [formData.startTime],
-      description: `Tutor requested for: ${classesStr} (${mediumsStr}). Subjects: ${formData.subjects.join(', ')}. Location: ${fullLocationDescription}. Tutor Preference: ${formData.genderPreference} Tutor from ${formData.universityPreference}. Schedule: ${formData.tutoringDays} (${formData.duration}). Expected Salary: ৳${parseInt(formData.salaryOffer, 10).toLocaleString()}/month.${formData.additional?.trim() ? ` Notes: ${formData.additional.trim()}` : ''}`,
+      description: `Tutor requested for: ${classesStr} (${mediumsStr}). Subjects: ${formData.subjects.join(', ')}. Location: ${fullLocationDescription}. Tutor Preference: ${formData.genderPreference} Tutor from ${formData.universityPreference}. Schedule: ${formData.tutoringDays} (${formData.duration}). Expected Salary: ${isSalaryNeg ? 'Negotiable (আলোচনা সাপেক্ষে)' : `৳${finalSalary.toLocaleString()}/month`}.${formData.additional?.trim() ? ` Notes: ${formData.additional.trim()}` : ''}`,
       status: 'Open',
       approvalStatus: 'Approved',
     };
@@ -1292,27 +1300,73 @@ export default function AdminCreateJob() {
                     <div className="space-y-1">
                       <label className={labelCls}>Days / Week</label>
                       <select value={formData.tutoringDays} onChange={e => setFormData({ ...formData, tutoringDays: e.target.value })} className={inputCls}>
-                        {['2 Days/Week', '3 Days/Week', '4 Days/Week', '5 Days/Week', '6 Days/Week', '7 Days/Week'].map(d => <option key={d} value={d}>{d}</option>)}
+                        {['2 Days/Week', '3 Days/Week', '4 Days/Week', '5 Days/Week', '6 Days/Week', '7 Days/Week', 'Negotiable'].map(d => <option key={d} value={d}>{d}</option>)}
                       </select>
                     </div>
                     <div className="space-y-1">
                       <label className={labelCls}>Duration</label>
                       <select value={formData.duration} onChange={e => setFormData({ ...formData, duration: e.target.value })} className={inputCls}>
-                        {['1 Hour', '1.5 Hours', '2 Hours', '2.5 Hours', '3 Hours'].map(d => <option key={d} value={d}>{d}</option>)}
+                        {['1 Hour', '1.5 Hours', '2 Hours', '2.5 Hours', '3 Hours', 'Negotiable'].map(d => <option key={d} value={d}>{d}</option>)}
                       </select>
                     </div>
                     <div className="space-y-1">
                       <label className={labelCls}>Preferred Time (পছন্দের সময়)</label>
-                      <select value={formData.startTime} onChange={e => setFormData({ ...formData, startTime: e.target.value })} className={inputCls}>
-                        {tutoringTimeOptions.map(t => <option key={t} value={t}>{t}</option>)}
-                      </select>
+                      <div className="space-y-1.5">
+                        <select
+                          value={tutoringTimeOptions.includes(formData.startTime) ? formData.startTime : ''}
+                          onChange={e => {
+                            if (e.target.value) {
+                              setFormData({ ...formData, startTime: e.target.value });
+                            }
+                          }}
+                          className={inputCls}
+                        >
+                          <option value="" disabled>-- ড্রপডাউন থেকে বা নিচে লিখুন --</option>
+                          {tutoringTimeOptions.map(t => <option key={t} value={t}>{t}</option>)}
+                        </select>
+                        <input
+                          type="text"
+                          placeholder="e.g. Evening (4:00 PM - 8:00 PM) বা ৫:৩০ টা"
+                          value={formData.startTime}
+                          onChange={e => setFormData({ ...formData, startTime: e.target.value })}
+                          className={cn(inputCls, "text-xs font-medium")}
+                        />
+                      </div>
                     </div>
                   </div>
 
                   {/* Salary */}
                   <div className="space-y-2">
-                    <label className={labelCls}>Monthly Salary (BDT) <span className="text-rose-500">*</span></label>
+                    <div className="flex items-center justify-between">
+                      <label className={labelCls}>Monthly Salary (BDT) <span className="text-rose-500">*</span></label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const isCurrentlyNeg = formData.salaryOffer === 'Negotiable' || formData.salaryOffer === '0';
+                          setFormData({ ...formData, salaryOffer: isCurrentlyNeg ? '5000' : 'Negotiable' });
+                        }}
+                        className={cn(
+                          "px-2.5 py-0.5 rounded-lg text-[11px] font-bold transition cursor-pointer border",
+                          formData.salaryOffer === 'Negotiable' || formData.salaryOffer === '0'
+                            ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
+                            : "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                        )}
+                      >
+                        🤝 {formData.salaryOffer === 'Negotiable' || formData.salaryOffer === '0' ? '✓ Negotiable (আলোচনা সাপেক্ষে)' : 'Negotiable করুন'}
+                      </button>
+                    </div>
                     <div className="flex flex-wrap gap-1.5 mb-2">
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, salaryOffer: 'Negotiable' })}
+                        className={cn("px-3 py-1.5 rounded-xl border text-xs font-bold transition cursor-pointer active:scale-95",
+                          formData.salaryOffer === 'Negotiable' || formData.salaryOffer === '0'
+                            ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
+                            : "bg-white border-slate-200 text-emerald-700 hover:bg-emerald-50"
+                        )}
+                      >
+                        🤝 Negotiable
+                      </button>
                       {SALARY_PRESETS.map(p => (
                         <button key={p} type="button" onClick={() => setFormData({ ...formData, salaryOffer: p })}
                           className={cn("px-3 py-1.5 rounded-xl border text-xs font-bold transition cursor-pointer active:scale-95",
@@ -1322,12 +1376,23 @@ export default function AdminCreateJob() {
                     </div>
                     <div className="relative">
                       <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 font-black text-sm">৳</span>
-                      <input
-                        type="number" min="500" placeholder="e.g. 5000"
-                        value={formData.salaryOffer}
-                        onChange={e => setFormData({ ...formData, salaryOffer: e.target.value })}
-                        className={cn(inputCls, "pl-9 font-bold text-base text-emerald-700")}
-                      />
+                      {formData.salaryOffer === 'Negotiable' || formData.salaryOffer === '0' ? (
+                        <div
+                          onClick={() => setFormData({ ...formData, salaryOffer: '5000' })}
+                          className={cn(inputCls, "pl-9 font-bold text-sm text-emerald-700 bg-emerald-50 border-emerald-300 flex items-center justify-between cursor-pointer")}
+                          title="টাকার পরিমাণ লিখতে এখানে ক্লিক করুন"
+                        >
+                          <span>Negotiable (আলোচনা সাপেক্ষে)</span>
+                          <span className="text-[11px] text-emerald-600 font-normal">টাকা নির্দিষ্ট করতে ক্লিক করুন</span>
+                        </div>
+                      ) : (
+                        <input
+                          type="number" min="0" placeholder="e.g. 5000"
+                          value={formData.salaryOffer}
+                          onChange={e => setFormData({ ...formData, salaryOffer: e.target.value })}
+                          className={cn(inputCls, "pl-9 font-bold text-base text-emerald-700")}
+                        />
+                      )}
                     </div>
                   </div>
 

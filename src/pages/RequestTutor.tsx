@@ -2094,8 +2094,8 @@ export default function RequestTutor() {
                   {/* Daily Duration */}
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold text-slate-700">Daily Duration</label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {['1.0 Hour', '1.5 Hours', '2.0 Hours'].map(dur => (
+                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                      {['1.0 Hour', '1.5 Hours', '2.0 Hours', '2.5 Hours', '3.0 Hours', 'Negotiable'].map(dur => (
                         <button
                           key={dur}
                           type="button"
@@ -2116,15 +2116,29 @@ export default function RequestTutor() {
                   {/* Preferred Time Slot */}
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold text-slate-700">Preferred Tutoring Time (পছন্দের সময়)</label>
-                    <select
-                      value={formData.startTime}
-                      onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm font-medium focus:border-primary focus:ring-1 focus:ring-primary outline-none transition cursor-pointer"
-                    >
-                      {tutoringTimeOptions.map((t) => (
-                        <option key={t} value={t}>{t}</option>
-                      ))}
-                    </select>
+                    <div className="space-y-2">
+                      <select
+                        value={tutoringTimeOptions.includes(formData.startTime) ? formData.startTime : ''}
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            setFormData({ ...formData, startTime: e.target.value });
+                          }
+                        }}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm font-medium focus:border-primary focus:ring-1 focus:ring-primary outline-none transition cursor-pointer"
+                      >
+                        <option value="" disabled>-- ড্রপডাউন থেকে সিলেক্ট করুন বা নিচে লিখুন --</option>
+                        {tutoringTimeOptions.map((t) => (
+                          <option key={t} value={t}>{t}</option>
+                        ))}
+                      </select>
+                      <input
+                        type="text"
+                        placeholder="e.g. Evening (4:00 PM - 8:00 PM) বা নির্দিষ্ট সময় লিখুন"
+                        value={formData.startTime}
+                        onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                        className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-slate-900 text-xs font-medium placeholder:text-slate-400 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition"
+                      />
+                    </div>
                   </div>
 
                   {/* Expected Monthly Salary */}

@@ -50,6 +50,7 @@ export default function AdminEditJobModal({
   
   const [salary, setSalary] = useState<string>('');
   const [tutoringDays, setTutoringDays] = useState('3 Days/Week');
+  const [duration, setDuration] = useState('1.5 Hours');
   const [timeSlot, setTimeSlot] = useState('Flexible');
   
   const [division, setDivision] = useState('');
@@ -89,7 +90,8 @@ export default function AdminEditJobModal({
     setTutoringDays(
       Array.isArray(job.tutoringDays) ? job.tutoringDays.join(', ') : (job.tutoringDays || '3 Days/Week')
     );
-    setTimeSlot(job.timeSlot || 'Flexible');
+    setDuration(job.duration || '1.5 Hours');
+    setTimeSlot(job.timeSlot || job.startTime || 'Flexible');
 
     // Location
     const locObj = typeof job.location === 'object' ? job.location : {};
@@ -162,9 +164,11 @@ export default function AdminEditJobModal({
         subjects: Array.isArray(subjects) && subjects.length > 0
           ? subjects.map(s => String(s).trim()).filter(Boolean)
           : ['General'],
-        salary: salary ? Number(salary) : 0,
+        salary: salary && salary !== 'Negotiable' ? Number(salary) : 0,
         tutoringDays: [String(tutoringDays || '3 Days/Week').trim()],
+        duration: String(duration || '1.5 Hours').trim(),
         timeSlot: String(timeSlot || 'Flexible').trim(),
+        startTime: String(timeSlot || 'Flexible').trim(),
         location: {
           division: String(division || '').trim(),
           district: String(district || 'Dhaka').trim(),
@@ -364,19 +368,38 @@ export default function AdminEditJobModal({
                 ৩. বেতন ও সময়সূচি (Salary, Days & Shift)
               </h4>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Salary */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-ink">মাসিক বেতন (৳ Salary / Month)</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-ink">মাসিক বেতন (Salary)</label>
+                    <button
+                      type="button"
+                      onClick={() => setSalary(salary === '0' || salary === 'Negotiable' ? '5000' : '0')}
+                      className="text-[10px] font-bold text-emerald-600 hover:underline cursor-pointer"
+                    >
+                      {salary === '0' || salary === 'Negotiable' ? 'সংখ্যা লিখুন' : '🤝 Negotiable'}
+                    </button>
+                  </div>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-ink-muted text-xs">৳</span>
-                    <input
-                      type="number"
-                      value={salary}
-                      onChange={(e) => setSalary(e.target.value)}
-                      placeholder="e.g. 5000"
-                      className="w-full pl-7 pr-3.5 py-2.5 bg-white rounded-xl border border-ink/10 text-xs font-black text-ink focus:outline-none focus:border-primary transition-all"
-                    />
+                    {salary === '0' || salary === 'Negotiable' ? (
+                      <div
+                        onClick={() => setSalary('5000')}
+                        className="w-full pl-7 pr-3.5 py-2.5 bg-emerald-50 rounded-xl border border-emerald-300 text-xs font-bold text-emerald-700 cursor-pointer flex items-center justify-between"
+                      >
+                        <span>Negotiable</span>
+                        <span className="text-[10px] text-emerald-600">পরিবর্তন</span>
+                      </div>
+                    ) : (
+                      <input
+                        type="number"
+                        value={salary}
+                        onChange={(e) => setSalary(e.target.value)}
+                        placeholder="e.g. 5000"
+                        className="w-full pl-7 pr-3.5 py-2.5 bg-white rounded-xl border border-ink/10 text-xs font-black text-ink focus:outline-none focus:border-primary transition-all"
+                      />
+                    )}
                   </div>
                 </div>
 
@@ -394,18 +417,44 @@ export default function AdminEditJobModal({
                   </select>
                 </div>
 
-                {/* Time Slot */}
+                {/* Duration */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-ink">পড়ানোর সময় (Time Slot)</label>
+                  <label className="text-xs font-bold text-ink">দৈনিক সময় (Duration)</label>
                   <select
-                    value={timeSlot}
-                    onChange={(e) => setTimeSlot(e.target.value)}
+                    value={duration}
+                    onChange={(e) => setDuration(e.target.value)}
                     className="w-full px-3.5 py-2.5 bg-white rounded-xl border border-ink/10 text-xs font-bold text-ink focus:outline-none focus:border-primary transition-all"
                   >
-                    {tutoringTimeOptions.map(ts => (
-                      <option key={ts} value={ts}>{ts}</option>
+                    {['1 Hour', '1.5 Hours', '2 Hours', '2.5 Hours', '3 Hours', 'Negotiable'].map(dur => (
+                      <option key={dur} value={dur}>{dur}</option>
                     ))}
                   </select>
+                </div>
+
+                {/* Time Slot / Preferred Time */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-ink">পড়ানোর সময় (Preferred Time)</label>
+                  <div className="space-y-1.5">
+                    <select
+                      value={tutoringTimeOptions.includes(timeSlot) ? timeSlot : ''}
+                      onChange={(e) => {
+                        if (e.target.value) setTimeSlot(e.target.value);
+                      }}
+                      className="w-full px-3.5 py-2.5 bg-white rounded-xl border border-ink/10 text-xs font-bold text-ink focus:outline-none focus:border-primary transition-all"
+                    >
+                      <option value="" disabled>-- সিলেক্ট করুন বা নিচে লিখুন --</option>
+                      {tutoringTimeOptions.map(ts => (
+                        <option key={ts} value={ts}>{ts}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="text"
+                      value={timeSlot}
+                      onChange={(e) => setTimeSlot(e.target.value)}
+                      placeholder="e.g. Evening (4:00 PM - 8:00 PM) বা নির্দিষ্ট সময়"
+                      className="w-full px-3 py-1.5 bg-white rounded-xl border border-ink/10 text-xs font-medium text-ink focus:outline-none focus:border-primary transition-all"
+                    />
+                  </div>
                 </div>
               </div>
             </div>

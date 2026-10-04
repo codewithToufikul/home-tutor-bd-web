@@ -247,23 +247,34 @@ export default function TutorProfileDashboard() {
     try {
       // Save profile payload
       const salaryNum = parseInt(String(profileData.expectedSalary).replace(/[^0-9]/g, ''), 10) || 0;
-      await updateProfileMutation({
+      
+      const cleanPayload: any = {
         ...profileData,
-        name: profileData.fullName,
-        university: profileData.gradInstitute,
-        department: profileData.gradDept,
-        year: profileData.gradYear,
-        gradYear: profileData.gradYear,
-        semester: profileData.gradSemester,
-        gradSemester: profileData.gradSemester,
+        name: profileData.fullName?.trim() || profileData.name || '',
+        fullName: profileData.fullName?.trim() || profileData.name || '',
+        university: profileData.gradInstitute || '',
+        department: profileData.gradDept || '',
+        year: profileData.gradYear || '',
+        gradYear: profileData.gradYear || '',
+        semester: profileData.gradSemester || '',
+        gradSemester: profileData.gradSemester || '',
         salary: salaryNum,
-        subjects: profileData.preferredSubjects,
+        subjects: profileData.preferredSubjects || [],
         mediums: profileData.preferredMedium ? [profileData.preferredMedium] : (Array.isArray(profileData.mediums) ? profileData.mediums : ['Bangla Medium']),
         location: {
           district: profileData.tuitionDistrict || 'Dhaka',
           area: profileData.preferredArea || '',
         },
-      }).unwrap();
+      };
+
+      // Strip internal and immutable fields
+      delete cleanPayload._id;
+      delete cleanPayload.userId;
+      delete cleanPayload.__v;
+      delete cleanPayload.createdAt;
+      delete cleanPayload.updatedAt;
+
+      await updateProfileMutation(cleanPayload).unwrap();
 
       refetch();
       setSuccessMsg('Saved Successfully!');
@@ -275,9 +286,10 @@ export default function TutorProfileDashboard() {
       if (nextIndex < tabOrder.length) {
         handleTabChange(tabOrder[nextIndex]);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving profile:", error);
-      alert('Failed to save profile. Please try again.');
+      const errMsg = error?.data?.message || error?.message || 'Failed to save profile. Please try again.';
+      alert(errMsg);
     } finally {
       setSaving(false);
     }
