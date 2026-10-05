@@ -48,6 +48,9 @@ export interface TuitionJob {
   upazila?: string;
   fullLocation?: string;
   salary: number;
+  salaryMax?: number;
+  salaryRange?: string;
+  negotiable?: boolean;
   medium: string;
   genderPreference?: 'Male' | 'Female' | 'Any';
   status: 'Open' | 'Matched' | 'Closed';

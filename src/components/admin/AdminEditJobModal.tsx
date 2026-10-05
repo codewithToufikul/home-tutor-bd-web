@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   X, Save, Loader2, MapPin, BookOpen, GraduationCap,
   Calendar, Clock, DollarSign, Users, Sparkles, Check,
-  AlertCircle, Briefcase, Plus, Trash2
+  AlertCircle, Briefcase, Plus, Trash2, ShieldAlert
 } from 'lucide-react';
 import { getDivisions, getDistricts, getUpazilas, getAreas } from '@olism/bd-geo';
 import { getDhakaZones } from '@/src/data/dhakaLocations';
@@ -14,6 +14,7 @@ import {
   curriculumMediumOptions
 } from '@/src/constants';
 import { useUpdateTuitionJobMutation } from '@/src/services/adminApi';
+import { useAuth } from '@/src/context/AuthContext.tsx';
 import { cn } from '@/src/lib/utils';
 import {
   allUniversitiesGrouped,
@@ -39,8 +40,13 @@ export default function AdminEditJobModal({
   onClose,
   onSuccess,
 }: AdminEditJobModalProps) {
+  const { user: currentUser } = useAuth();
   const [updateTuitionJob, { isLoading: isSaving }] = useUpdateTuitionJobMutation();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const poster = job?.postedByUser || (typeof job?.postedBy === 'object' ? job?.postedBy : {});
+  const posterRole = poster?.role || job?.postedByRole || '';
+  const isRestrictedForModerator = currentUser?.role === 'moderator' && ['admin', 'super_admin'].includes(posterRole);
 
   // Form State
   const [studentClass, setStudentClass] = useState('');
@@ -86,7 +92,17 @@ export default function AdminEditJobModal({
       setSubjects(['General']);
     }
 
-    setSalary(job.salary ? String(job.salary) : '');
+    if (job.negotiable || job.salaryRange === 'Negotiable' || job.salary === 'Negotiable') {
+      setSalary('Negotiable');
+    } else if (job.salaryRange && job.salaryRange !== 'Negotiable') {
+      setSalary(job.salaryRange);
+    } else if (job.salary && job.salaryMax) {
+      setSalary(`${job.salary}-${job.salaryMax}`);
+    } else if (job.salary) {
+      setSalary(String(job.salary));
+    } else {
+      setSalary('Negotiable');
+    }
     setTutoringDays(
       Array.isArray(job.tutoringDays) ? job.tutoringDays.join(', ') : (job.tutoringDays || '3 Days/Week')
     );
@@ -147,6 +163,10 @@ export default function AdminEditJobModal({
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isRestrictedForModerator) {
+      setErrorMsg('মডারেটর হিসেবে আপনি অ্যাডমিনের তৈরি করা টিউশন পোস্ট এডিট করতে পারবেন না।');
+      return;
+    }
     setErrorMsg(null);
 
     const jobId = String(job.id || job._id || '');
@@ -158,13 +178,45 @@ export default function AdminEditJobModal({
     try {
       const notesStr = typeof extraNotes === 'string' ? extraNotes.trim() : '';
 
+      // Parse salary
+      let parsedSalary = 0;
+      let parsedSalaryMax: number | undefined = undefined;
+      let parsedSalaryRange: string | undefined = undefined;
+      let isNegotiable = false;
+
+      const salStr = String(salary || '').trim();
+      if (salStr === '0' || salStr.toLowerCase() === 'negotiable' || !salStr) {
+        isNegotiable = true;
+        parsedSalary = 0;
+        parsedSalaryRange = 'Negotiable';
+      } else if (salStr.includes('-')) {
+        const parts = salStr.split('-').map(p => Number(p.replace(/[^0-9]/g, ''))).filter(n => !isNaN(n) && n > 0);
+        if (parts.length >= 2) {
+          parsedSalary = Math.min(parts[0], parts[1]);
+          parsedSalaryMax = Math.max(parts[0], parts[1]);
+          parsedSalaryRange = `${parsedSalary}-${parsedSalaryMax}`;
+        } else if (parts.length === 1) {
+          parsedSalary = parts[0];
+          parsedSalaryRange = String(parts[0]);
+        }
+      } else {
+        const num = Number(salStr.replace(/[^0-9]/g, ''));
+        if (!isNaN(num) && num > 0) {
+          parsedSalary = num;
+          parsedSalaryRange = String(num);
+        }
+      }
+
       const payload: Record<string, any> = {
         studentClass: String(studentClass || 'Class 9').trim(),
         medium: String(medium || 'Bangla Medium').trim(),
         subjects: Array.isArray(subjects) && subjects.length > 0
           ? subjects.map(s => String(s).trim()).filter(Boolean)
           : ['General'],
-        salary: salary && salary !== 'Negotiable' ? Number(salary) : 0,
+        salary: parsedSalary,
+        salaryMax: parsedSalaryMax,
+        salaryRange: parsedSalaryRange,
+        negotiable: isNegotiable,
         tutoringDays: [String(tutoringDays || '3 Days/Week').trim()],
         duration: String(duration || '1.5 Hours').trim(),
         timeSlot: String(timeSlot || 'Flexible').trim(),
@@ -233,6 +285,16 @@ export default function AdminEditJobModal({
 
           {/* 📝 Form Body (Scrollable) */}
           <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-6 space-y-6">
+            {isRestrictedForModerator && (
+              <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold flex items-center gap-3">
+                <ShieldAlert size={20} className="shrink-0 text-amber-600" />
+                <div>
+                  <p className="font-black text-amber-900">🔒 অনুমতি নেই (Restricted Action)</p>
+                  <p className="text-[11px] text-amber-800 font-medium">এই টিউশন পোস্টটি অ্যাডমিনের দ্বারা তৈরি করা হয়েছে। মডারেটর হিসেবে আপনি এটি পরিবর্তন বা এডিট করতে পারবেন না।</p>
+                </div>
+              </div>
+            )}
+
             {errorMsg && (
               <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold flex items-center gap-2.5">
                 <AlertCircle size={16} className="shrink-0 text-rose-600" />
@@ -370,36 +432,54 @@ export default function AdminEditJobModal({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Salary */}
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 lg:col-span-2">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-ink">মাসিক বেতন (Salary)</label>
+                    <label className="text-xs font-bold text-ink">মাসিক বেতন / রেঞ্জ (Salary / Range)</label>
                     <button
                       type="button"
-                      onClick={() => setSalary(salary === '0' || salary === 'Negotiable' ? '5000' : '0')}
+                      onClick={() => setSalary(salary === 'Negotiable' ? '5000-8000' : 'Negotiable')}
                       className="text-[10px] font-bold text-emerald-600 hover:underline cursor-pointer"
                     >
-                      {salary === '0' || salary === 'Negotiable' ? 'সংখ্যা লিখুন' : '🤝 Negotiable'}
+                      {salary === 'Negotiable' ? 'রেঞ্জ লিখুন' : '🤝 Negotiable'}
                     </button>
                   </div>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-ink-muted text-xs">৳</span>
-                    {salary === '0' || salary === 'Negotiable' ? (
+                    {salary === 'Negotiable' ? (
                       <div
-                        onClick={() => setSalary('5000')}
+                        onClick={() => setSalary('5000-8000')}
                         className="w-full pl-7 pr-3.5 py-2.5 bg-emerald-50 rounded-xl border border-emerald-300 text-xs font-bold text-emerald-700 cursor-pointer flex items-center justify-between"
                       >
-                        <span>Negotiable</span>
-                        <span className="text-[10px] text-emerald-600">পরিবর্তন</span>
+                        <span>Negotiable (আলোচনা সাপেক্ষে)</span>
+                        <span className="text-[10px] text-emerald-600">রেঞ্জ পরিবর্তন</span>
                       </div>
                     ) : (
                       <input
-                        type="number"
+                        type="text"
                         value={salary}
                         onChange={(e) => setSalary(e.target.value)}
-                        placeholder="e.g. 5000"
+                        placeholder="e.g. 5000-8000 বা 6000"
                         className="w-full pl-7 pr-3.5 py-2.5 bg-white rounded-xl border border-ink/10 text-xs font-black text-ink focus:outline-none focus:border-primary transition-all"
                       />
                     )}
+                  </div>
+                  {/* Preset salary range pills */}
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    {['3000-5000', '5000-8000', '8000-12000', '10000-15000', 'Negotiable'].map(preset => (
+                      <button
+                        type="button"
+                        key={preset}
+                        onClick={() => setSalary(preset)}
+                        className={cn(
+                          "px-2 py-0.5 rounded text-[10px] font-bold border transition-all cursor-pointer",
+                          salary === preset
+                            ? "bg-emerald-600 text-white border-emerald-600"
+                            : "bg-white text-ink-muted border-ink/10 hover:border-emerald-500"
+                        )}
+                      >
+                        {preset === 'Negotiable' ? 'Negotiable' : `৳${preset}`}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
@@ -432,9 +512,9 @@ export default function AdminEditJobModal({
                 </div>
 
                 {/* Time Slot / Preferred Time */}
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 lg:col-span-4">
                   <label className="text-xs font-bold text-ink">পড়ানোর সময় (Preferred Time)</label>
-                  <div className="space-y-1.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <select
                       value={tutoringTimeOptions.includes(timeSlot) ? timeSlot : ''}
                       onChange={(e) => {
@@ -442,7 +522,7 @@ export default function AdminEditJobModal({
                       }}
                       className="w-full px-3.5 py-2.5 bg-white rounded-xl border border-ink/10 text-xs font-bold text-ink focus:outline-none focus:border-primary transition-all"
                     >
-                      <option value="" disabled>-- সিলেক্ট করুন বা নিচে লিখুন --</option>
+                      <option value="" disabled>-- সিলেক্ট করুন বা পাশে লিখুন --</option>
                       {tutoringTimeOptions.map(ts => (
                         <option key={ts} value={ts}>{ts}</option>
                       ))}
@@ -452,7 +532,7 @@ export default function AdminEditJobModal({
                       value={timeSlot}
                       onChange={(e) => setTimeSlot(e.target.value)}
                       placeholder="e.g. Evening (4:00 PM - 8:00 PM) বা নির্দিষ্ট সময়"
-                      className="w-full px-3 py-1.5 bg-white rounded-xl border border-ink/10 text-xs font-medium text-ink focus:outline-none focus:border-primary transition-all"
+                      className="w-full px-3.5 py-2 bg-white rounded-xl border border-ink/10 text-xs font-medium text-ink focus:outline-none focus:border-primary transition-all"
                     />
                   </div>
                 </div>
@@ -635,13 +715,23 @@ export default function AdminEditJobModal({
             <button
               type="button"
               onClick={handleSave}
-              disabled={isSaving}
-              className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md shadow-emerald-600/20 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              disabled={isSaving || isRestrictedForModerator}
+              className={cn(
+                "px-6 py-2.5 rounded-xl font-black text-xs shadow-md transition-all flex items-center gap-2",
+                isRestrictedForModerator
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed shadow-none"
+                  : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20 cursor-pointer disabled:opacity-50"
+              )}
             >
               {isSaving ? (
                 <>
                   <Loader2 size={15} className="animate-spin" />
                   <span>সংরক্ষণ হচ্ছে...</span>
+                </>
+              ) : isRestrictedForModerator ? (
+                <>
+                  <ShieldAlert size={15} />
+                  <span>পরিবর্তন নিষিদ্ধ (Restricted)</span>
                 </>
               ) : (
                 <>

@@ -5,8 +5,8 @@ import {
   MapPin, Clock, BookOpen, GraduationCap, Users,
   CheckCircle2, XCircle, AlertCircle, Eye, ToggleLeft,
   ToggleRight, Phone, Mail, Calendar, Sparkles,
-  ExternalLink, Filter, ShieldCheck, Star, MessageSquare, MessageCircle,
-  Check, X, Loader2, ArrowRight, UserCheck, Pencil
+  ExternalLink, Filter, ShieldCheck, ShieldAlert, Star, MessageSquare, MessageCircle,
+  Check, X, Loader2, ArrowRight, UserCheck, Pencil, Lock
 } from 'lucide-react';
 import AdminLayout from '@/src/components/AdminLayout.tsx';
 import { cn, matchFlexibleId } from '@/src/lib/utils';
@@ -19,11 +19,33 @@ import {
 } from '@/src/services/adminApi.ts';
 import { TuitionRepository } from '@/src/repositories/tuitionRepository.ts';
 import { DEFAULT_PROFILE_IMAGE } from '@/src/constants';
+import { useAuth } from '@/src/context/AuthContext.tsx';
 
 const ITEMS_PER_PAGE = 8;
 
+export const formatTuitionSalary = (job: any): string => {
+  if (!job) return 'Negotiable';
+  if (job.negotiable || job.salaryRange === 'Negotiable' || job.salary === 'Negotiable') return 'Negotiable';
+  if (job.salaryRange && job.salaryRange !== 'Negotiable') {
+    if (job.salaryRange.includes('-')) {
+      const parts = job.salaryRange.split('-').map((p: string) => Number(p.trim())).filter((n: number) => !isNaN(n));
+      if (parts.length >= 2) return `৳${parts[0].toLocaleString()} - ৳${parts[1].toLocaleString()}`;
+      if (parts.length === 1) return `৳${parts[0].toLocaleString()}`;
+    }
+    return `৳${job.salaryRange}`;
+  }
+  if (job.salary && job.salaryMax) {
+    return `৳${Number(job.salary).toLocaleString()} - ৳${Number(job.salaryMax).toLocaleString()}`;
+  }
+  if (job.salary && Number(job.salary) > 0) {
+    return `৳${Number(job.salary).toLocaleString()}`;
+  }
+  return 'Negotiable';
+};
+
 export default function AdminJobsApprove() {
   const navigate = useNavigate();
+  const { user: currentUser } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   // Three core tabs as requested: 'all', 'Active', 'Open', 'Closed'
   const [statusFilter, setStatusFilter] = useState<'all' | 'Active' | 'Open' | 'Closed'>('all');
@@ -60,24 +82,41 @@ export default function AdminJobsApprove() {
     return items.map((j: any) => {
       const jobId = String(j._id || j.id || '');
       const poster = j.postedByUser || (typeof j.postedBy === 'object' ? j.postedBy : {});
-      const rawPosterRole = poster?.role || '';
+      const rawPosterRole = poster?.role || j.postedByRole || '';
+      const isCreatedByAdmin = ['admin', 'super_admin'].includes(rawPosterRole);
+      const isRestrictedForModerator = currentUser?.role === 'moderator' && isCreatedByAdmin;
       const isAdminPoster = ['admin', 'super_admin', 'moderator'].includes(rawPosterRole);
 
       // Contact details priority: Tuition Post contact details first, then poster user profile
-      const guardianName = j.contactName || j.parentName || (isAdminPoster ? 'অভিভাবক (Admin Post)' : poster?.name) || 'শিক্ষার্থী/অভিভাবক';
-      const guardianPhone = j.phone || (isAdminPoster ? '' : poster?.phone) || poster?.phone || 'N/A';
-      const guardianWhatsApp = j.whatsappNumber || (j.phone && j.phone !== 'N/A' ? j.phone : '') || poster?.whatsapp || poster?.phone || '';
-      const guardianEmail = j.email || (!isAdminPoster ? poster?.email : '') || '';
+      let guardianName = j.contactName || j.parentName || (isAdminPoster ? 'অভিভাবক (Admin Post)' : poster?.name) || 'শিক্ষার্থী/অভিভাবক';
+      let guardianPhone = j.phone || (isAdminPoster ? '' : poster?.phone) || poster?.phone || 'N/A';
+      let guardianWhatsApp = j.whatsappNumber || (j.phone && j.phone !== 'N/A' ? j.phone : '') || poster?.whatsapp || poster?.phone || '';
+      let guardianEmail = j.email || (!isAdminPoster ? poster?.email : '') || '';
 
-      const staffPosterName = isAdminPoster ? (poster?.name || 'Admin Staff') : '';
-      const staffPosterEmail = isAdminPoster ? (poster?.email || '') : '';
-      const staffPosterPhone = isAdminPoster ? (poster?.phone || '') : '';
+      let staffPosterName = isAdminPoster ? (poster?.name || 'Admin Staff') : '';
+      let staffPosterEmail = isAdminPoster ? (poster?.email || '') : '';
+      let staffPosterPhone = isAdminPoster ? (poster?.phone || '') : '';
 
-      const posterName = guardianName;
-      const posterPhone = guardianPhone;
-      const posterWhatsApp = guardianWhatsApp;
-      const posterEmail = (guardianEmail && !guardianEmail.startsWith('guardian_') && !guardianEmail.endsWith('@hometutorbd.com')) ? guardianEmail : 'N/A';
-      const posterAvatar = poster?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(posterName)}`;
+      let posterName = guardianName;
+      let posterPhone = guardianPhone;
+      let posterWhatsApp = guardianWhatsApp;
+      let posterEmail = (guardianEmail && !guardianEmail.startsWith('guardian_') && !guardianEmail.endsWith('@hometutorbd.com')) ? guardianEmail : 'N/A';
+      let posterAvatar = poster?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(posterName)}`;
+
+      // 🛡️ Apply Moderator masking if job was created by an admin
+      if (isRestrictedForModerator) {
+        guardianName = '🔒 Admin Protected';
+        posterName = '🔒 Admin Protected';
+        guardianPhone = '🔒 Protected';
+        posterPhone = '🔒 Protected';
+        guardianWhatsApp = '';
+        posterWhatsApp = '';
+        guardianEmail = '🔒 Protected';
+        posterEmail = '🔒 Protected';
+        staffPosterName = 'Admin (Protected)';
+        staffPosterEmail = '🔒 Protected';
+        staffPosterPhone = '🔒 Protected';
+      }
 
       const locArea = typeof j.location === 'object' ? j.location?.area : j.area;
       const locDist = typeof j.location === 'object' ? j.location?.district : (typeof j.location === 'string' ? j.location : '');
@@ -100,7 +139,6 @@ export default function AdminJobsApprove() {
       const appsList = Array.isArray(j.applications) ? j.applications : [];
       const acceptedApp = appsList.find((a: any) => a.status?.toLowerCase() === 'accepted');
 
-
       const rawStatus = (j.status || 'Open').toLowerCase();
       const hasAccepted = Boolean(acceptedApp) || Boolean(acceptedTutorsMap[jobId]);
       const isActive = hasAccepted || rawStatus === 'matched' || rawStatus === 'hired' || rawStatus === 'active';
@@ -112,19 +150,19 @@ export default function AdminJobsApprove() {
       // Confirmed tutor info
       const tutorObj = acceptedApp?.tutor || (typeof acceptedApp?.tutorId === 'object' ? acceptedApp.tutorId : null);
       const tutorFromMap = acceptedTutorsMap[jobId];
-      const confirmedTutor = (tutorObj || tutorFromMap) ? {
-        name: tutorObj?.name || tutorFromMap?.name || 'Verified Tutor',
-        phone: tutorObj?.phone || tutorFromMap?.phone || '০১৭১২-৩৪৫৬৭৮',
-        email: tutorObj?.email || tutorFromMap?.email || 'tutor@gmail.com',
+      let confirmedTutor = (tutorObj || tutorFromMap) ? {
+        name: isRestrictedForModerator ? '🔒 Verified Tutor (Admin)' : (tutorObj?.name || tutorFromMap?.name || 'Verified Tutor'),
+        phone: isRestrictedForModerator ? '🔒 Protected by Admin' : (tutorObj?.phone || tutorFromMap?.phone || '০১৭১২-৩৪৫৬৭৮'),
+        email: isRestrictedForModerator ? '🔒 Protected by Admin' : (tutorObj?.email || tutorFromMap?.email || 'tutor@gmail.com'),
         avatar: tutorObj?.avatar || tutorFromMap?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(tutorObj?.name || 'tutor')}`,
         university: tutorFromMap?.university || 'Uttara University',
         department: tutorFromMap?.department || 'CSE',
         confirmedDate: acceptedApp?.updatedAt ? new Date(acceptedApp.updatedAt).toLocaleDateString('bn-BD') : (tutorFromMap?.confirmedDate || 'সম্প্রতি'),
         userId: String(acceptedApp?.tutorId?._id || acceptedApp?.tutorId || tutorObj?._id || tutorObj?.id || ''),
       } : (isActive ? {
-        name: 'test tutor',
-        phone: '০১৭১২-৩৪৫৬৭৮',
-        email: 'testutor@gmail.com',
+        name: isRestrictedForModerator ? '🔒 Verified Tutor' : 'test tutor',
+        phone: isRestrictedForModerator ? '🔒 Protected' : '০১৭১২-৩৪৫৬৭৮',
+        email: isRestrictedForModerator ? '🔒 Protected' : 'testutor@gmail.com',
         avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=testtutor`,
         university: 'Uttara University',
         department: 'CSE',
@@ -150,9 +188,11 @@ export default function AdminJobsApprove() {
         posterAvatar,
         posterRole,
         isAdminPoster,
+        isCreatedByAdmin,
+        isRestrictedForModerator,
         locationStr: locStr,
         salaryNum: j.salary ? Number(j.salary) : 0,
-        salaryFormatted: j.salary ? `৳${Number(j.salary).toLocaleString()}` : 'Negotiable',
+        salaryFormatted: formatTuitionSalary(j),
         daysPerWeek: Array.isArray(j.tutoringDays) ? j.tutoringDays.join(', ') : (j.tutoringDays || '3 Days/Week'),
         studentClass: j.studentClass || 'N/A',
         subjectsList: Array.isArray(j.subjects) ? j.subjects : (j.subjects ? [j.subjects] : ['General']),
@@ -168,7 +208,7 @@ export default function AdminJobsApprove() {
         createdAtFull: j.createdAt ? new Date(j.createdAt).toLocaleString('bn-BD') : 'সম্প্রতি',
       };
     });
-  }, [jobsData, acceptedTutorsMap]);
+  }, [jobsData, acceptedTutorsMap, currentUser]);
 
   // Load accepted tutors for any jobs dynamically
   useEffect(() => {
@@ -514,45 +554,61 @@ export default function AdminJobsApprove() {
                       <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
                         {/* Edit Job Button */}
                         <button
-                          onClick={() => setJobToEdit(job)}
-                          className="w-10 h-10 sm:w-auto sm:h-auto sm:p-2.5 rounded-xl bg-indigo-50 text-indigo-600 active:bg-indigo-100 border border-indigo-200 transition-all cursor-pointer shadow-xs flex items-center justify-center"
-                          title="Edit Job Details"
+                          onClick={() => !job.isRestrictedForModerator && setJobToEdit(job)}
+                          disabled={job.isRestrictedForModerator}
+                          className={cn(
+                            "w-10 h-10 sm:w-auto sm:h-auto sm:p-2.5 rounded-xl border transition-all flex items-center justify-center shadow-xs",
+                            job.isRestrictedForModerator
+                              ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+                              : "bg-indigo-50 text-indigo-600 active:bg-indigo-100 border-indigo-200 cursor-pointer"
+                          )}
+                          title={job.isRestrictedForModerator ? "🔒 শুধুমাত্র অ্যাডমিন এই জব এডিট করতে পারবেন" : "Edit Job Details"}
                         >
-                          <Pencil size={15} />
+                          {job.isRestrictedForModerator ? <Lock size={15} /> : <Pencil size={15} />}
                         </button>
 
-                        {/* Quick Toggle Status (Disabled for Active Tuitions) */}
+                        {/* Quick Toggle Status (Disabled for Active Tuitions and Restricted Moderator) */}
                         <button
-                          onClick={() => !isActive && handleToggleStatus(job)}
-                          disabled={isActive}
+                          onClick={() => !isActive && !job.isRestrictedForModerator && handleToggleStatus(job)}
+                          disabled={isActive || job.isRestrictedForModerator}
                           title={
-                            isActive
-                              ? 'চলতি কনফার্মড টিউশনের স্ট্যাটাস লক করা আছে'
-                              : (job.status === 'Open' ? 'Click to Close Job' : 'Click to Open Job')
+                            job.isRestrictedForModerator
+                              ? '🔒 শুধুমাত্র অ্যাডমিন জব স্ট্যাটাস পরিবর্তন করতে পারবেন'
+                              : isActive
+                                ? 'চলতি কনফার্মড টিউশনের স্ট্যাটাস লক করা আছে'
+                                : (job.status === 'Open' ? 'Click to Close Job' : 'Click to Open Job')
                           }
                           className={cn(
                             "w-10 h-10 sm:w-auto sm:h-auto sm:p-2.5 rounded-xl border transition-all flex items-center justify-center shadow-xs",
-                            isActive
-                              ? "bg-emerald-100/50 text-emerald-800 border-emerald-200 cursor-not-allowed opacity-75"
-                              : job.status === 'Open'
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200 active:bg-emerald-100 cursor-pointer"
-                                : "bg-gray-100 text-gray-700 border-gray-200 active:bg-gray-200 cursor-pointer"
+                            job.isRestrictedForModerator
+                              ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed opacity-60"
+                              : isActive
+                                ? "bg-emerald-100/50 text-emerald-800 border-emerald-200 cursor-not-allowed opacity-75"
+                                : job.status === 'Open'
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200 active:bg-emerald-100 cursor-pointer"
+                                  : "bg-gray-100 text-gray-700 border-gray-200 active:bg-gray-200 cursor-pointer"
                           )}
                         >
                           {isActive ? (
-                            <ToggleRight size={20} className="text-emerald-700" />
+                            <ToggleRight size={20} className={job.isRestrictedForModerator ? "text-gray-400" : "text-emerald-700"} />
                           ) : job.status === 'Open' ? (
-                            <ToggleRight size={20} className="text-emerald-600" />
+                            <ToggleRight size={20} className={job.isRestrictedForModerator ? "text-gray-400" : "text-emerald-600"} />
                           ) : (
-                            <ToggleLeft size={20} className="text-gray-500" />
+                            <ToggleLeft size={20} className="text-gray-400" />
                           )}
                         </button>
 
                         {/* Delete */}
                         <button
-                          onClick={() => setJobToDelete(job.id)}
-                          className="w-10 h-10 sm:w-auto sm:h-auto sm:p-2.5 rounded-xl bg-rose-50 text-rose-600 active:bg-rose-100 border border-rose-200 transition-all cursor-pointer flex items-center justify-center"
-                          title="Delete Job"
+                          onClick={() => !job.isRestrictedForModerator && setJobToDelete(job.id)}
+                          disabled={job.isRestrictedForModerator}
+                          className={cn(
+                            "w-10 h-10 sm:w-auto sm:h-auto sm:p-2.5 rounded-xl border transition-all flex items-center justify-center",
+                            job.isRestrictedForModerator
+                              ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed opacity-60"
+                              : "bg-rose-50 text-rose-600 active:bg-rose-100 border-rose-200 cursor-pointer"
+                          )}
+                          title={job.isRestrictedForModerator ? "🔒 শুধুমাত্র অ্যাডমিন এই জব ডিলিট করতে পারবেন" : "Delete Job"}
                         >
                           <Trash2 size={15} />
                         </button>
@@ -580,24 +636,34 @@ export default function AdminJobsApprove() {
                     {/* Column 2: Posted By (Student / Guardian OR Admin / Moderator) */}
                     <div className={cn(
                       "p-3.5 sm:p-4 rounded-2xl border space-y-2 shadow-xs",
-                      job.isAdminPoster
-                        ? "bg-gradient-to-br from-violet-50 to-indigo-50/60 border-violet-200"
-                        : "bg-white/90 border-ink/5"
+                      job.isRestrictedForModerator
+                        ? "bg-amber-50/50 border-amber-200"
+                        : job.isAdminPoster
+                          ? "bg-gradient-to-br from-violet-50 to-indigo-50/60 border-violet-200"
+                          : "bg-white/90 border-ink/5"
                     )}>
                       <div className="flex items-center justify-between">
                         <span className={cn(
                           "text-[9px] sm:text-[10px] font-black uppercase",
-                          job.isAdminPoster ? "text-violet-700" : "text-ink-muted"
+                          job.isRestrictedForModerator
+                            ? "text-amber-800 flex items-center gap-1"
+                            : job.isAdminPoster ? "text-violet-700" : "text-ink-muted"
                         )}>
-                          {job.isAdminPoster ? '📋 Staff Posted Job' : 'শিক্ষার্থী / অভিভাবক'}
+                          {job.isRestrictedForModerator ? (
+                            <><ShieldAlert size={10} className="text-amber-600" /> Admin Posted (Restricted)</>
+                          ) : job.isAdminPoster ? '📋 Staff Posted Job' : 'শিক্ষার্থী / অভিভাবক'}
                         </span>
                         <span className={cn(
                           "text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1",
-                          job.isAdminPoster
-                            ? "text-violet-700 bg-violet-100 border border-violet-200"
-                            : "text-sky-700 bg-sky-50"
+                          job.isRestrictedForModerator
+                            ? "text-amber-800 bg-amber-100 border border-amber-300"
+                            : job.isAdminPoster
+                              ? "text-violet-700 bg-violet-100 border border-violet-200"
+                              : "text-sky-700 bg-sky-50"
                         )}>
-                          {job.isAdminPoster ? (
+                          {job.isRestrictedForModerator ? (
+                            <><Lock size={9} /> Protected</>
+                          ) : job.isAdminPoster ? (
                             <><ShieldCheck size={9} /> {job.posterRole}</>
                           ) : 'পোস্টকারী'}
                         </span>
@@ -609,7 +675,9 @@ export default function AdminJobsApprove() {
                             alt={job.posterName}
                             className={cn(
                               "w-10 h-10 sm:w-11 sm:h-11 rounded-xl object-cover border",
-                              job.isAdminPoster ? "border-violet-300" : "border-ink/10"
+                              job.isRestrictedForModerator
+                                ? "border-amber-300 opacity-60"
+                                : job.isAdminPoster ? "border-violet-300" : "border-ink/10"
                             )}
                           />
                           {job.isAdminPoster && (
@@ -621,39 +689,43 @@ export default function AdminJobsApprove() {
                         <div className="space-y-0.5 min-w-0">
                           <p className={cn(
                             "text-sm font-black truncate",
-                            job.isAdminPoster ? "text-violet-900" : "text-ink"
+                            job.isRestrictedForModerator ? "text-amber-900" : (job.isAdminPoster ? "text-violet-900" : "text-ink")
                           )}>{job.posterName}</p>
-                          <p className="text-xs font-bold text-ink-muted truncate">{job.posterPhone !== 'N/A' ? job.posterPhone : job.posterEmail}</p>
+                          <p className="text-xs font-bold text-ink-muted truncate">
+                            {job.isRestrictedForModerator ? '🔒 বিস্তারিত সুরক্ষিত' : (job.posterPhone !== 'N/A' ? job.posterPhone : job.posterEmail)}
+                          </p>
                         </div>
                       </div>
-                      <div className="flex gap-2 pt-1">
-                        {job.posterPhone && job.posterPhone !== 'N/A' && (
-                          <a
-                            href={`tel:${job.posterPhone.replace(/[^0-9+]/g, '')}`}
-                            className={cn(
-                              "flex-1 py-2 sm:py-1.5 rounded-lg font-black text-[10px] uppercase text-center border transition-all flex items-center justify-center gap-1",
-                              job.isAdminPoster
-                                ? "bg-violet-50 active:bg-violet-100 text-violet-700 border-violet-200"
-                                : "bg-gray-50 active:bg-gray-100 text-ink border-ink/5"
-                            )}
-                          >
-                            <Phone size={11} className={job.isAdminPoster ? "text-violet-600" : "text-emerald-600"} /> Call
-                          </a>
-                        )}
-                        {job.posterEmail && job.posterEmail !== 'N/A' && (
-                          <a
-                            href={`mailto:${job.posterEmail}`}
-                            className={cn(
-                              "flex-1 py-2 sm:py-1.5 rounded-lg font-black text-[10px] uppercase text-center border transition-all flex items-center justify-center gap-1",
-                              job.isAdminPoster
-                                ? "bg-violet-50 active:bg-violet-100 text-violet-700 border-violet-200"
-                                : "bg-gray-50 active:bg-gray-100 text-ink border-ink/5"
-                            )}
-                          >
-                            <Mail size={11} className={job.isAdminPoster ? "text-violet-600" : "text-blue-600"} /> Email
-                          </a>
-                        )}
-                      </div>
+                      {!job.isRestrictedForModerator && (
+                        <div className="flex gap-2 pt-1">
+                          {job.posterPhone && job.posterPhone !== 'N/A' && (
+                            <a
+                              href={`tel:${job.posterPhone.replace(/[^0-9+]/g, '')}`}
+                              className={cn(
+                                "flex-1 py-2 sm:py-1.5 rounded-lg font-black text-[10px] uppercase text-center border transition-all flex items-center justify-center gap-1",
+                                job.isAdminPoster
+                                  ? "bg-violet-50 active:bg-violet-100 text-violet-700 border-violet-200"
+                                  : "bg-gray-50 active:bg-gray-100 text-ink border-ink/5"
+                              )}
+                            >
+                              <Phone size={11} className={job.isAdminPoster ? "text-violet-600" : "text-emerald-600"} /> Call
+                            </a>
+                          )}
+                          {job.posterEmail && job.posterEmail !== 'N/A' && (
+                            <a
+                              href={`mailto:${job.posterEmail}`}
+                              className={cn(
+                                "flex-1 py-2 sm:py-1.5 rounded-lg font-black text-[10px] uppercase text-center border transition-all flex items-center justify-center gap-1",
+                                job.isAdminPoster
+                                  ? "bg-violet-50 active:bg-violet-100 text-violet-700 border-violet-200"
+                                  : "bg-gray-50 active:bg-gray-100 text-ink border-ink/5"
+                              )}
+                            >
+                              <Mail size={11} className={job.isAdminPoster ? "text-violet-600" : "text-blue-600"} /> Email
+                            </a>
+                          )}
+                        </div>
+                      )}
                     </div>
 
 
@@ -674,35 +746,43 @@ export default function AdminJobsApprove() {
                           />
                           <div className="space-y-0.5 min-w-0">
                             <p className="text-sm font-black text-ink truncate">{confirmedTutor.name}</p>
-                            <p className="text-xs font-bold text-emerald-800 truncate">{confirmedTutor.university}</p>
+                            <p className="text-xs font-bold text-emerald-800 truncate">
+                              {job.isRestrictedForModerator ? '🔒 সুরক্ষিত তথ্য' : confirmedTutor.university}
+                            </p>
                           </div>
                         </div>
-                        <div className="flex gap-2 pt-1 flex-wrap">
-                          <a
-                            href={`tel:${(confirmedTutor.phone || '').replace(/[^0-9+]/g, '')}`}
-                            className="flex-1 py-2 sm:py-1.5 bg-emerald-600 active:bg-emerald-700 text-white rounded-lg font-black text-[10px] uppercase text-center shadow-xs transition-all flex items-center justify-center gap-1 min-w-[70px]"
-                          >
-                            <Phone size={11} /> Call
-                          </a>
-                          <a
-                            href={`https://wa.me/${(confirmedTutor.phone || '').replace(/[^0-9]/g, '')}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="flex-1 py-2 sm:py-1.5 bg-emerald-100 active:bg-emerald-200 text-emerald-800 rounded-lg font-black text-[10px] uppercase text-center border border-emerald-300 transition-all flex items-center justify-center gap-1 min-w-[70px]"
-                          >
-                            <MessageSquare size={11} /> WhatsApp
-                          </a>
-                          {(confirmedTutor as any).userId && (
-                            <button
-                              type="button"
-                              onClick={() => navigate(`/admin/inbox?userId=${(confirmedTutor as any).userId}`)}
-                              className="flex-1 py-2 sm:py-1.5 bg-violet-600 active:bg-violet-700 text-white rounded-lg font-black text-[10px] uppercase text-center shadow-xs transition-all flex items-center justify-center gap-1 cursor-pointer min-w-[70px]"
-                              title="Send in-app message to this tutor in Inbox"
+                        {!job.isRestrictedForModerator ? (
+                          <div className="flex gap-2 pt-1 flex-wrap">
+                            <a
+                              href={`tel:${(confirmedTutor.phone || '').replace(/[^0-9+]/g, '')}`}
+                              className="flex-1 py-2 sm:py-1.5 bg-emerald-600 active:bg-emerald-700 text-white rounded-lg font-black text-[10px] uppercase text-center shadow-xs transition-all flex items-center justify-center gap-1 min-w-[70px]"
                             >
-                              <MessageSquare size={11} /> Message
-                            </button>
-                          )}
-                        </div>
+                              <Phone size={11} /> Call
+                            </a>
+                            <a
+                              href={`https://wa.me/${(confirmedTutor.phone || '').replace(/[^0-9]/g, '')}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex-1 py-2 sm:py-1.5 bg-emerald-100 active:bg-emerald-200 text-emerald-800 rounded-lg font-black text-[10px] uppercase text-center border border-emerald-300 transition-all flex items-center justify-center gap-1 min-w-[70px]"
+                            >
+                              <MessageSquare size={11} /> WhatsApp
+                            </a>
+                            {(confirmedTutor as any).userId && (
+                              <button
+                                type="button"
+                                onClick={() => navigate(`/admin/inbox?userId=${(confirmedTutor as any).userId}`)}
+                                className="flex-1 py-2 sm:py-1.5 bg-violet-600 active:bg-violet-700 text-white rounded-lg font-black text-[10px] uppercase text-center shadow-xs transition-all flex items-center justify-center gap-1 cursor-pointer min-w-[70px]"
+                                title="Send in-app message to this tutor in Inbox"
+                              >
+                                <MessageSquare size={11} /> Message
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="p-2 bg-amber-100/60 rounded-lg text-[10px] text-amber-900 font-bold text-center flex items-center justify-center gap-1">
+                            <Lock size={10} /> টিউটর তথ্য শুধুমাত্র অ্যাডমিন দেখতে পারবেন
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div className="p-3.5 sm:p-4 bg-white/90 rounded-2xl border border-ink/5 flex flex-col justify-between space-y-3">
@@ -810,6 +890,11 @@ export default function AdminJobsApprove() {
                       <span className="text-[10px] sm:text-xs text-white/70 font-medium">
                         {selectedJob.createdAtFull}
                       </span>
+                      {selectedJob.isRestrictedForModerator && (
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-500/30 text-amber-300 border border-amber-400/40 uppercase tracking-wider flex items-center gap-1">
+                          <Lock size={10} /> Admin Protected
+                        </span>
+                      )}
                     </div>
                     <h3 className="text-lg sm:text-2xl font-display font-black leading-tight">
                       {selectedJob.studentClass} ({selectedJob.medium}) • {selectedJob.subjectsList.join(', ')}
@@ -817,14 +902,20 @@ export default function AdminJobsApprove() {
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      onClick={() => setJobToEdit(selectedJob)}
-                      className="px-3 sm:px-3.5 py-2 rounded-xl bg-white/20 active:bg-white/30 text-white font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer backdrop-blur-xs"
-                      title="Edit this tuition job"
-                    >
-                      <Pencil size={14} />
-                      <span className="hidden sm:inline">Edit Post</span>
-                    </button>
+                    {!selectedJob.isRestrictedForModerator ? (
+                      <button
+                        onClick={() => setJobToEdit(selectedJob)}
+                        className="px-3 sm:px-3.5 py-2 rounded-xl bg-white/20 active:bg-white/30 text-white font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer backdrop-blur-xs"
+                        title="Edit this tuition job"
+                      >
+                        <Pencil size={14} />
+                        <span className="hidden sm:inline">Edit Post</span>
+                      </button>
+                    ) : (
+                      <span className="px-3 py-1.5 rounded-xl bg-white/10 text-white/50 text-xs font-bold flex items-center gap-1">
+                        <Lock size={12} /> Read-Only
+                      </span>
+                    )}
 
                     <button
                       onClick={() => setSelectedJob(null)}
@@ -841,8 +932,12 @@ export default function AdminJobsApprove() {
                     <span className="text-white/70 font-bold">স্ট্যাটাস পরিবর্তন:</span>
                     <select
                       value={selectedJob.status === 'Active' ? 'Matched' : selectedJob.status}
-                      onChange={(e) => handleChangeStatus(selectedJob.id, e.target.value)}
-                      className="bg-white/10 border border-white/20 text-white font-black px-3 py-2 sm:py-1.5 rounded-xl text-xs outline-none cursor-pointer"
+                      onChange={(e) => !selectedJob.isRestrictedForModerator && handleChangeStatus(selectedJob.id, e.target.value)}
+                      disabled={selectedJob.isRestrictedForModerator}
+                      className={cn(
+                        "bg-white/10 border border-white/20 font-black px-3 py-2 sm:py-1.5 rounded-xl text-xs outline-none",
+                        selectedJob.isRestrictedForModerator ? "opacity-50 cursor-not-allowed text-white/60" : "text-white cursor-pointer"
+                      )}
                     >
                       <option value="Open" className="text-ink">🔵 Open (আবেদন চলছে)</option>
                       <option value="Matched" className="text-ink">🟢 Active (ম্যাচড/কনফার্মড)</option>
@@ -858,6 +953,14 @@ export default function AdminJobsApprove() {
                     View on Public Board <ExternalLink size={13} />
                   </Link>
                 </div>
+
+                {/* Moderator Warning Notice */}
+                {selectedJob.isRestrictedForModerator && (
+                  <div className="p-3 bg-amber-500/20 border border-amber-400/30 rounded-xl flex items-center gap-2.5 text-amber-200 text-xs font-bold">
+                    <ShieldAlert size={16} className="text-amber-300 shrink-0" />
+                    <span>🔒 অ্যাডমিন কর্তৃক পোস্টকৃত জব। মডারেটরদের জন্য যোগাযোগের তথ্য ও পরিচালনা অপশন সীমাবদ্ধ রাখা হয়েছে।</span>
+                  </div>
+                )}
               </div>
 
               {/* Modal Body (Scrollable) */}
@@ -885,7 +988,7 @@ export default function AdminJobsApprove() {
                       <p className="text-ink font-bold flex items-center gap-1">
                         📞 {selectedJob.guardianPhone || selectedJob.posterPhone}
                       </p>
-                      {selectedJob.guardianPhone && selectedJob.guardianPhone !== 'N/A' && (
+                      {!selectedJob.isRestrictedForModerator && selectedJob.guardianPhone && selectedJob.guardianPhone !== 'N/A' && selectedJob.guardianPhone !== '🔒 Protected' && (
                         <a
                           href={`tel:${selectedJob.guardianPhone}`}
                           className="px-2 py-0.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded font-black text-[10px] flex items-center gap-1 transition-all"
@@ -893,7 +996,7 @@ export default function AdminJobsApprove() {
                           <Phone size={10} /> Call
                         </a>
                       )}
-                      {selectedJob.guardianWhatsApp && selectedJob.guardianWhatsApp !== 'N/A' && (
+                      {!selectedJob.isRestrictedForModerator && selectedJob.guardianWhatsApp && selectedJob.guardianWhatsApp !== 'N/A' && (
                         <a
                           href={`https://wa.me/880${selectedJob.guardianWhatsApp.replace(/[^0-9]/g, '').slice(-10)}`}
                           target="_blank"
@@ -937,9 +1040,10 @@ export default function AdminJobsApprove() {
                       {jobApplicants.map((app: any, idx: number) => {
                         const tutorUser = typeof app.tutorId === 'object' ? app.tutorId : {};
                         const tutorProfile = app.tutorProfile || {};
-                        const tutorName = tutorUser.name || 'Candidate Tutor';
-                        const tutorPhone = tutorUser.phone || '01712-345678';
-                        const tutorEmail = tutorUser.email || 'tutor@gmail.com';
+                        const isMaskedForMod = selectedJob.isRestrictedForModerator || app.isRestrictedForModerator;
+                        const tutorName = isMaskedForMod ? '🔒 Candidate Tutor (Admin)' : (tutorUser.name || 'Candidate Tutor');
+                        const tutorPhone = isMaskedForMod ? '🔒 Protected by Admin' : (tutorUser.phone || '01712-345678');
+                        const tutorEmail = isMaskedForMod ? '🔒 Protected by Admin' : (tutorUser.email || 'tutor@gmail.com');
                         const tutorAvatar = tutorUser.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(tutorName)}`;
 
                         const isAccepted = app.status?.toLowerCase() === 'accepted';
@@ -971,7 +1075,7 @@ export default function AdminJobsApprove() {
                                     )}
                                   </div>
                                   <p className="text-xs font-bold text-ink-muted truncate">
-                                    {tutorProfile.university || 'University'} • {tutorProfile.department || 'Department'}
+                                    {isMaskedForMod ? '🔒 তথ্য সংরক্ষিত' : `${tutorProfile.university || 'University'} • ${tutorProfile.department || 'Department'}`}
                                   </p>
                                 </div>
                               </div>
@@ -995,24 +1099,26 @@ export default function AdminJobsApprove() {
                               <div className="flex items-center gap-2 flex-wrap">
                                 <Phone size={13} className="text-emerald-600 shrink-0" />
                                 <span>{tutorPhone}</span>
-                                <div className="ml-auto flex items-center gap-1.5">
-                                  <a
-                                    href={`tel:${tutorPhone}`}
-                                    className="px-2 py-1 bg-emerald-100 text-emerald-800 rounded font-black text-[10px] uppercase"
-                                  >
-                                    Call
-                                  </a>
-                                  {String(tutorUser._id || tutorUser.id || (typeof app.tutorId === 'string' ? app.tutorId : (app.tutorId?._id || ''))) && (
-                                    <button
-                                      type="button"
-                                      onClick={() => navigate(`/admin/inbox?userId=${String(tutorUser._id || tutorUser.id || (typeof app.tutorId === 'string' ? app.tutorId : (app.tutorId?._id || '')))}`)}
-                                      className="px-2.5 py-1 bg-violet-100 active:bg-violet-200 text-violet-800 rounded-lg font-black text-[10px] uppercase flex items-center gap-1 cursor-pointer transition-colors shadow-xs"
-                                      title="Chat with candidate in Inbox"
+                                {!isMaskedForMod && (
+                                  <div className="ml-auto flex items-center gap-1.5">
+                                    <a
+                                      href={`tel:${tutorPhone}`}
+                                      className="px-2 py-1 bg-emerald-100 text-emerald-800 rounded font-black text-[10px] uppercase"
                                     >
-                                      <MessageSquare size={10} /> Chat
-                                    </button>
-                                  )}
-                                </div>
+                                      Call
+                                    </a>
+                                    {String(tutorUser._id || tutorUser.id || (typeof app.tutorId === 'string' ? app.tutorId : (app.tutorId?._id || ''))) && (
+                                      <button
+                                        type="button"
+                                        onClick={() => navigate(`/admin/inbox?userId=${String(tutorUser._id || tutorUser.id || (typeof app.tutorId === 'string' ? app.tutorId : (app.tutorId?._id || '')))}`)}
+                                        className="px-2.5 py-1 bg-violet-100 active:bg-violet-200 text-violet-800 rounded-lg font-black text-[10px] uppercase flex items-center gap-1 cursor-pointer transition-colors shadow-xs"
+                                        title="Chat with candidate in Inbox"
+                                      >
+                                        <MessageSquare size={10} /> Chat
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                               <div className="flex items-center gap-2">
                                 <Mail size={13} className="text-blue-600 shrink-0" />

@@ -149,6 +149,24 @@ export default function Jobs() {
         studentClass: j.studentClass || 'N/A',
         subjects: Array.isArray(j.subjects) && j.subjects.length > 0 ? j.subjects : [j.subject || 'General'],
         salary: Number(j.salary || 0),
+        salaryFormatted: (() => {
+          if (j.negotiable || j.salaryRange === 'Negotiable' || j.salary === 'Negotiable') return 'Negotiable';
+          if (j.salaryRange && j.salaryRange !== 'Negotiable') {
+            if (j.salaryRange.includes('-')) {
+              const parts = j.salaryRange.split('-').map((p: string) => Number(p.trim())).filter((n: number) => !isNaN(n));
+              if (parts.length >= 2) return `৳${parts[0].toLocaleString()} - ৳${parts[1].toLocaleString()}`;
+              if (parts.length === 1) return `৳${parts[0].toLocaleString()}`;
+            }
+            return `৳${j.salaryRange}`;
+          }
+          if (j.salary && j.salaryMax) {
+            return `৳${Number(j.salary).toLocaleString()} - ৳${Number(j.salaryMax).toLocaleString()}`;
+          }
+          if (j.salary && Number(j.salary) > 0) {
+            return `৳${Number(j.salary).toLocaleString()}`;
+          }
+          return 'Negotiable';
+        })(),
         medium: j.medium || 'Bangla Medium',
         tuitionType: j.tuitionType || 'Home Tuition',
         genderPreference: j.genderPreference || 'Any',
@@ -589,8 +607,8 @@ export default function Jobs() {
                               <DollarSign size={12} className="text-emerald-600" />
                               Salary Budget
                             </span>
-                            <p className="font-display font-black text-emerald-700 text-base sm:text-lg leading-tight mt-1">
-                              ৳{job.salary.toLocaleString()}{' '}
+                            <p className="font-display font-black text-emerald-700 text-sm sm:text-base leading-tight mt-1 truncate">
+                              {(job as any).salaryFormatted || `৳${job.salary.toLocaleString()}`}{' '}
                               <span className="text-[10px] font-bold text-emerald-600/80">/mo</span>
                             </p>
                           </div>

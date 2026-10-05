@@ -94,7 +94,10 @@ const ADMISSION_CATEGORIES = [
 
 const CUSTOM_MEDIUMS = curriculumMediumOptions;
 
-const SALARY_PRESETS = ['3000', '4000', '5000', '6000', '7000', '8000', '10000', '12000', '15000'];
+const SALARY_PRESETS = [
+  '3000', '5000', '6000', '8000', '10000',
+  '3000-5000', '5000-8000', '8000-12000', '10000-15000', '15000-20000'
+];
 
 const TUTOR_QUALIFICATIONS = tutorQualificationOptions;
 
@@ -414,9 +417,17 @@ export default function AdminCreateJob() {
       if (!formData.upazilaId) { setValidationError('Please select an upazila / thana.'); return false; }
     } else if (currentStep === 4) {
       const isNegotiable = formData.salaryOffer === 'Negotiable' || formData.salaryOffer === '0';
-      if (!isNegotiable && (!formData.salaryOffer || parseInt(formData.salaryOffer, 10) <= 0)) {
-        setValidationError('Please enter a valid expected salary amount or choose Negotiable.');
-        return false;
+      const cleanSal = String(formData.salaryOffer || '').trim();
+      if (!isNegotiable) {
+        if (!cleanSal) {
+          setValidationError('অনুগ্রহ করে একটি সঠিক মাসিক স্যালারি বা স্যালারি রেঞ্জ লিখুন (যেমন: 6000 অথবা 5000-8000)।');
+          return false;
+        }
+        const salNum = parseInt(cleanSal.replace(/[^0-9]/g, ''), 10);
+        if (isNaN(salNum) || salNum <= 0) {
+          setValidationError('অনুগ্রহ করে একটি সঠিক মাসিক স্যালারি বা স্যালারি রেঞ্জ লিখুন (যেমন: 6000 অথবা 5000-8000)।');
+          return false;
+        }
       }
       if (!formData.phone.trim() || formData.phone.replace(/[^0-9]/g, '').length < 10) { setValidationError('Please provide a valid active phone number.'); return false; }
     }
@@ -447,7 +458,25 @@ export default function AdminCreateJob() {
     const whatsapp = formData.sameAsPhone ? formData.phone.trim() : (formData.whatsappNumber.trim() || formData.phone.trim());
 
     const isSalaryNeg = formData.salaryOffer === 'Negotiable' || formData.salaryOffer === '0';
-    const finalSalary = isSalaryNeg ? 0 : (parseInt(formData.salaryOffer, 10) || 5000);
+    let finalSalary = 5000;
+    let salaryMax: number | undefined = undefined;
+    let salaryRange = isSalaryNeg ? 'Negotiable' : formData.salaryOffer.trim();
+    if (isSalaryNeg) {
+      finalSalary = 0;
+    } else if (formData.salaryOffer.includes('-')) {
+      const parts = formData.salaryOffer.split('-').map(p => parseInt(p.replace(/[^0-9]/g, ''), 10)).filter(n => !isNaN(n));
+      if (parts.length >= 2) {
+        finalSalary = Math.min(parts[0] ?? 5000, parts[1] ?? 5000);
+        salaryMax = Math.max(parts[0] ?? 5000, parts[1] ?? 5000);
+        salaryRange = `${finalSalary}-${salaryMax}`;
+      } else if (parts.length === 1) {
+        finalSalary = parts[0] ?? 5000;
+        salaryRange = String(finalSalary);
+      }
+    } else {
+      finalSalary = parseInt(formData.salaryOffer.replace(/[^0-9]/g, ''), 10) || 5000;
+      salaryRange = String(finalSalary);
+    }
 
     const payload = {
       studentClass: classesStr,
@@ -462,6 +491,9 @@ export default function AdminCreateJob() {
         detailedAddress: formData.detailedAddress.trim()
       },
       salary: finalSalary,
+      salaryMax,
+      salaryRange,
+      salaryOffer: formData.salaryOffer,
       negotiable: isSalaryNeg,
       medium: mediumsStr,
       genderPreference: formData.genderPreference,
@@ -1367,12 +1399,31 @@ export default function AdminCreateJob() {
                       >
                         🤝 Negotiable
                       </button>
-                      {SALARY_PRESETS.map(p => (
-                        <button key={p} type="button" onClick={() => setFormData({ ...formData, salaryOffer: p })}
-                          className={cn("px-3 py-1.5 rounded-xl border text-xs font-bold transition cursor-pointer active:scale-95",
-                            formData.salaryOffer === p ? "bg-violet-600 text-white border-violet-600 shadow-xs" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50")}
-                        >৳{parseInt(p).toLocaleString()}</button>
-                      ))}
+                      {SALARY_PRESETS.map(p => {
+                        const isRange = p.includes('-');
+                        let label = p;
+                        if (isRange) {
+                          const [min, max] = p.split('-');
+                          label = `৳${parseInt(min || '0').toLocaleString()} - ${parseInt(max || '0').toLocaleString()}`;
+                        } else {
+                          label = `৳${parseInt(p).toLocaleString()}`;
+                        }
+                        return (
+                          <button
+                            key={p}
+                            type="button"
+                            onClick={() => setFormData({ ...formData, salaryOffer: p })}
+                            className={cn(
+                              "px-3 py-1.5 rounded-xl border text-xs font-bold transition cursor-pointer active:scale-95",
+                              formData.salaryOffer === p
+                                ? "bg-violet-600 text-white border-violet-600 shadow-xs"
+                                : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                            )}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
                     </div>
                     <div className="relative">
                       <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 font-black text-sm">৳</span>
@@ -1387,13 +1438,17 @@ export default function AdminCreateJob() {
                         </div>
                       ) : (
                         <input
-                          type="number" min="0" placeholder="e.g. 5000"
+                          type="text"
+                          placeholder="যেমন: 6000 অথবা 5000-8000 (স্যালারি রেঞ্জ)"
                           value={formData.salaryOffer}
                           onChange={e => setFormData({ ...formData, salaryOffer: e.target.value })}
                           className={cn(inputCls, "pl-9 font-bold text-base text-emerald-700")}
                         />
                       )}
                     </div>
+                    <p className="text-[11px] text-slate-500">
+                      💡 আপনি নির্দিষ্ট অংক (যেমন: <strong className="text-slate-700">6000</strong>) অথবা স্যালারি রেঞ্জ (যেমন: <strong className="text-slate-700">5000-8000</strong>) লিখতে পারেন।
+                    </p>
                   </div>
 
                   {/* Contact */}

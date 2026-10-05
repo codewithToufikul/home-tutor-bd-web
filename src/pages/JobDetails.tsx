@@ -111,6 +111,24 @@ export default function JobDetails() {
       numStudents: jobData.numStudents || 1,
       studentGender: (jobData as any).studentGender || 'Any',
       salary: Number(jobData.salary || 0),
+      salaryFormatted: (() => {
+        if (jobData.negotiable || jobData.salaryRange === 'Negotiable' || (jobData.salary as any) === 'Negotiable' || !jobData.salary) return 'Negotiable';
+        if (jobData.salaryRange && jobData.salaryRange !== 'Negotiable') {
+          if (jobData.salaryRange.includes('-')) {
+            const parts = jobData.salaryRange.split('-').map((p: string) => Number(p.trim())).filter((n: number) => !isNaN(n));
+            if (parts.length >= 2) return `৳${parts[0].toLocaleString()} - ৳${parts[1].toLocaleString()}`;
+            if (parts.length === 1) return `৳${parts[0].toLocaleString()}`;
+          }
+          return `৳${jobData.salaryRange}`;
+        }
+        if (jobData.salary && jobData.salaryMax) {
+          return `৳${Number(jobData.salary).toLocaleString()} - ৳${Number(jobData.salaryMax).toLocaleString()}`;
+        }
+        if (jobData.salary && Number(jobData.salary) > 0) {
+          return `৳${Number(jobData.salary).toLocaleString()}`;
+        }
+        return 'Negotiable';
+      })(),
       tutoringDays: Array.isArray(jobData.tutoringDays)
         ? jobData.tutoringDays.join(', ')
         : (jobData.tutoringDays || '3-4 Days / Week'),
@@ -348,7 +366,7 @@ export default function JobDetails() {
                       <p className="text-[10px] sm:text-[11px] font-black uppercase text-emerald-800 tracking-wider">Offered Monthly Salary</p>
                       <div className="flex items-baseline gap-1.5 mt-0.5">
                         <span className="text-2xl sm:text-3xl font-display font-black text-emerald-700">
-                          ৳{job.salary.toLocaleString()}
+                          {job.salaryFormatted || `৳${job.salary.toLocaleString()}`}
                         </span>
                         <span className="text-xs font-bold text-ink-muted">/ month (Negotiable)</span>
                       </div>
@@ -633,7 +651,7 @@ export default function JobDetails() {
                     Job ID #{job.customId}
                   </span>
                   <div className="flex items-baseline justify-center gap-1">
-                    <span className="text-3xl font-display font-black text-ink">৳{job.salary.toLocaleString()}</span>
+                    <span className="text-2xl sm:text-3xl font-display font-black text-ink">{job.salaryFormatted || `৳${job.salary.toLocaleString()}`}</span>
                     <span className="text-xs font-bold text-ink-muted">/ month</span>
                   </div>
                 </div>

@@ -114,12 +114,11 @@ export default function Login() {
                 <h2 className="text-xl sm:text-3xl font-display font-black text-slate-900 tracking-tight">
                   Sign in to your account
                 </h2>
-                <div className="mt-1.5 flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs text-slate-500 justify-center sm:justify-start">
-                  <span>Don't have an account?</span>
-                  <Link to="/register" className="font-bold text-primary hover:underline">
-                    Create one for free
+                <div className="mt-2.5 inline-flex flex-wrap items-center gap-1.5 sm:gap-2 px-3.5 py-1.5 rounded-xl bg-primary/10 border border-primary/20 text-xs sm:text-sm justify-center sm:justify-start">
+                  <span className="font-bold text-slate-700">কোনো অ্যাকাউন্ট নেই?</span>
+                  <Link to="/register" className="font-black text-primary hover:text-primary-dark underline decoration-2 underline-offset-2 hover:scale-[1.02] transition-transform">
+                    বিনামূল্যে নতুন অ্যাকাউন্ট খুলুন →
                   </Link>
-                  <span className="text-slate-300">•</span>
                 </div>
               </div>
 

@@ -212,7 +212,8 @@ const ADMISSION_CATEGORIES = [
 const CUSTOM_MEDIUMS = curriculumMediumOptions;
 
 const SALARY_PRESETS = [
-  '3000', '4000', '5000', '6000', '7000', '8000', '10000', '12000', '15000'
+  '3000', '5000', '6000', '8000', '10000',
+  '3000-5000', '5000-8000', '8000-12000', '10000-15000', '15000-20000'
 ];
 
 const TUTOR_QUALIFICATIONS = tutorQualificationOptions;
@@ -578,9 +579,13 @@ export default function RequestTutor() {
         return false;
       }
     } else if (currentStep === 4) {
-      if (!formData.salaryNegotiable && (!formData.salaryOffer || parseInt(formData.salaryOffer, 10) <= 0)) {
-        setValidationError('Please enter an expected salary amount.');
-        return false;
+      if (!formData.salaryNegotiable) {
+        const cleanSal = String(formData.salaryOffer || '').trim();
+        const salNum = parseInt(cleanSal.replace(/[^0-9]/g, ''), 10);
+        if (!cleanSal || isNaN(salNum) || salNum <= 0) {
+          setValidationError('অনুগ্রহ করে একটি সঠিক মাসিক স্যালারি বা স্যালারি রেঞ্জ লিখুন (যেমন: 6000 অথবা 5000-8000)।');
+          return false;
+        }
       }
       if (!formData.phone.trim() || formData.phone.replace(/[^0-9]/g, '').length < 10) {
         setValidationError('Please provide a valid active phone number.');
@@ -670,6 +675,26 @@ export default function RequestTutor() {
 
     const whatsapp = formData.sameAsPhone ? formData.phone.trim() : (formData.whatsappNumber.trim() || formData.phone.trim());
 
+    let finalSalary = 5000;
+    let salaryMax: number | undefined = undefined;
+    let salaryRange = formData.salaryNegotiable ? 'Negotiable' : formData.salaryOffer.trim();
+    if (formData.salaryNegotiable) {
+      finalSalary = 0;
+    } else if (formData.salaryOffer.includes('-')) {
+      const parts = formData.salaryOffer.split('-').map(p => parseInt(p.replace(/[^0-9]/g, ''), 10)).filter(n => !isNaN(n));
+      if (parts.length >= 2) {
+        finalSalary = Math.min(parts[0] ?? 5000, parts[1] ?? 5000);
+        salaryMax = Math.max(parts[0] ?? 5000, parts[1] ?? 5000);
+        salaryRange = `${finalSalary}-${salaryMax}`;
+      } else if (parts.length === 1) {
+        finalSalary = parts[0] ?? 5000;
+        salaryRange = String(finalSalary);
+      }
+    } else {
+      finalSalary = parseInt(formData.salaryOffer.replace(/[^0-9]/g, ''), 10) || 5000;
+      salaryRange = String(finalSalary);
+    }
+
     const payload = {
       studentClass: classesStr,
       subjects: formData.subjects.length > 0 ? formData.subjects : ['General Subjects'],
@@ -682,7 +707,10 @@ export default function RequestTutor() {
         area: locationArea,
         detailedAddress: formData.detailedAddress.trim()
       },
-      salary: formData.salaryNegotiable ? 0 : (parseInt(formData.salaryOffer, 10) || 5000),
+      salary: finalSalary,
+      salaryMax,
+      salaryRange,
+      salaryOffer: formData.salaryOffer,
       negotiable: formData.salaryNegotiable,
       medium: mediumsStr,
       genderPreference: formData.genderPreference,
@@ -701,7 +729,7 @@ export default function RequestTutor() {
       tutorQualification: formData.tutorQualification,
       requirements: Array.isArray(formData.requirements) ? formData.requirements : [],
       preferredTime: [formData.startTime],
-      description: `Tutor requested for: ${classesStr} (${mediumsStr}). Subjects: ${formData.subjects.join(', ')}. Location: ${fullLocationDescription}. Tutor Preference: ${formData.genderPreference} Tutor from ${formData.universityPreference}. Schedule: ${formData.tutoringDays} (${formData.duration}). Expected Salary: ${formData.salaryNegotiable ? 'Negotiable' : `৳${parseInt(formData.salaryOffer, 10).toLocaleString()}/month`}.${formData.additional?.trim() ? ` Notes: ${formData.additional.trim()}` : ''}`,
+      description: `Tutor requested for: ${classesStr} (${mediumsStr}). Subjects: ${formData.subjects.join(', ')}. Location: ${fullLocationDescription}. Tutor Preference: ${formData.genderPreference} Tutor from ${formData.universityPreference}. Schedule: ${formData.tutoringDays} (${formData.duration}). Expected Salary: ${formData.salaryNegotiable ? 'Negotiable' : `৳${salaryRange}/month`}.${formData.additional?.trim() ? ` Notes: ${formData.additional.trim()}` : ''}`,
       status: 'Open',
       approvalStatus: 'Approved',
     };
@@ -2165,8 +2193,8 @@ export default function RequestTutor() {
                         </div>
                       ) : (
                         <input
-                          type="number"
-                          placeholder="5000"
+                          type="text"
+                          placeholder="যেমন: 5000 অথবা 5000-8000"
                           value={formData.salaryOffer}
                           onChange={(e) => setFormData({ ...formData, salaryOffer: e.target.value })}
                           className="w-full pl-8 pr-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-base font-bold"
@@ -2176,24 +2204,37 @@ export default function RequestTutor() {
 
                     {/* Quick Salary Chips */}
                     {!formData.salaryNegotiable && (
-                      <div className="grid grid-cols-3 sm:flex flex-wrap gap-1.5">
-                        {SALARY_PRESETS.map(s => (
-                          <button
-                            key={s}
-                            type="button"
-                            onClick={() => setFormData({ ...formData, salaryOffer: s })}
-                            className={cn(
-                              "py-2 px-2 sm:py-1.5 sm:px-3 rounded-xl sm:rounded-lg text-xs font-semibold transition active:scale-95 cursor-pointer border text-center",
-                              formData.salaryOffer === s
-                                ? "bg-slate-900 text-white border-slate-900 shadow-xs"
-                                : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
-                            )}
-                          >
-                            ৳{parseInt(s, 10).toLocaleString()}
-                          </button>
-                        ))}
+                      <div className="grid grid-cols-2 sm:flex flex-wrap gap-1.5">
+                        {SALARY_PRESETS.map(s => {
+                          const isRange = s.includes('-');
+                          let label = s;
+                          if (isRange) {
+                            const [min, max] = s.split('-');
+                            label = `৳${parseInt(min || '0', 10).toLocaleString()} - ${parseInt(max || '0', 10).toLocaleString()}`;
+                          } else {
+                            label = `৳${parseInt(s, 10).toLocaleString()}`;
+                          }
+                          return (
+                            <button
+                              key={s}
+                              type="button"
+                              onClick={() => setFormData({ ...formData, salaryOffer: s })}
+                              className={cn(
+                                "py-2 px-2 sm:py-1.5 sm:px-3 rounded-xl sm:rounded-lg text-xs font-semibold transition active:scale-95 cursor-pointer border text-center",
+                                formData.salaryOffer === s
+                                  ? "bg-slate-900 text-white border-slate-900 shadow-xs"
+                                  : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                              )}
+                            >
+                              {label}
+                            </button>
+                          );
+                        })}
                       </div>
                     )}
+                    <p className="text-[11px] text-slate-500">
+                      💡 আপনি নির্দিষ্ট অংক বা স্যালারি রেঞ্জ (যেমন: <strong className="text-slate-700">5000-8000</strong>) লিখতে পারেন।
+                    </p>
                   </div>
 
                   {/* Contact Person Name */}
