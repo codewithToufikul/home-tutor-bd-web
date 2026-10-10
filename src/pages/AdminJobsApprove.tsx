@@ -88,9 +88,9 @@ export default function AdminJobsApprove() {
       const isAdminPoster = ['admin', 'super_admin', 'moderator'].includes(rawPosterRole);
 
       // Contact details priority: Tuition Post contact details first, then poster user profile
-      let guardianName = j.contactName || j.parentName || (isAdminPoster ? 'অভিভাবক (Admin Post)' : poster?.name) || 'শিক্ষার্থী/অভিভাবক';
-      let guardianPhone = j.phone || (isAdminPoster ? '' : poster?.phone) || poster?.phone || 'N/A';
-      let guardianWhatsApp = j.whatsappNumber || (j.phone && j.phone !== 'N/A' ? j.phone : '') || poster?.whatsapp || poster?.phone || '';
+      let guardianName = j.contactName || j.name || j.parentName || (!isAdminPoster ? poster?.name : 'অভিভাবক (Admin Post)') || 'শিক্ষার্থী/অভিভাবক';
+      let guardianPhone = j.phone || (!isAdminPoster ? poster?.phone : '') || 'N/A';
+      let guardianWhatsApp = j.whatsappNumber || (j.phone && j.phone !== 'N/A' ? j.phone : '') || (!isAdminPoster ? (poster?.whatsapp || poster?.phone) : '') || '';
       let guardianEmail = j.email || (!isAdminPoster ? poster?.email : '') || '';
 
       let staffPosterName = isAdminPoster ? (poster?.name || 'Admin Staff') : '';

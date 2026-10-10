@@ -133,13 +133,13 @@ export default function AdminHirePending() {
       const descUniMatch = (job.description || '').match(/University Preference:\s*([^.]+)/i);
       const descDetailsMatch = (job.description || '').match(/Details:\s*([^)]+)/i);
 
-      // Contact details priority: Job specific contact info first!
-      const guardianName = job.contactName || job.parentName || (isAdminPosted ? 'অভিভাবক/গার্ডিয়ান' : postedBy.name) || 'অভিভাবক/গার্ডিয়ান';
-      const guardianPhone = job.phone || (descPhoneMatch ? descPhoneMatch[1].trim() : '') || (isAdminPosted ? '' : postedBy.phone) || postedBy.phone || 'N/A';
-      const cleanGuardianPhone = guardianPhone.replace(/[^0-9]/g, '');
-      const guardianWhatsApp = job.whatsappNumber || (descWhatsAppMatch ? descWhatsAppMatch[1].trim() : '') || (job.phone && job.phone !== 'N/A' ? job.phone : '') || postedBy.whatsapp || guardianPhone;
-      const cleanGuardianWhatsApp = guardianWhatsApp.replace(/[^0-9]/g, '');
-      const universityPreference = descUniMatch ? descUniMatch[1].trim() : (job.tutorQualification || '');
+      // Contact details priority: Job specific contact info from tuition post form first!
+      const guardianName = job.contactName || job.name || job.parentName || (!isAdminPosted ? postedBy.name : 'অভিভাবক/গার্ডিয়ান') || 'অভিভাবক/গার্ডিয়ান';
+      const guardianPhone = job.phone || (descPhoneMatch ? descPhoneMatch[1].trim() : '') || (!isAdminPosted ? postedBy.phone : '') || 'N/A';
+      const cleanGuardianPhone = guardianPhone !== 'N/A' ? guardianPhone.replace(/[^0-9]/g, '') : '';
+      const guardianWhatsApp = job.whatsappNumber || (descWhatsAppMatch ? descWhatsAppMatch[1].trim() : '') || (job.phone && job.phone !== 'N/A' ? job.phone : '') || (!isAdminPosted ? (postedBy.whatsapp || postedBy.phone) : '') || (guardianPhone !== 'N/A' ? guardianPhone : '');
+      const cleanGuardianWhatsApp = guardianWhatsApp ? guardianWhatsApp.replace(/[^0-9]/g, '') : '';
+      const universityPreference = descUniMatch ? descUniMatch[1].trim() : (job.universityPreference || job.tutorQualification || '');
       const detailedAddress = descDetailsMatch ? descDetailsMatch[1].trim() : (job.location?.detailedAddress || '');
 
       const rawStatus = String(a.status || 'Pending').toLowerCase();
