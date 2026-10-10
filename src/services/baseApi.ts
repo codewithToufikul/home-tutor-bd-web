@@ -24,6 +24,8 @@ const rawBaseQuery = fetchBaseQuery({
   },
 });
 
+let refreshPromise: Promise<string | null> | null = null;
+
 const baseQueryWithReauth: BaseQueryFn<
   string | FetchArgs,
   unknown,
@@ -32,29 +34,53 @@ const baseQueryWithReauth: BaseQueryFn<
   let result = await rawBaseQuery(args, api, extraOptions);
 
   if (result.error && result.error.status === 401) {
-    console.warn('⚠️ Access Token expired (401). Attempting automatic token refresh...');
+    // Only attempt refresh if this isn't already a login or refresh request
+    const requestUrl = typeof args === 'string' ? args : args.url;
+    if (requestUrl.includes('/auth/login') || requestUrl.includes('/auth/refresh')) {
+      return result;
+    }
 
-    const refreshResult = (await rawBaseQuery(
-      {
-        url: '/auth/refresh',
-        method: 'POST',
-      },
-      api,
-      extraOptions,
-    )) as { data?: { data?: { accessToken: string } } };
+    if (!refreshPromise) {
+      refreshPromise = (async () => {
+        try {
+          console.warn('⚠️ Access Token expired (401). Attempting automatic token refresh...');
+          const refreshResult = (await rawBaseQuery(
+            {
+              url: '/auth/refresh',
+              method: 'POST',
+            },
+            api,
+            extraOptions,
+          )) as { data?: { data?: { accessToken: string } } };
 
-    if (refreshResult.data?.data?.accessToken) {
-      const newAccessToken = refreshResult.data.data.accessToken;
-      console.log('✅ Access Token refreshed successfully via RTK Query interceptor.');
+          if (refreshResult.data?.data?.accessToken) {
+            const newToken = refreshResult.data.data.accessToken;
+            console.log('✅ Access Token refreshed successfully via RTK Query interceptor.');
+            api.dispatch(setAccessToken(newToken));
+            return newToken;
+          }
+          return null;
+        } catch (err) {
+          console.error('❌ Token refresh request failed:', err);
+          return null;
+        } finally {
+          refreshPromise = null;
+        }
+      })();
+    }
 
-      api.dispatch(setAccessToken(newAccessToken));
+    const newAccessToken = await refreshPromise;
+
+    if (newAccessToken) {
       result = await rawBaseQuery(args, api, extraOptions);
     } else {
       console.error('❌ Refresh Token failed/expired. Logging out user...');
       api.dispatch(logout());
       localStorage.removeItem('accessToken');
       localStorage.removeItem('user');
-      window.location.href = '/login';
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
     }
   }
 

@@ -2100,8 +2100,8 @@ export default function RequestTutor() {
                     <label className="text-xs font-semibold text-slate-700">
                       Days Per Week <span className="text-rose-500">*</span>
                     </label>
-                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                      {['1 Day/Week', '2 Days/Week', '3 Days/Week', '4 Days/Week', '5 Days/Week', '6 Days/Week'].map(d => (
+                    <div className="grid grid-cols-3 sm:grid-cols-7 gap-2">
+                      {['1 Day/Week', '2 Days/Week', '3 Days/Week', '4 Days/Week', '5 Days/Week', '6 Days/Week', 'Flexible'].map(d => (
                         <button
                           key={d}
                           type="button"
