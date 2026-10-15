@@ -60,6 +60,8 @@ export default function Tutors() {
     ...(genderPref !== 'All' ? { gender: genderPref } : {}),
     ...(tutorType === 'Verified' ? { isVerified: true } : {}),
     ...(tutorType === 'Premium' ? { isPremium: true } : {}),
+    sortBy: 'createdAt',
+    sortOrder: 'desc',
     page: currentPage,
     limit: itemsPerPage,
   }), [debouncedQuery, district, area, category, selectedMedium, studentClass, genderPref, tutorType, currentPage, itemsPerPage]);

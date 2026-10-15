@@ -1,4 +1,4 @@
-import { Star, CheckCircle, MapPin, GraduationCap, Briefcase, Banknote } from 'lucide-react';
+import { Star, CheckCircle, MapPin, GraduationCap, Briefcase, Banknote, BookOpen, ArrowRight } from 'lucide-react';
 import { TutorProfile } from '@/src/types';
 import { cn } from '@/src/lib/utils';
 import { motion } from 'motion/react';
@@ -16,12 +16,11 @@ export default function TutorCard({ tutor, className, highlightQuery }: TutorCar
   const tutorId = tutor.id || (tutor as any)._id || (tutor as any).uid || '';
   const displayName = (tutor as any).userId?.name || tutor.name || (tutor as any).fullName || 'Verified Tutor';
   const safePhotoUrl = getAvatarUrl(displayName || tutorId, tutor.photoUrl, tutor.gender);
-  
-  const safeSubject = tutor.subjects?.find((subject) => Boolean(subject?.trim())) || 'All Subjects';
+
+  const safeSubject = tutor.subjects?.find((s) => Boolean(s?.trim())) || 'All Subjects';
   const safeDepartment = tutor.department?.trim() || safeSubject;
   const safeUniversity = tutor.university?.trim() || 'Top University';
 
-  // Handle location as object ({ district, area }) or string
   const locObj = tutor.location as any;
   let fullLocation = '';
   if (typeof tutor.location === 'string' && tutor.location.trim()) {
@@ -34,146 +33,130 @@ export default function TutorCard({ tutor, className, highlightQuery }: TutorCar
     fullLocation = 'Dhaka, Bangladesh';
   }
 
-  // Real completed tuitions from backend — no more dummy fallback
   const completedCount = (tutor as any).totalTuitionsCompleted ?? 0;
-
-  // Salary format
-  const salaryText = tutor.salary && tutor.salary > 0 
-    ? `৳${tutor.salary.toLocaleString()}/mo` 
-    : '৳5,000 - 8,000/mo';
+  const salaryText = tutor.salary && tutor.salary > 0
+    ? `৳${tutor.salary.toLocaleString()}/mo`
+    : '৳5,000+/mo';
 
   const subjectsList = tutor.subjects?.filter(Boolean).slice(0, 3) || [];
 
   return (
     <Link to={`/tutor/${tutorId}`} className="block h-full group">
       <motion.div
-        whileHover={{ y: -6 }}
+        whileHover={{ y: -4, boxShadow: '0 20px 40px -8px rgba(0,0,0,0.12)' }}
+        transition={{ duration: 0.2 }}
         className={cn(
-          "bg-white rounded-2xl border border-ink/10 overflow-hidden shadow-sm hover:shadow-xl hover:border-primary/30 transition-all duration-300 h-full flex flex-col relative",
+          "bg-white rounded-2xl border border-slate-200 overflow-hidden h-full flex flex-col relative transition-all duration-300 hover:border-slate-300",
           className
         )}
       >
-        {/* Top Header Row with Badges */}
-        <div className="p-4 pb-0 flex items-center justify-between gap-2">
-          {/* Status Badge */}
+        {/* ── TOP STATUS BAR ── */}
+        <div className="flex items-center justify-between px-4 pt-4 pb-0">
           {tutor.isPremium ? (
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider text-amber-900 bg-gradient-to-r from-amber-200 to-yellow-400 shadow-sm border border-amber-300">
-              ★ Premium Tutor
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider text-amber-800 bg-amber-50 border border-amber-200">
+              ★ Premium
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200">
-              <CheckCircle size={11} className="text-emerald-600" /> Verified
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200">
+              <CheckCircle size={10} className="text-emerald-500" /> Verified
             </span>
           )}
 
-          {/* Rating Badge — Real data only, no fallbacks */}
           {tutor.rating > 0 || tutor.reviewCount > 0 ? (
-            <div className="flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/60">
-              <Star size={11} className="text-amber-500 fill-amber-500" />
-              <span className="text-[11px] font-black text-amber-900">{tutor.rating.toFixed(1)}</span>
-              <span className="text-[10px] font-medium text-amber-700/80">({tutor.reviewCount})</span>
+            <div className="flex items-center gap-1">
+              <Star size={12} className="text-amber-400 fill-amber-400" />
+              <span className="text-xs font-black text-slate-800">{tutor.rating.toFixed(1)}</span>
+              <span className="text-[10px] text-slate-400 font-medium">({tutor.reviewCount})</span>
             </div>
           ) : (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold text-slate-500 bg-slate-100 border border-slate-200">
-              New
-            </span>
+            <span className="text-[10px] font-semibold text-slate-400 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-lg">New</span>
           )}
         </div>
 
-        {/* Compact Avatar & Basic Info Section */}
-        <div className="p-4 flex flex-col items-center text-center">
-          {/* Avatar with Professional Border */}
-          <div className="relative mb-3">
-            <div className="w-20 h-20 rounded-full p-1 bg-gradient-to-tr from-primary/30 via-primary/10 to-teal-400/40 shadow-md">
-              <div className="w-full h-full rounded-full overflow-hidden bg-slate-100 border border-white">
-                <img
-                  src={safePhotoUrl}
-                  alt={displayName}
-                  className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-500"
-                  referrerPolicy="no-referrer"
-                  onError={(e) => {
-                    const target = e.currentTarget;
-                    if (target.src !== DEFAULT_PROFILE_IMAGE) {
-                      target.src = DEFAULT_PROFILE_IMAGE;
-                    }
-                  }}
-                />
-              </div>
+        {/* ── AVATAR + NAME SECTION ── */}
+        <div className="px-4 pt-4 pb-3 flex items-start gap-3.5">
+          {/* Avatar */}
+          <div className="relative shrink-0">
+            <div className="w-[60px] h-[60px] rounded-xl overflow-hidden border-2 border-slate-100 shadow-sm bg-slate-100">
+              <img
+                src={safePhotoUrl}
+                alt={displayName}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  const t = e.currentTarget;
+                  if (t.src !== DEFAULT_PROFILE_IMAGE) t.src = DEFAULT_PROFILE_IMAGE;
+                }}
+              />
             </div>
-            {/* Active / Verified Mini Dot */}
-            <div className="absolute bottom-0 right-0 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white shadow-sm" title="Active Tutor" />
+            {/* Online dot */}
+            <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white" title="Active" />
           </div>
 
-          {/* Tutor Name */}
-          <h3 className="text-base font-display font-bold text-ink group-hover:text-primary transition-colors leading-tight mb-1">
-            {SearchService.highlightText(displayName, highlightQuery || '').map((segment, index) => (
-              <span key={`${segment.text}-${index}`} className={segment.isMatch ? 'text-primary' : ''}>{segment.text}</span>
-            ))}
-          </h3>
-
-          {/* University & Department */}
-          <p className="text-xs font-semibold text-slate-700 flex items-center justify-center gap-1 mb-0.5 line-clamp-1">
-            <GraduationCap size={13} className="text-primary shrink-0" />
-            <span>{safeUniversity}</span>
-          </p>
-          <p className="text-[11px] text-ink-muted font-medium line-clamp-1 mb-3">
-            {safeDepartment}
-          </p>
-
-          {/* Meta Information Cards (Compact Grid) */}
-          <div className="w-full grid grid-cols-2 gap-2 bg-slate-50/80 p-2.5 rounded-xl border border-ink/5 text-left mb-3">
-            {/* Completed Tuitions — Real from backend only */}
-            <div className="flex items-center gap-1.5 min-w-0">
-              <div className="w-6 h-6 rounded-lg bg-emerald-100/80 text-emerald-700 flex items-center justify-center shrink-0">
-                <Briefcase size={12} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight leading-none">Completed</p>
-                {completedCount > 0 ? (
-                  <p className="text-[11px] font-bold text-emerald-800 truncate leading-tight mt-0.5">{completedCount}+ Tuitions</p>
-                ) : (
-                  <p className="text-[11px] font-semibold text-slate-400 truncate leading-tight mt-0.5">New Tutor</p>
-                )}
-              </div>
-            </div>
-
-            {/* Salary Range */}
-            <div className="flex items-center gap-1.5 min-w-0">
-              <div className="w-6 h-6 rounded-lg bg-blue-100/80 text-blue-700 flex items-center justify-center shrink-0">
-                <Banknote size={12} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight leading-none">Salary</p>
-                <p className="text-[11px] font-bold text-blue-900 truncate leading-tight mt-0.5">{salaryText}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Full Location Badge */}
-          <div className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 bg-slate-100/60 rounded-lg text-slate-700 text-xs font-medium border border-ink/5 mb-2">
-            <MapPin size={12} className="text-rose-500 shrink-0" />
-            <span className="truncate">{fullLocation}</span>
-          </div>
-
-          {/* Subjects Pills */}
-          {subjectsList.length > 0 && (
-            <div className="flex flex-wrap justify-center gap-1 w-full pt-1">
-              {subjectsList.map((subject, idx) => (
-                <span 
-                  key={idx}
-                  className="px-2 py-0.5 rounded-md bg-emerald-50/70 text-emerald-800 text-[10px] font-semibold border border-emerald-100"
-                >
-                  {subject}
-                </span>
+          {/* Name + University */}
+          <div className="min-w-0 flex-1 pt-0.5">
+            <h3 className="text-sm font-black text-slate-900 leading-tight group-hover:text-teal-700 transition-colors truncate mb-1">
+              {SearchService.highlightText(displayName, highlightQuery || '').map((seg, i) => (
+                <span key={i} className={seg.isMatch ? 'text-teal-600' : ''}>{seg.text}</span>
               ))}
+            </h3>
+            <div className="flex items-center gap-1 mb-0.5">
+              <GraduationCap size={11} className="text-slate-400 shrink-0" />
+              <p className="text-[11px] font-semibold text-slate-600 truncate">{safeUniversity}</p>
             </div>
-          )}
+            <p className="text-[10px] text-slate-400 truncate">{safeDepartment}</p>
+          </div>
         </div>
 
-        {/* Action Button */}
-        <div className="mt-auto p-3 pt-0">
-          <div className="w-full py-2.5 rounded-xl bg-primary text-white font-bold text-xs text-center group-hover:bg-primary-dark transition-colors shadow-sm flex items-center justify-center gap-1.5">
-            <span>View Details</span>
+        {/* ── DIVIDER ── */}
+        <div className="mx-4 border-t border-slate-100" />
+
+        {/* ── STATS ROW ── */}
+        <div className="grid grid-cols-2 gap-px bg-slate-100 mx-4 mt-3 rounded-xl overflow-hidden border border-slate-100">
+          <div className="bg-white px-3 py-2.5">
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5 flex items-center gap-1">
+              <Briefcase size={9} /> Experience
+            </p>
+            {completedCount > 0 ? (
+              <p className="text-xs font-black text-slate-800">{completedCount}+ done</p>
+            ) : (
+              <p className="text-xs font-bold text-slate-400">New Tutor</p>
+            )}
+          </div>
+          <div className="bg-white px-3 py-2.5">
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5 flex items-center gap-1">
+              <Banknote size={9} /> Salary
+            </p>
+            <p className="text-xs font-black text-slate-800">{salaryText}</p>
+          </div>
+        </div>
+
+        {/* ── LOCATION ── */}
+        <div className="mx-4 mt-2.5 flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
+          <MapPin size={11} className="text-rose-400 shrink-0" />
+          <span className="truncate">{fullLocation}</span>
+        </div>
+
+        {/* ── SUBJECTS ── */}
+        {subjectsList.length > 0 && (
+          <div className="mx-4 mt-2.5 flex flex-wrap gap-1">
+            <BookOpen size={10} className="text-slate-300 mt-1 shrink-0" />
+            {subjectsList.map((sub, i) => (
+              <span
+                key={i}
+                className="px-2 py-0.5 rounded-md bg-slate-50 text-slate-600 text-[10px] font-semibold border border-slate-200"
+              >
+                {sub}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* ── CTA BUTTON ── */}
+        <div className="mt-auto p-4 pt-3">
+          <div className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl bg-slate-900 group-hover:bg-teal-700 text-white font-bold text-xs transition-colors duration-200">
+            <span>View Profile</span>
+            <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
           </div>
         </div>
       </motion.div>

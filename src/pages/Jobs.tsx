@@ -106,6 +106,8 @@ export default function Jobs() {
     ...(tuitionType !== 'All' ? { tuitionType } : {}),
     ...(genderPref !== 'All' ? { genderPreference: genderPref } : {}),
     ...salaryBounds,
+    sortBy: 'createdAt',
+    sortOrder: 'desc',
     page: currentPage,
     limit: itemsPerPage,
   }), [debouncedSearch, district, area, category, studentClass, tuitionType, genderPref, salaryBounds, currentPage, itemsPerPage]);
@@ -175,6 +177,7 @@ export default function Jobs() {
         startTime,
         numStudents: j.numStudents || 1,
         studentGender: j.studentGender || 'Any',
+        universityPreference: j.universityPreference || '',
         createdAt: j.createdAt || new Date().toISOString(),
       };
     }) as TuitionJob[];
@@ -646,6 +649,19 @@ export default function Jobs() {
                             </p>
                           </div>
                         </div>
+
+                        {/* University Preference Badge */}
+                        {(job as any).universityPreference && (job as any).universityPreference !== 'Any' && (job as any).universityPreference !== '' && (
+                          <div className="px-5 pt-0 pb-3">
+                            <div className="flex items-center gap-2 bg-violet-50 border border-violet-200 rounded-xl px-3 py-2">
+                              <GraduationCap size={13} className="text-violet-600 shrink-0" />
+                              <div>
+                                <span className="text-[9px] font-black uppercase text-violet-500 tracking-wider block leading-none mb-0.5">University Required</span>
+                                <span className="text-[11px] font-black text-violet-800">{(job as any).universityPreference}</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
 
                         {/* Subjects Section */}
                         <div className="pt-2.5 border-t border-ink/5 space-y-2">

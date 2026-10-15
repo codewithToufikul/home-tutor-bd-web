@@ -1,217 +1,168 @@
 import { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import {
   Search,
   ChevronRight,
   Sparkles,
-  BookOpen,
-  GraduationCap,
   ArrowRight,
-  Layers,
-  CheckCircle2,
   Users,
   Briefcase,
-  ExternalLink,
-  ShieldCheck,
-  X
+  X,
+  BookOpen,
 } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { CATEGORIES_DATA } from '@/src/constants';
 import { Link } from 'react-router-dom';
 
+const CARD_GRADIENTS = [
+  'from-blue-600 to-cyan-500',
+  'from-pink-500 to-rose-500',
+  'from-emerald-600 to-teal-500',
+  'from-red-500 to-orange-500',
+  'from-violet-600 to-purple-500',
+  'from-indigo-600 to-blue-500',
+  'from-cyan-600 to-sky-500',
+  'from-orange-500 to-amber-500',
+  'from-teal-600 to-green-500',
+  'from-green-600 to-emerald-500',
+  'from-slate-700 to-slate-500',
+  'from-yellow-500 to-amber-400',
+  'from-zinc-700 to-slate-600',
+  'from-purple-600 to-violet-500',
+];
+
+const CARD_LIGHT_BG = [
+  'bg-blue-50 border-blue-100 text-blue-700 hover:bg-blue-100',
+  'bg-pink-50 border-pink-100 text-pink-700 hover:bg-pink-100',
+  'bg-emerald-50 border-emerald-100 text-emerald-700 hover:bg-emerald-100',
+  'bg-red-50 border-red-100 text-red-700 hover:bg-red-100',
+  'bg-violet-50 border-violet-100 text-violet-700 hover:bg-violet-100',
+  'bg-indigo-50 border-indigo-100 text-indigo-700 hover:bg-indigo-100',
+  'bg-cyan-50 border-cyan-100 text-cyan-700 hover:bg-cyan-100',
+  'bg-orange-50 border-orange-100 text-orange-700 hover:bg-orange-100',
+  'bg-teal-50 border-teal-100 text-teal-700 hover:bg-teal-100',
+  'bg-green-50 border-green-100 text-green-700 hover:bg-green-100',
+  'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200',
+  'bg-yellow-50 border-yellow-100 text-yellow-700 hover:bg-yellow-100',
+  'bg-zinc-100 border-zinc-200 text-zinc-700 hover:bg-zinc-200',
+  'bg-purple-50 border-purple-100 text-purple-700 hover:bg-purple-100',
+];
+
 export default function Categories() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
-  // Total subjects calculation
   const totalSubjectsCount = useMemo(() => {
     return CATEGORIES_DATA.reduce((acc, cat) => acc + cat.items.length, 0);
   }, []);
 
-  // Filter categories by query
   const filteredCategories = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
     if (!q) {
-      if (activeCategory) {
-        return CATEGORIES_DATA.filter(cat => cat.id === activeCategory);
-      }
+      if (activeCategory) return CATEGORIES_DATA.filter(cat => cat.id === activeCategory);
       return CATEGORIES_DATA;
     }
-
     return CATEGORIES_DATA.map(cat => {
       const matchesCategoryTitle = cat.title.toLowerCase().includes(q);
-      const matchingItems = cat.items.filter(item =>
-        item.toLowerCase().includes(q)
-      );
-
-      if (matchesCategoryTitle) {
-        return cat;
-      }
-
-      if (matchingItems.length > 0) {
-        return {
-          ...cat,
-          items: matchingItems
-        };
-      }
-
+      const matchingItems = cat.items.filter((item: string) => item.toLowerCase().includes(q));
+      if (matchesCategoryTitle) return cat;
+      if (matchingItems.length > 0) return { ...cat, items: matchingItems };
       return null;
-    }).filter((cat): cat is typeof CATEGORIES_DATA[0] => cat !== null && (!activeCategory || cat.id === activeCategory));
+    }).filter((cat): cat is typeof CATEGORIES_DATA[0] =>
+      cat !== null && (!activeCategory || cat.id === activeCategory)
+    );
   }, [searchQuery, activeCategory]);
 
   return (
-    <div className="min-h-screen bg-slate-50/60 pb-24">
+    <div className="min-h-screen bg-slate-50 pb-24">
 
-      {/* ── HERO SECTION ── */}
-      <section className="relative pt-12 pb-16 sm:pt-16 sm:pb-20 overflow-hidden bg-gradient-to-b from-[#F0FDF9]/90 via-[#F8FAFC] to-slate-50/60 border-b border-slate-200/80">
-        {/* Ambient Glows */}
-        <div className="absolute inset-0 pointer-events-none select-none z-0">
-          <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[48rem] h-[24rem] bg-teal-300/15 rounded-full blur-3xl" />
-          <div className="absolute top-1/2 -right-20 w-80 h-80 bg-cyan-400/10 rounded-full blur-3xl" />
-          <div
-            className="absolute inset-0 opacity-[0.03]"
-            style={{
-              backgroundImage: 'radial-gradient(#0D9488 1.5px, transparent 1.5px)',
-              backgroundSize: '24px 24px',
-            }}
-          />
+      {/* HERO */}
+      <section className="relative pt-10 pb-14 overflow-hidden bg-gradient-to-br from-[#001F3F] via-[#0A2E5C] to-[#0D3B72]">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[60rem] h-48 bg-teal-400/10 rounded-full blur-3xl" />
+          <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
         </div>
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 space-y-8 text-center">
-
-          {/* Badge */}
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 relative z-10 text-center space-y-6">
           <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-bold uppercase tracking-wider shadow-2xs mx-auto"
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-white text-xs font-bold uppercase tracking-wider"
           >
-            <Sparkles size={14} className="text-primary" />
-            <span>Curriculum & Subject Directory • {CATEGORIES_DATA.length} Categories • {totalSubjectsCount}+ Subjects</span>
+            <Sparkles size={13} className="text-teal-300" />
+            {CATEGORIES_DATA.length} Categories • {totalSubjectsCount}+ Subjects
           </motion.div>
 
-          {/* Heading with Curved SVG Underline */}
-          <div className="space-y-3 max-w-3xl mx-auto">
-            <motion.h1
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.08 }}
-              className="relative inline-block text-3xl sm:text-4xl lg:text-5xl font-display font-black text-[#001F3F] tracking-tight leading-tight"
-            >
-              Explore <span className="text-primary">Categories & Subjects</span>
-              <svg
-                className="absolute left-0 -bottom-2 sm:-bottom-3 w-full h-3 sm:h-4 text-primary/70 pointer-events-none"
-                viewBox="0 0 300 20"
-                preserveAspectRatio="none"
-                fill="none"
-              >
-                <path
-                  d="M2 12 C 60 2, 120 18, 180 8 C 220 2, 260 14, 298 6"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </motion.h1>
-
-            <motion.p
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15 }}
-              className="text-xs sm:text-sm lg:text-base text-slate-600 font-medium leading-relaxed max-w-2xl mx-auto pt-1"
-            >
-              Find verified home and online tutors across English Medium, Bangla Medium, Admission Prep, Language Training, and Professional Skills.
-            </motion.p>
-          </div>
-
-          {/* Search Bar */}
-          <motion.div
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="max-w-2xl mx-auto"
+          <motion.h1
+            initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.07 }}
+            className="text-3xl sm:text-4xl lg:text-5xl font-black text-white leading-tight"
           >
-            <div className="relative group bg-white rounded-2xl border border-slate-200/90 shadow-lg shadow-slate-900/5 hover:border-primary/40 focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/10 transition-all p-1.5 flex items-center">
-              <div className="pl-3.5 pr-2 text-slate-400 group-focus-within:text-primary transition-colors">
-                <Search size={20} />
-              </div>
+            কোন বিষয়ে <span className="text-teal-300">টিউটর</span> দরকার?
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.13 }}
+            className="text-sm text-slate-300 max-w-xl mx-auto"
+          >
+            নিচ থেকে আপনার পছন্দের ক্যাটাগরি বা বিষয় খুঁজুন এবং সেরা টিউটর খুঁজে নিন।
+          </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}
+            className="max-w-xl mx-auto"
+          >
+            <div className="relative flex items-center bg-white rounded-2xl shadow-xl shadow-black/20 overflow-hidden">
+              <Search size={18} className="absolute left-4 text-slate-400" />
               <input
                 type="text"
-                placeholder="Search subjects, classes (e.g. O Level, Class 9, IELTS, Python, BCS)..."
+                placeholder="যেমন: Class 9, IELTS, Guitar, BCS..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full py-2.5 px-2 bg-transparent text-sm sm:text-base text-[#001F3F] placeholder:text-slate-400 outline-none font-medium"
+                className="w-full pl-11 pr-4 py-3.5 text-sm text-slate-800 placeholder:text-slate-400 outline-none font-medium"
               />
               {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors mr-1 cursor-pointer"
-                  title="Clear search"
-                >
-                  <X size={16} />
+                <button onClick={() => setSearchQuery('')} className="p-2 mr-2 rounded-xl hover:bg-slate-100 text-slate-400 cursor-pointer">
+                  <X size={15} />
                 </button>
               )}
-              <Link
-                to="/request-tutor"
-                className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary hover:bg-primary-dark text-white text-xs font-bold transition-all shrink-0 shadow-sm"
-              >
-                <span>Request Tutor</span>
-                <ArrowRight size={13} />
-              </Link>
             </div>
           </motion.div>
-
         </div>
       </section>
 
-      {/* ── STICKY CATEGORY FILTER PILLS ── */}
-      <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-2xs py-3">
-        <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
-
-            {/* "All" button */}
+      {/* STICKY PILLS */}
+      <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-3">
             <button
-              type="button"
-              onClick={() => setActiveCategory(null)}
+              type="button" onClick={() => setActiveCategory(null)}
               className={cn(
-                "px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 shrink-0 cursor-pointer",
-                activeCategory === null
-                  ? "bg-[#001F3F] text-white shadow-xs"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200/70 border border-slate-200/60"
+                "px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 shrink-0 cursor-pointer border",
+                activeCategory === null ? "bg-[#001F3F] text-white border-[#001F3F] shadow" : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
               )}
             >
-              <Layers size={13} />
-              <span>All Categories</span>
-              <span className={cn(
-                "px-1.5 py-0.2 rounded-md text-[10px] font-black",
-                activeCategory === null ? "bg-white/20 text-white" : "bg-slate-200 text-slate-700"
-              )}>
+              <BookOpen size={12} />
+              সব ক্যাটাগরি
+              <span className={cn("px-1.5 py-0.5 rounded-md text-[10px] font-black", activeCategory === null ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500")}>
                 {CATEGORIES_DATA.length}
               </span>
             </button>
 
-            {/* Category Pills */}
-            {CATEGORIES_DATA.map((cat) => {
+            {CATEGORIES_DATA.map((cat, idx) => {
               const Icon = cat.icon;
               const isSelected = activeCategory === cat.id;
-
               return (
                 <button
-                  key={cat.id}
-                  type="button"
+                  key={cat.id} type="button"
                   onClick={() => setActiveCategory(isSelected ? null : cat.id)}
                   className={cn(
-                    "px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 shrink-0 cursor-pointer group",
+                    "px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 shrink-0 cursor-pointer border",
                     isSelected
-                      ? "bg-primary text-white shadow-xs"
-                      : "bg-white text-slate-600 hover:text-primary hover:border-primary/30 border border-slate-200/80"
+                      ? `bg-gradient-to-r ${CARD_GRADIENTS[idx % CARD_GRADIENTS.length]} text-white border-transparent shadow`
+                      : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
                   )}
                 >
-                  <Icon size={13} className={cn("transition-transform group-hover:scale-110", isSelected ? "text-white" : "text-primary")} />
-                  <span>{cat.title}</span>
-                  <span className={cn(
-                    "px-1.5 py-0.2 rounded-md text-[10px] font-black",
-                    isSelected ? "bg-white/25 text-white" : "bg-slate-100 text-slate-500 group-hover:bg-primary/10 group-hover:text-primary"
-                  )}>
+                  <Icon size={12} />
+                  {cat.title.length > 22 ? cat.title.slice(0, 22) + '…' : cat.title}
+                  <span className={cn("px-1.5 py-0.5 rounded-md text-[10px] font-black", isSelected ? "bg-white/25 text-white" : "bg-slate-100 text-slate-500")}>
                     {cat.items.length}
                   </span>
                 </button>
@@ -221,168 +172,125 @@ export default function Categories() {
         </div>
       </div>
 
-      {/* ── MAIN CONTENT AREA ── */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 sm:pt-12 space-y-10 sm:space-y-12">
+      {/* MAIN */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-8">
 
-        {/* Results count header if searching */}
         {searchQuery && (
-          <div className="flex items-center justify-between bg-white px-5 py-3 rounded-2xl border border-slate-200 shadow-2xs">
-            <p className="text-xs sm:text-sm text-slate-600 font-medium">
-              Showing matching subjects for: <strong className="text-primary font-bold">"{searchQuery}"</strong>
+          <div className="flex items-center justify-between bg-white px-5 py-3 rounded-2xl border border-slate-200 shadow-xs">
+            <p className="text-xs text-slate-600 font-medium">
+              "<strong className="text-primary">{searchQuery}</strong>" এর রেজাল্ট দেখাচ্ছে
             </p>
-            <button
-              onClick={() => setSearchQuery('')}
-              className="text-xs font-bold text-slate-500 hover:text-rose-600 transition-colors"
-            >
-              Clear filter
-            </button>
+            <button onClick={() => setSearchQuery('')} className="text-xs font-bold text-rose-500 hover:text-rose-700 cursor-pointer">Clear</button>
           </div>
         )}
 
-        {/* Categories Sections Grid */}
-        <div className="space-y-8 sm:space-y-10">
-          {filteredCategories.map((category, catIdx) => {
-            const Icon = category.icon;
+        {filteredCategories.map((category, catIdx) => {
+          const Icon = category.icon;
+          const gradient = CARD_GRADIENTS[catIdx % CARD_GRADIENTS.length];
+          const subjectBg = CARD_LIGHT_BG[catIdx % CARD_LIGHT_BG.length];
 
-            return (
-              <motion.section
-                key={category.id}
-                id={category.id}
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.05 * (catIdx % 4), duration: 0.35 }}
-                className="bg-white rounded-3xl border border-slate-200/90 shadow-sm hover:shadow-md transition-shadow p-5 sm:p-7 space-y-5"
-              >
-                {/* Category Header Row */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-                  <div className="flex items-center gap-3.5">
-                    <div className="w-11 h-11 rounded-2xl bg-teal-50 border border-teal-100 text-teal-600 flex items-center justify-center shrink-0 shadow-2xs">
-                      <Icon size={22} strokeWidth={2.2} />
+          return (
+            <motion.section
+              key={category.id} id={category.id}
+              initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }} transition={{ delay: 0.04 * (catIdx % 5), duration: 0.35 }}
+              className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden"
+            >
+              {/* Gradient Header */}
+              <div className={cn("relative bg-gradient-to-r p-6 sm:p-8 text-white overflow-hidden", gradient)}>
+                {category.image && (
+                  <div className="absolute inset-0 opacity-10" style={{ backgroundImage: `url(${category.image})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+                )}
+                <div className="absolute right-0 top-0 w-48 h-48 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/4 blur-2xl" />
+                <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center shadow-lg shrink-0">
+                      <Icon size={28} strokeWidth={2} className="text-white" />
                     </div>
                     <div>
-                      <h2 className="text-lg sm:text-xl font-display font-black text-[#001F3F] tracking-tight">
-                        {category.title}
-                      </h2>
-                      <p className="text-xs text-slate-500 font-medium">
-                        {category.items.length} Subjects & Class Modules Available
-                      </p>
+                      <h2 className="text-xl sm:text-2xl font-black text-white leading-tight">{category.title}</h2>
+                      <p className="text-sm text-white/75 font-medium mt-0.5">{category.items.length}টি বিষয় পাওয়া যাচ্ছে</p>
                     </div>
                   </div>
-
-                  {/* Actions Right */}
                   <div className="flex items-center gap-2 self-start sm:self-auto">
                     <Link
                       to={`/jobs?category=${encodeURIComponent(category.title)}`}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-primary/10 hover:text-primary text-slate-700 text-xs font-bold transition-colors"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/20 hover:bg-white/30 border border-white/30 text-white text-xs font-bold transition-all"
                     >
-                      <Briefcase size={13} className="text-slate-400" />
-                      <span>View Jobs</span>
+                      <Briefcase size={13} /> টিউশন খালি আছে
                     </Link>
-
                     <Link
                       to={`/tutors?category=${encodeURIComponent(category.title)}`}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-primary hover:bg-primary-dark text-white text-xs font-bold transition-all shadow-xs"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white text-slate-800 text-xs font-black transition-all shadow-md hover:shadow-lg active:scale-95"
                     >
-                      <Users size={13} />
-                      <span>Find Tutors</span>
-                      <ChevronRight size={13} />
+                      <Users size={13} /> টিউটর খুঁজুন <ChevronRight size={13} />
                     </Link>
                   </div>
                 </div>
+              </div>
 
-                {/* Subject Badges / Micro Cards Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5 sm:gap-3">
-                  {category.items.map((subject, itemIdx) => (
+              {/* Subject Grid */}
+              <div className="p-5 sm:p-6">
+                <p className="text-[11px] font-black uppercase text-slate-400 tracking-wider mb-3">
+                  📚 যে বিষয়গুলো শেখানো হয়
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-2.5">
+                  {category.items.map((subject: string) => (
                     <Link
                       key={subject}
                       to={`/jobs?category=${encodeURIComponent(category.title)}&search=${encodeURIComponent(subject)}`}
-                      className="group flex items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-white border border-slate-200/70 hover:border-primary/40 hover:shadow-sm transition-all duration-200"
+                      className={cn(
+                        "group flex items-center justify-between px-3.5 py-3 rounded-2xl border font-bold text-sm transition-all duration-150 active:scale-95 shadow-xs hover:shadow-md cursor-pointer",
+                        subjectBg
+                      )}
                     >
-                      <div className="flex items-center gap-2 min-w-0 pr-1">
-                        <div className="w-2 h-2 rounded-full bg-teal-400 group-hover:bg-primary group-hover:scale-125 transition-all shrink-0" />
-                        <span className="text-xs font-bold text-slate-700 group-hover:text-primary transition-colors truncate">
-                          {subject}
-                        </span>
-                      </div>
-                      <ChevronRight size={13} className="text-slate-300 group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
+                      <span className="truncate pr-1">{subject}</span>
+                      <ArrowRight size={13} className="shrink-0 opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
                     </Link>
                   ))}
                 </div>
 
-                {/* Category Bottom Prompt */}
-                <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 bg-slate-50/70 px-4 py-2.5 rounded-xl border border-slate-100">
-                  <div className="flex items-center gap-2">
-                    <ShieldCheck size={14} className="text-teal-600 shrink-0" />
-                    <span>Need a dedicated tutor for <strong>{category.title}</strong>?</span>
-                  </div>
-                  <Link
-                    to="/request-tutor"
-                    className="font-bold text-primary hover:underline inline-flex items-center gap-1"
-                  >
-                    <span>Post a Free Request</span>
-                    <ArrowRight size={12} />
+                <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-2 bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-xs text-slate-500">
+                  <span className="font-medium"><strong className="text-slate-700">{category.title}</strong> এর জন্য টিউটর দরকার?</span>
+                  <Link to="/request-tutor" className="font-black text-primary hover:text-primary-dark inline-flex items-center gap-1 whitespace-nowrap">
+                    বিনামূল্যে রিকোয়েস্ট করুন <ArrowRight size={12} />
                   </Link>
                 </div>
-              </motion.section>
-            );
-          })}
-        </div>
+              </div>
+            </motion.section>
+          );
+        })}
 
-        {/* Empty Search State */}
         {filteredCategories.length === 0 && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="text-center py-20 bg-white rounded-3xl border border-slate-200 p-8 space-y-4 max-w-lg mx-auto shadow-sm"
+            initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+            className="text-center py-20 bg-white rounded-3xl border border-slate-200 p-8 space-y-4 max-w-lg mx-auto"
           >
-            <div className="w-16 h-16 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center mx-auto border border-teal-100">
-              <Search size={30} />
-            </div>
-            <div className="space-y-1.5">
-              <h3 className="text-lg font-display font-bold text-[#001F3F]">
-                No matching subjects found
-              </h3>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                We couldn't find any subjects matching "<span className="font-semibold text-slate-700">{searchQuery}</span>". Try searching for classes, mediums, or skills.
-              </p>
-            </div>
-            <div className="pt-2">
-              <button
-                onClick={() => {
-                  setSearchQuery('');
-                  setActiveCategory(null);
-                }}
-                className="px-5 py-2 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary-dark transition-all cursor-pointer"
-              >
-                Clear Search & Show All
-              </button>
-            </div>
+            <div className="text-5xl">🔍</div>
+            <h3 className="text-lg font-black text-slate-800">কোনো বিষয় পাওয়া যায়নি</h3>
+            <p className="text-xs text-slate-500">"{searchQuery}" নামে কিছু নেই। অন্য কিছু খুঁজুন।</p>
+            <button
+              onClick={() => { setSearchQuery(''); setActiveCategory(null); }}
+              className="px-5 py-2.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary-dark transition-all cursor-pointer"
+            >
+              সব দেখুন
+            </button>
           </motion.div>
         )}
 
-        {/* ── BOTTOM CALL TO ACTION BANNER ── */}
-        <div className="rounded-3xl bg-gradient-to-r from-[#001F3F] via-[#0A2E5C] to-[#001F3F] p-6 sm:p-10 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
-          <div className="absolute right-0 top-0 w-96 h-96 bg-primary/20 rounded-full blur-3xl pointer-events-none" />
-
+        {/* Bottom CTA */}
+        <div className="rounded-3xl bg-gradient-to-r from-[#001F3F] via-[#0A2E5C] to-[#001F3F] p-8 sm:p-10 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+          <div className="absolute right-0 top-0 w-80 h-80 bg-teal-400/10 rounded-full blur-3xl pointer-events-none" />
           <div className="space-y-2 text-center md:text-left relative z-10">
-            <h3 className="text-xl sm:text-2xl font-display font-bold text-white tracking-tight">
-              Can't find your exact subject or curriculum?
-            </h3>
-            <p className="text-xs sm:text-sm text-slate-300 max-w-xl">
-              Tell us your custom learning needs. Our academic team matches you with specialized teachers within 24 hours.
-            </p>
+            <h3 className="text-xl sm:text-2xl font-black text-white">আপনার বিষয় তালিকায় নেই?</h3>
+            <p className="text-sm text-slate-300">কাস্টম রিকোয়েস্ট করুন — ২৪ ঘণ্টার মধ্যে বিশেষজ্ঞ টিউটর পেয়ে যাবেন।</p>
           </div>
-
-          <div className="flex items-center gap-3 shrink-0 relative z-10 w-full sm:w-auto justify-center">
-            <Link
-              to="/request-tutor"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-primary hover:bg-primary-dark text-white font-bold text-xs uppercase tracking-wider transition-all shadow-md active:scale-95"
-            >
-              <span>Request a Tutor Now</span>
-              <ArrowRight size={14} />
-            </Link>
-          </div>
+          <Link
+            to="/request-tutor"
+            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-primary hover:bg-primary-dark text-white font-black text-sm transition-all shadow-lg active:scale-95 shrink-0"
+          >
+            টিউটর রিকোয়েস্ট করুন <ArrowRight size={15} />
+          </Link>
         </div>
 
       </div>

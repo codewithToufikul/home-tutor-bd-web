@@ -47,7 +47,7 @@ export const TutorProfileRepository = {
     }
   },
 
-  async getAll() { return apiGet<TutorProfileRecord[]>('/tutors'); },
+  async getAll() { return apiGet<TutorProfileRecord[]>('/tutors?sortBy=createdAt&sortOrder=desc'); },
   async list(params?: Record<string, unknown>) {
     const qs = params ? '?' + new URLSearchParams(params as Record<string,string>).toString() : '';
     return apiGet<{ data: TutorProfileRecord[] }>(`/tutors${qs}`);
