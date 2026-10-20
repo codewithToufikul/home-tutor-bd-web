@@ -153,11 +153,15 @@ export default function VerifyOTP() {
           // Only coaching centers need admin approval. Tutors, Students & Guardians are auto-approved.
           if (!u.isApproved && u.role === 'coaching') {
             navigate('/pending-approval', { replace: true });
-          } else if (u.role === 'guardian') navigate('/guardian/dashboard', { replace: true });
-          else if (u.role === 'coaching') navigate('/coaching/dashboard', { replace: true });
-          else if (u.role === 'tutor') navigate('/tutor/dashboard', { replace: true });
-          else if (u.role === 'student') navigate('/student/dashboard', { replace: true });
-          else navigate('/', { replace: true });
+          } else if (u.role === 'guardian' || u.role === 'student') {
+            navigate('/student/dashboard', { replace: true });
+          } else if (u.role === 'coaching') {
+            navigate('/coaching/dashboard', { replace: true });
+          } else if (u.role === 'tutor') {
+            navigate('/tutor/dashboard', { replace: true });
+          } else {
+            navigate('/', { replace: true });
+          }
         }, 1000);
       } else {
         setTimeout(() => {

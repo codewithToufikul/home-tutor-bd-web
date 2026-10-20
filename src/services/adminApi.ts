@@ -49,7 +49,8 @@ export const adminApi = baseApi.injectEndpoints({
     }),
     getAdminApplications: builder.query({
       query: () => '/admin/applications',
-      providesTags: ['Application', 'TuitionJob'],
+      providesTags: ['Application'],
+      keepUnusedDataFor: 300,
     }),
     getPendingJobs: builder.query({
       query: () => '/admin/jobs/pending',
@@ -176,6 +177,13 @@ export const adminApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['Application', 'TuitionJob', 'AdminStats'],
     }),
+    resetToPendingAdminApplication: builder.mutation({
+      query: (id: string) => ({
+        url: `/applications/${id}/pending`,
+        method: 'PATCH',
+      }),
+      invalidatesTags: ['Application', 'TuitionJob', 'AdminStats'],
+    }),
     // Notices Management & Display
     getNotices: builder.query({
       query: (params?: { audience?: string }) => ({
@@ -282,6 +290,7 @@ export const {
   useFinalConfirmAdminApplicationMutation,
   useAcceptAdminApplicationMutation,
   useRejectAdminApplicationMutation,
+  useResetToPendingAdminApplicationMutation,
   useGetNoticesQuery,
   useGetAdminNoticesQuery,
   useCreateNoticeMutation,

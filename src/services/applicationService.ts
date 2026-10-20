@@ -20,4 +20,8 @@ export const ApplicationService = {
   async update(id: string, data: Partial<ApplicationRecord>) {
     return ApplicationRepository.update(id, data);
   },
+
+  async submitDemoFeedback(id: string, data: { demoDate: string; rating: number; comments: string; willingToContinue: boolean }) {
+    return ApplicationRepository.submitDemoFeedback(id, data);
+  },
 };

@@ -5,20 +5,23 @@ import {
   Calendar, DollarSign, CheckCircle2, XCircle, AlertCircle,
   BookOpen, Users, User, Phone, Sparkles, Filter, ExternalLink,
   ChevronDown, ChevronUp, MessageSquare, ArrowRight, ShieldCheck,
-  Check, X, Eye, CreditCard, FileText
+  Check, X, Eye, CreditCard, FileText, Star
 } from 'lucide-react';
 import TutorLayout from '@/src/components/TutorLayout.tsx';
 import { useAuth } from '@/src/context/AuthContext.tsx';
 import { ApplicationService } from '@/src/services/applicationService.ts';
 import { TuitionService } from '@/src/services/tuitionService.ts';
 import { TuitionJob } from '@/src/types';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { cn, matchFlexibleId } from '@/src/lib/utils';
 
 const ITEMS_PER_PAGE = 6;
 
 export default function TutorAppliedJobs() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const highlightParam = searchParams.get('highlight');
+
   const [activeStatusFilter, setActiveStatusFilter] = useState('All');
   const [activeMediumFilter, setActiveMediumFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -26,9 +29,21 @@ export default function TutorAppliedJobs() {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Modals / Expanded cards
+  // Modals / Expanded cards / Highlighting
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const [expandedCoverLetters, setExpandedCoverLetters] = useState<Record<string, boolean>>({});
   const [selectedJobDetails, setSelectedJobDetails] = useState<any | null>(null);
+
+  // Demo Feedback Modal State
+  const [feedbackModalJob, setFeedbackModalJob] = useState<any | null>(null);
+  const [feedbackForm, setFeedbackForm] = useState({
+    demoDate: new Date().toISOString().split('T')[0],
+    rating: 5,
+    willingToContinue: true,
+    comments: '',
+  });
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+  const [feedbackSuccessMsg, setFeedbackSuccessMsg] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchApplied = async () => {
@@ -113,6 +128,7 @@ export default function TutorAppliedJobs() {
             studentGender: job?.studentGender || 'Student',
             numStudents: job?.numberOfStudents || 1,
             coverLetter: a.coverLetter || a.message || '',
+            demoFeedback: a.demoFeedback || null,
             fullJob: job,
           };
         });
@@ -130,6 +146,83 @@ export default function TutorAppliedJobs() {
 
     fetchApplied();
   }, [user]);
+
+  // Auto-scroll and highlight target application when accessed via notification deep-link
+  useEffect(() => {
+    if (!highlightParam || appliedJobs.length === 0) return;
+
+    const targetJob = appliedJobs.find(
+      (j) =>
+        j.applicationId === highlightParam ||
+        j.id === highlightParam ||
+        matchFlexibleId(j.customId, highlightParam) ||
+        matchFlexibleId(j.id, highlightParam)
+    );
+
+    if (targetJob) {
+      // If the target job is in Demo status and current filter hides it, switch to 'All' or 'Demo'
+      if (
+        (targetJob.status === 'demo_confirmed' || targetJob.status === 'demo_completed') &&
+        activeStatusFilter !== 'All' &&
+        activeStatusFilter !== 'Demo'
+      ) {
+        setActiveStatusFilter('Demo');
+      }
+
+      setHighlightedId(targetJob.applicationId);
+
+      // Smooth scroll to the target application card
+      setTimeout(() => {
+        const el = document.getElementById(`app-card-${targetJob.applicationId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 350);
+
+      const timer = setTimeout(() => {
+        setHighlightedId(null);
+      }, 8000);
+      return () => clearTimeout(timer);
+    }
+  }, [highlightParam, appliedJobs, activeStatusFilter]);
+
+  // Handle Demo Feedback Submission
+  const handleSubmitFeedback = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!feedbackModalJob?.applicationId) return;
+
+    setIsSubmittingFeedback(true);
+    try {
+      await ApplicationService.submitDemoFeedback(feedbackModalJob.applicationId, feedbackForm);
+      setFeedbackSuccessMsg('ডেমো ক্লাসের ফিডব্যাক সফলভাবে সংরক্ষিত হয়েছে! ধন্যবাদ।');
+
+      // Update state locally
+      setAppliedJobs((prev) =>
+        prev.map((j) =>
+          j.applicationId === feedbackModalJob.applicationId
+            ? {
+                ...j,
+                status: 'demo_completed',
+                demoFeedback: {
+                  ...feedbackForm,
+                  status: 'submitted',
+                  submittedAt: new Date().toISOString(),
+                },
+              }
+            : j
+        )
+      );
+
+      setTimeout(() => {
+        setFeedbackSuccessMsg(null);
+        setFeedbackModalJob(null);
+      }, 1500);
+    } catch (err: any) {
+      alert(err?.response?.data?.message || err?.message || 'ফিডব্যাক জমা দিতে সমস্যা হয়েছে।');
+    } finally {
+      setIsSubmittingFeedback(false);
+    }
+  };
 
   // Toggle Cover Letter expanded
   const toggleCoverLetter = (appId: string) => {
@@ -389,6 +482,7 @@ export default function TutorAppliedJobs() {
                 return (
                   <motion.div
                     key={job.applicationId || job.id}
+                    id={`app-card-${job.applicationId}`}
                     layout
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -396,13 +490,35 @@ export default function TutorAppliedJobs() {
                     transition={{ delay: index * 0.04 }}
                     className={cn(
                       'group bg-white/85 backdrop-blur-xl p-4 sm:p-6 md:p-7 rounded-2xl sm:rounded-[32px] border shadow-lg sm:shadow-xl shadow-ink/5 hover:shadow-2xl hover:shadow-ink/10 transition-all duration-300 space-y-4 sm:space-y-5',
-                      job.status === 'accepted' || job.status === 'hired'
+                      highlightedId === job.applicationId
+                        ? 'ring-4 ring-purple-500 shadow-2xl scale-[1.01] border-purple-400 bg-purple-50/20'
+                        : job.status === 'accepted' || job.status === 'hired'
                         ? 'border-emerald-300/80 bg-gradient-to-r from-emerald-50/30 via-white to-white'
+                        : job.status === 'demo_confirmed' || job.status === 'demo_completed'
+                        ? 'border-purple-300/80 bg-gradient-to-r from-purple-50/25 via-white to-white'
                         : job.status === 'shortlisted'
                         ? 'border-purple-300/80 bg-gradient-to-r from-purple-50/20 via-white to-white'
                         : 'border-white/60'
                     )}
                   >
+                    {/* Deep-link notification highlight banner */}
+                    {highlightedId === job.applicationId && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="p-3 bg-gradient-to-r from-purple-600 via-indigo-600 to-primary text-white rounded-xl sm:rounded-2xl flex items-center justify-between gap-2 shadow-md shadow-purple-600/20"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-base sm:text-lg">🎯</span>
+                          <span className="text-xs sm:text-sm font-black">
+                            নোটিফিকেশন থেকে নির্বাচিত টিউশন — অভিভাবকের ফোন নম্বর নিচে সরাসরি আনলক হয়েছে!
+                          </span>
+                        </div>
+                        <span className="text-[10px] uppercase font-black bg-white/20 px-2 py-0.5 rounded-full shrink-0">
+                          Unlocked
+                        </span>
+                      </motion.div>
+                    )}
                     {/* Top Row: Job ID & Status Badge */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-ink/5 pb-3 sm:pb-4">
                       <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
@@ -578,6 +694,92 @@ export default function TutorAppliedJobs() {
                         </div>
                       )}
 
+                      {/* Demo Class Feedback Card (Visible when Demo Confirmed or Demo Completed) */}
+                      {(job.status === 'demo_confirmed' || job.status === 'demo_completed') && (
+                        <div className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-gradient-to-br from-purple-50/90 via-indigo-50/40 to-white border border-purple-200/90 shadow-2xs space-y-2.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-purple-900 flex items-center gap-1.5">
+                              <Sparkles size={13} className="text-purple-600" />
+                              ডেমো ক্লাসের অভিজ্ঞতা ও ফিডব্যাক (Demo Class Feedback)
+                            </span>
+                            {job.demoFeedback && (
+                              <span className="text-[10px] font-black bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
+                                <CheckCircle2 size={11} /> ফিডব্যাক সংরক্ষিত
+                              </span>
+                            )}
+                          </div>
+
+                          {job.demoFeedback ? (
+                            <div className="bg-white p-3 rounded-xl border border-purple-100 shadow-2xs space-y-2">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <div className="flex items-center gap-1.5">
+                                  <div className="flex items-center text-amber-500">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                      <Star
+                                        key={star}
+                                        size={14}
+                                        className={star <= (job.demoFeedback.rating || 5) ? 'fill-amber-400 text-amber-500' : 'text-slate-200'}
+                                      />
+                                    ))}
+                                  </div>
+                                  <span className="text-xs font-black text-ink">{job.demoFeedback.rating || 5}/5</span>
+                                </div>
+                                <span className={`text-[11px] font-black px-2 py-0.5 rounded-md ${
+                                  job.demoFeedback.willingToContinue ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+                                }`}>
+                                  {job.demoFeedback.willingToContinue ? '✅ নিয়মিত পড়াতে আগ্রহী' : '❌ আগ্রহী নন'}
+                                </span>
+                              </div>
+                              {job.demoFeedback.comments && (
+                                <p className="text-xs text-ink/80 italic bg-purple-50/40 p-2 rounded-lg border border-purple-100/50">
+                                  "{job.demoFeedback.comments}"
+                                </p>
+                              )}
+                              <div className="flex items-center justify-between pt-1 text-[10px] text-ink-muted">
+                                <span>তারিখ: {job.demoFeedback.demoDate ? new Date(job.demoFeedback.demoDate).toLocaleDateString('en-GB') : 'N/A'}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setFeedbackForm({
+                                      demoDate: job.demoFeedback.demoDate ? new Date(job.demoFeedback.demoDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                                      rating: job.demoFeedback.rating || 5,
+                                      willingToContinue: job.demoFeedback.willingToContinue ?? true,
+                                      comments: job.demoFeedback.comments || '',
+                                    });
+                                    setFeedbackModalJob(job);
+                                  }}
+                                  className="text-purple-700 hover:text-purple-900 font-bold underline cursor-pointer"
+                                >
+                                  ফিডব্যাক আপডেট করুন
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-xl border border-purple-100 shadow-2xs">
+                              <p className="text-xs text-purple-950 font-medium leading-relaxed">
+                                অভিভাবকের সাথে ডেমো ক্লাস শেষ করেছেন? ডেমো ক্লাসের অভিজ্ঞতা ও রেটিং জমা দিন যাতে অভিভাবক ও এডমিন দ্রুত চূড়ান্ত কনফার্ম করতে পারে।
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setFeedbackForm({
+                                    demoDate: new Date().toISOString().split('T')[0],
+                                    rating: 5,
+                                    willingToContinue: true,
+                                    comments: '',
+                                  });
+                                  setFeedbackModalJob(job);
+                                }}
+                                className="px-3.5 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-purple-600/20 transition-all cursor-pointer shrink-0 active:scale-95"
+                              >
+                                <Sparkles size={13} />
+                                <span>ডেমো ফিডব্যাক দিন</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       {/* Salary & Action Row */}
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-4 bg-slate-50/90 rounded-xl sm:rounded-2xl border border-slate-100">
                         <div className="space-y-0.5">
@@ -593,6 +795,34 @@ export default function TutorAppliedJobs() {
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2">
+                          {(job.status === 'demo_confirmed' || job.status === 'demo_completed') && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (job.demoFeedback) {
+                                  setFeedbackForm({
+                                    demoDate: job.demoFeedback.demoDate ? new Date(job.demoFeedback.demoDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                                    rating: job.demoFeedback.rating || 5,
+                                    willingToContinue: job.demoFeedback.willingToContinue ?? true,
+                                    comments: job.demoFeedback.comments || '',
+                                  });
+                                } else {
+                                  setFeedbackForm({
+                                    demoDate: new Date().toISOString().split('T')[0],
+                                    rating: 5,
+                                    willingToContinue: true,
+                                    comments: '',
+                                  });
+                                }
+                                setFeedbackModalJob(job);
+                              }}
+                              className="flex-1 sm:flex-none px-3.5 py-2 sm:py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-black text-xs flex items-center justify-center gap-1.5 shadow-sm shadow-purple-600/20 transition-all cursor-pointer active:scale-95"
+                            >
+                              <Sparkles size={13} />
+                              <span>{job.demoFeedback ? 'ফিডব্যাক দেখুন' : 'ডেমো ফিডব্যাক'}</span>
+                            </button>
+                          )}
+
                           {job.applicationId && (
                             <button
                               type="button"
@@ -973,6 +1203,179 @@ export default function TutorAppliedJobs() {
                     Close
                   </button>
                 </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* Demo Feedback Submission Modal */}
+        <AnimatePresence>
+          {feedbackModalJob && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60 backdrop-blur-sm overflow-y-auto">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                className="bg-white rounded-3xl p-5 sm:p-7 max-w-lg w-full shadow-2xl border border-purple-100 space-y-5 my-8"
+              >
+                {/* Modal Header */}
+                <div className="flex items-center justify-between border-b border-ink/5 pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center">
+                      <Sparkles size={20} />
+                    </div>
+                    <div>
+                      <h3 className="text-base sm:text-lg font-black text-ink">ডেমো ক্লাস ফিডব্যাক</h3>
+                      <p className="text-xs text-ink-muted">
+                        টিউশন #{feedbackModalJob.customId} • {feedbackModalJob.studentClass} ({feedbackModalJob.medium})
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setFeedbackModalJob(null)}
+                    className="p-1.5 text-ink-muted hover:text-ink rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                {feedbackSuccessMsg ? (
+                  <div className="py-8 text-center space-y-3">
+                    <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                      <CheckCircle2 size={32} />
+                    </div>
+                    <p className="text-sm font-black text-emerald-800">{feedbackSuccessMsg}</p>
+                  </div>
+                ) : (
+                  <form onSubmit={handleSubmitFeedback} className="space-y-4">
+                    {/* Star Rating Selector */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-black text-ink block">
+                        ডেমো ক্লাসের সার্বিক রেটিং / সন্তুষ্টি <span className="text-rose-500">*</span>
+                      </label>
+                      <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                        <div className="flex items-center gap-1.5">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <button
+                              type="button"
+                              key={star}
+                              onClick={() => setFeedbackForm((f) => ({ ...f, rating: star }))}
+                              className="p-1 text-amber-400 hover:scale-125 transition-transform cursor-pointer"
+                              title={`${star} Star`}
+                            >
+                              <Star
+                                size={26}
+                                className={star <= feedbackForm.rating ? 'fill-amber-400 text-amber-500' : 'text-slate-300'}
+                              />
+                            </button>
+                          ))}
+                        </div>
+                        <span className="text-sm font-black text-ink ml-2">
+                          {feedbackForm.rating === 5 && '🌟 চমৎকার (5/5)'}
+                          {feedbackForm.rating === 4 && '👍 ভালো (4/5)'}
+                          {feedbackForm.rating === 3 && '👌 সন্তোষজনক (3/5)'}
+                          {feedbackForm.rating === 2 && '⚠️ গড়পড়তা (2/5)'}
+                          {feedbackForm.rating === 1 && '👎 অসন্তোষজনক (1/5)'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Demo Date */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-black text-ink block">
+                        ডেমো ক্লাস নেওয়ার তারিখ <span className="text-rose-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="date"
+                          value={feedbackForm.demoDate}
+                          onChange={(e) => setFeedbackForm((f) => ({ ...f, demoDate: e.target.value }))}
+                          required
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-ink focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Willing to Continue Toggle */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-black text-ink block">
+                        আপনি কি এই টিউশনটিতে নিয়মিত পড়াতে আগ্রহী? <span className="text-rose-500">*</span>
+                      </label>
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <button
+                          type="button"
+                          onClick={() => setFeedbackForm((f) => ({ ...f, willingToContinue: true }))}
+                          className={cn(
+                            'p-3 rounded-xl border text-xs font-black flex items-center justify-center gap-2 cursor-pointer transition-all',
+                            feedbackForm.willingToContinue
+                              ? 'bg-emerald-50 border-emerald-400 text-emerald-800 shadow-xs'
+                              : 'bg-slate-50 border-slate-200 text-ink-muted hover:border-emerald-200'
+                          )}
+                        >
+                          <Check size={14} className={feedbackForm.willingToContinue ? 'text-emerald-600' : ''} />
+                          <span>হ্যাঁ, নিয়মিত পড়াতে আগ্রহী</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setFeedbackForm((f) => ({ ...f, willingToContinue: false }))}
+                          className={cn(
+                            'p-3 rounded-xl border text-xs font-black flex items-center justify-center gap-2 cursor-pointer transition-all',
+                            !feedbackForm.willingToContinue
+                              ? 'bg-rose-50 border-rose-400 text-rose-800 shadow-xs'
+                              : 'bg-slate-50 border-slate-200 text-ink-muted hover:border-rose-200'
+                          )}
+                        >
+                          <X size={14} className={!feedbackForm.willingToContinue ? 'text-rose-600' : ''} />
+                          <span>না, চালিয়ে যেতে পারছি না</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Comments */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-black text-ink block">
+                        আপনার মন্তব্য ও অভিজ্ঞতা (ঐচ্ছিক)
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={feedbackForm.comments}
+                        onChange={(e) => setFeedbackForm((f) => ({ ...f, comments: e.target.value }))}
+                        placeholder="ছাত্রের সাথে ক্লাস কেমন হলো? অভিভাবকের রেসপন্স কেমন ছিল? কোনো বিশেষ কথা থাকলে লিখুন..."
+                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-ink placeholder:text-ink-muted/60 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 resize-none"
+                      />
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="pt-2 flex items-center justify-end gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => setFeedbackModalJob(null)}
+                        disabled={isSubmittingFeedback}
+                        className="px-4 py-2.5 border border-slate-200 hover:bg-slate-100 text-ink rounded-xl font-bold text-xs cursor-pointer transition-colors"
+                      >
+                        বাতিল
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isSubmittingFeedback}
+                        className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-black text-xs shadow-md shadow-purple-600/20 cursor-pointer transition-all active:scale-95 disabled:opacity-50 flex items-center gap-1.5"
+                      >
+                        {isSubmittingFeedback ? (
+                          <>
+                            <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            <span>জমা হচ্ছে...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles size={14} />
+                            <span>ফিডব্যাক জমা দিন</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                )}
               </motion.div>
             </div>
           )}

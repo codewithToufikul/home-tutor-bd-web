@@ -6,6 +6,7 @@ import {
   UserCircle,
   Building2,
   Mail,
+  Phone,
   Lock,
   Eye,
   EyeOff,
@@ -20,7 +21,7 @@ import { cn } from '@/src/lib/utils';
 import authIllustration from '@/src/lib/auth-illustration.png';
 
 export default function Login() {
-  const [userType, setUserType] = useState<'tutor' | 'student' | 'guardian' | 'coaching'>('tutor');
+  const [userType, setUserType] = useState<'tutor' | 'guardian' | 'coaching'>('tutor');
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -46,13 +47,14 @@ export default function Login() {
     setIsSubmitting(true);
 
     try {
-      const loggedUser: any = await login(formData.email.trim(), formData.password, userType);
+      const backendRole = userType === 'guardian' ? 'student' : userType;
+      const loggedUser: any = await login(formData.email.trim(), formData.password, backendRole);
 
       // Determine true role from login response, falling back to selected userType
-      const role = loggedUser?.role || userType;
+      const role = loggedUser?.role || backendRole;
 
-      if (role === 'guardian') {
-        navigate('/guardian/dashboard', { replace: true });
+      if (role === 'guardian' || role === 'student') {
+        navigate('/student/dashboard', { replace: true });
       } else if (role === 'coaching') {
         if (loggedUser && !loggedUser.isApproved) {
           navigate('/pending-approval', { replace: true });
@@ -135,10 +137,9 @@ export default function Login() {
               )}
 
               {/* Role Toggle Bar */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-slate-100 p-1.5 rounded-xl sm:rounded-2xl mb-5 sm:mb-6 border border-slate-200/60">
+              <div className="grid grid-cols-3 gap-1.5 bg-slate-100 p-1.5 rounded-xl sm:rounded-2xl mb-5 sm:mb-6 border border-slate-200/60">
                 {[
                   { id: 'tutor', label: 'Tutor', icon: GraduationCap, activeColor: 'text-emerald-700 border-emerald-400 shadow-emerald-600/10' },
-                  { id: 'student', label: 'Student', icon: User, activeColor: 'text-blue-700 border-blue-400 shadow-blue-600/10' },
                   { id: 'guardian', label: 'Guardian', icon: UserCircle, activeColor: 'text-teal-700 border-teal-400 shadow-teal-600/10' },
                   { id: 'coaching', label: 'Coaching', icon: Building2, activeColor: 'text-purple-700 border-purple-400 shadow-purple-600/10' },
                 ].map((role) => {
@@ -172,7 +173,7 @@ export default function Login() {
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                      <Mail size={17} />
+                      {formData.email.replace(/\D/g, '').length >= 3 ? <Phone size={17} /> : <Mail size={17} />}
                     </div>
                     <input
                       id="email"
@@ -245,9 +246,8 @@ export default function Login() {
                     className={cn(
                       "w-full flex justify-center items-center gap-2 py-3.5 sm:py-4 px-4 rounded-xl sm:rounded-2xl shadow-lg font-bold text-white text-sm transition-all active:scale-98 disabled:opacity-50 cursor-pointer",
                       userType === 'tutor' ? "bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 shadow-emerald-600/25" :
-                        userType === 'student' ? "bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 shadow-blue-600/25" :
-                          userType === 'guardian' ? "bg-gradient-to-r from-teal-600 to-emerald-700 hover:from-teal-700 hover:to-emerald-800 shadow-teal-600/25" :
-                            "bg-gradient-to-r from-purple-600 to-indigo-700 hover:from-purple-700 hover:to-indigo-800 shadow-purple-600/25"
+                        userType === 'guardian' ? "bg-gradient-to-r from-teal-600 to-emerald-700 hover:from-teal-700 hover:to-emerald-800 shadow-teal-600/25" :
+                          "bg-gradient-to-r from-purple-600 to-indigo-700 hover:from-purple-700 hover:to-indigo-800 shadow-purple-600/25"
                     )}
                   >
                     {isSubmitting ? (

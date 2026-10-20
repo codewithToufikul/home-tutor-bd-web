@@ -24,7 +24,7 @@ import { DISTRICT_WISE_AREAS } from '@/src/constants';
 import authIllustration from '@/src/lib/auth-illustration.png';
 
 export default function Register() {
-  const [userType, setUserType] = useState<'tutor' | 'student' | 'guardian' | 'coaching'>('tutor');
+  const [userType, setUserType] = useState<'tutor' | 'guardian' | 'coaching'>('tutor');
   const [formData, setFormData] = useState({
     name: '',
     gender: 'Male',
@@ -77,7 +77,7 @@ export default function Register() {
         formData.name.trim(), 
         formData.email.trim(), 
         formData.password, 
-        userType,
+        userType === 'guardian' ? 'student' : userType,
         {
           phone: formData.phone.trim(),
           location: formData.location || formData.preferredArea || formData.district,
@@ -149,7 +149,7 @@ export default function Register() {
               )}
 
               {/* Role Toggle Bar - Native Segmented Control */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-slate-100/90 p-1.5 rounded-2xl mb-5 sm:mb-6 border border-slate-200/60 shadow-inner">
+              <div className="grid grid-cols-3 gap-1.5 bg-slate-100/90 p-1.5 rounded-2xl mb-5 sm:mb-6 border border-slate-200/60 shadow-inner">
                 <button
                   type="button"
                   onClick={() => setUserType('tutor')}
@@ -162,19 +162,6 @@ export default function Register() {
                 >
                   <GraduationCap size={15} />
                   <span>Tutor</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setUserType('student')}
-                  className={cn(
-                    "flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95",
-                    userType === 'student' 
-                      ? "bg-white text-blue-600 shadow-sm shadow-blue-600/10 border border-blue-200" 
-                      : "text-ink-muted hover:text-ink"
-                  )}
-                >
-                  <User size={15} />
-                  <span>Student</span>
                 </button>
                 <button
                   type="button"
@@ -432,7 +419,7 @@ export default function Register() {
                   )}
 
                   {/* Location & District Fields for Tutors & Guardians */}
-                  {(userType === 'tutor' || userType === 'guardian' || userType === 'student') && (
+                  {(userType === 'tutor' || userType === 'guardian') && (
                     <>
                       <div>
                         <label className={labelClasses}>District <span className="text-rose-500 font-black">*</span></label>
@@ -564,7 +551,6 @@ export default function Register() {
                     className={cn(
                       "w-full flex justify-center items-center gap-2 py-3.5 sm:py-4 px-4 rounded-xl sm:rounded-2xl shadow-lg font-bold text-white text-sm sm:text-base transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer",
                       userType === 'tutor' ? "bg-primary hover:bg-primary-dark shadow-primary/25" :
-                      userType === 'student' ? "bg-blue-600 hover:bg-blue-700 shadow-blue-600/25" :
                       userType === 'guardian' ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/25" :
                       "bg-purple-600 hover:bg-purple-700 shadow-purple-600/25"
                     )}

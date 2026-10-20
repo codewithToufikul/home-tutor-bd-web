@@ -26,4 +26,8 @@ export const ApplicationRepository = {
   async finalConfirm(id: string) { return apiPatch(`/applications/${id}/final-confirm`, {}); },
   async accept(id: string) { return apiPatch(`/applications/${id}/final-confirm`, {}); },
   async reject(id: string) { return apiPatch(`/applications/${id}/reject`, {}); },
+  async setPending(id: string) { return apiPatch(`/applications/${id}/pending`, {}); },
+  async submitDemoFeedback(id: string, data: { demoDate: string; rating: number; comments: string; willingToContinue: boolean }) {
+    return apiPatch(`/applications/${id}/demo-feedback`, data);
+  },
 };

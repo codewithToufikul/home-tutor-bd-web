@@ -118,7 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string, _role?: AuthRole) => {
     try {
-      const response = await loginMutation({ email, password }).unwrap();
+      const response = await loginMutation({ email, password, role: _role }).unwrap();
       const { accessToken, user } = response.data;
       dispatch(
         setCredentials({

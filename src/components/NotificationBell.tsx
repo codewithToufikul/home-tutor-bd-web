@@ -218,6 +218,12 @@ export default function NotificationBell({ role }: { role?: string }) {
 
     setIsOpen(false);
 
+    // If notification has a specific deep link (e.g. /tutor/applied?highlight=xyz), navigate directly
+    if (notif.link) {
+      navigate(notif.link);
+      return;
+    }
+
     // Resolve role — support both direct prop and staff sub-roles
     const resolvedRole = role ?? 'student';
     const destination = getNotificationRoute(notif.type ?? '', resolvedRole);

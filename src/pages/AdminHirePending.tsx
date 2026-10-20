@@ -172,6 +172,7 @@ export default function AdminHirePending() {
         posterRole: postedBy.role || (isGuestRequest ? 'guardian' : 'student'),
         universityPreference,
         detailedAddress,
+        demoFeedback: a.demoFeedback || null,
 
         // Tutor (Applicant) Details
         tutor: {
@@ -339,7 +340,9 @@ export default function AdminHirePending() {
                 </div>
                 <div>
                   <p className="text-[9px] sm:text-[10px] font-bold text-ink-muted uppercase tracking-wider truncate">{card.label}</p>
-                  <p className="text-xl sm:text-2xl font-display font-black text-ink tabular-nums">{card.count}</p>
+                  <p className="text-xl sm:text-2xl font-display font-black text-ink tabular-nums">
+                    {isLoading ? <span className="inline-block w-8 h-6 bg-gray-200/80 animate-pulse rounded-md" /> : card.count}
+                  </p>
                 </div>
               </motion.div>
             );
@@ -466,7 +469,7 @@ export default function AdminHirePending() {
         </AnimatePresence>
 
         {/* 📋 4. Main Applications Audit Table */}
-        {activeTab === 'guest_requests' && filteredApplications.length === 0 ? (
+        {!isLoading && activeTab === 'guest_requests' && filteredApplications.length === 0 ? (
           <div className="bg-white/80 backdrop-blur-xl p-8 sm:p-12 rounded-[24px] sm:rounded-[32px] border border-white/60 shadow-xl shadow-ink/5 text-center space-y-4">
             <div className="w-14 h-14 sm:w-16 sm:h-16 bg-teal-50 text-teal-600 rounded-3xl flex items-center justify-center mx-auto shadow-inner">
               <Globe size={28} className="sm:hidden" />
@@ -479,7 +482,7 @@ export default function AdminHirePending() {
               </p>
             </div>
           </div>
-        ) : activeTab === 'my_requests' && filteredApplications.length === 0 ? (
+        ) : !isLoading && activeTab === 'my_requests' && filteredApplications.length === 0 ? (
           <div className="bg-white/80 backdrop-blur-xl p-8 sm:p-12 rounded-[24px] sm:rounded-[32px] border border-white/60 shadow-xl shadow-ink/5 text-center space-y-4">
             <div className="w-14 h-14 sm:w-16 sm:h-16 bg-purple-50 text-purple-600 rounded-3xl flex items-center justify-center mx-auto shadow-inner">
               <Inbox size={28} className="sm:hidden" />
@@ -519,9 +522,45 @@ export default function AdminHirePending() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-ink/5">
-                    <AnimatePresence mode="popLayout">
-                      {paginatedApplications.length > 0 ? (
-                        paginatedApplications.map((app, index) => {
+                    {isLoading ? (
+                      Array.from({ length: 6 }).map((_, i) => (
+                        <tr key={i} className="animate-pulse border-b border-ink/5">
+                          <td className="px-6 py-4"><div className="h-4 w-4 bg-gray-200 rounded" /></td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-2xl bg-gray-200 shrink-0" />
+                              <div className="space-y-1.5 flex-1">
+                                <div className="h-4 w-28 bg-gray-200 rounded" />
+                                <div className="h-3 w-20 bg-gray-200 rounded" />
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="space-y-1.5">
+                              <div className="h-4 w-24 bg-gray-200 rounded" />
+                              <div className="h-3 w-16 bg-gray-200 rounded" />
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="space-y-1.5">
+                              <div className="h-4 w-32 bg-gray-200 rounded" />
+                              <div className="h-3 w-24 bg-gray-200 rounded" />
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="space-y-1.5">
+                              <div className="h-4 w-16 bg-gray-200 rounded" />
+                              <div className="h-3 w-20 bg-gray-200 rounded" />
+                            </div>
+                          </td>
+                          <td className="px-6 py-4"><div className="h-6 w-20 bg-gray-200 rounded-full" /></td>
+                          <td className="px-6 py-4 text-right"><div className="h-8 w-24 bg-gray-200 rounded-xl ml-auto" /></td>
+                        </tr>
+                      ))
+                    ) : (
+                      <AnimatePresence mode="popLayout">
+                        {paginatedApplications.length > 0 ? (
+                          paginatedApplications.map((app, index) => {
                           const isAccepted = app.status === 'accepted';
                           const isPending = app.status === 'pending' || app.status === 'shortlisted';
                           const isStaffJob = app.isAdminPosted;
@@ -701,9 +740,17 @@ export default function AdminHirePending() {
                                     )} />
                                     {app.status === 'accepted' ? 'Deal Done 🎉' :
                                       app.status === 'demo_confirmed' ? 'Demo Confirmed 🎯' :
-                                        app.status === 'demo_completed' ? 'Demo Done' :
+                                        app.status === 'demo_completed' ? 'Demo Completed' :
                                           isPending ? (isStaffJob ? 'Staff Review' : app.isGuestRequest ? 'Guest Job' : 'Pending Review') : 'Rejected'}
                                   </span>
+
+                                  {app.demoFeedback && (
+                                    <div className="pt-1">
+                                      <span className="px-2 py-0.5 rounded-md text-[9px] font-black bg-purple-100 text-purple-800 border border-purple-200 inline-flex items-center gap-1 shadow-2xs">
+                                        ⭐ {app.demoFeedback.rating}/5 Feedback ({app.demoFeedback.willingToContinue ? 'সন্তুষ্ট' : 'অনাগ্রহী'})
+                                      </span>
+                                    </div>
+                                  )}
                                 </div>
                               </td>
 
@@ -743,7 +790,7 @@ export default function AdminHirePending() {
                                     </>
                                   )}
 
-                                  {app.status === 'demo_confirmed' && (
+                                  {(app.status === 'demo_confirmed' || app.status === 'demo_completed') && (
                                     <>
                                       <button
                                         onClick={() => handleFinalConfirmApp(app.id)}
@@ -799,6 +846,7 @@ export default function AdminHirePending() {
                         </tr>
                       )}
                     </AnimatePresence>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -806,7 +854,21 @@ export default function AdminHirePending() {
 
             {/* 📱 5. Mobile Cards View */}
             <div className="grid grid-cols-1 gap-3 md:hidden">
-              {paginatedApplications.length > 0 ? (
+              {isLoading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="p-4 rounded-3xl bg-white/80 border border-white/60 shadow-lg space-y-3.5 animate-pulse">
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-2xl bg-gray-200 shrink-0" />
+                      <div className="space-y-1.5 flex-1">
+                        <div className="h-4 w-32 bg-gray-200 rounded" />
+                        <div className="h-3 w-20 bg-gray-200 rounded" />
+                      </div>
+                    </div>
+                    <div className="h-16 bg-gray-100 rounded-2xl" />
+                    <div className="h-10 bg-gray-100 rounded-xl" />
+                  </div>
+                ))
+              ) : paginatedApplications.length > 0 ? (
                 paginatedApplications.map((app, index) => {
                   const isAccepted = app.status === 'accepted';
                   const isPending = app.status === 'pending' || app.status === 'shortlisted';
@@ -1313,6 +1375,60 @@ export default function AdminHirePending() {
                     </div>
                   </div>
                 </div>
+
+                {/* Tutor Demo Feedback Card in Admin Inspector */}
+                {selectedApp.demoFeedback && (
+                  <div className="p-4 sm:p-5 bg-gradient-to-br from-purple-50 via-indigo-50/50 to-white border border-purple-200/90 rounded-3xl space-y-3">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-purple-900 flex items-center gap-1.5">
+                        <Sparkles size={13} className="text-purple-600" />
+                        📋 ডেমো ক্লাসের ফিডব্যাক (Tutor Submitted Feedback)
+                      </span>
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black ${
+                        selectedApp.demoFeedback.willingToContinue
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                          : 'bg-rose-100 text-rose-800 border border-rose-200'
+                      }`}>
+                        {selectedApp.demoFeedback.willingToContinue ? '✅ টিউটর নিয়মিত পড়াতে আগ্রহী' : '❌ টিউটর আগ্রহী নন'}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
+                      <div className="p-2.5 bg-white rounded-xl border border-purple-100 shadow-2xs">
+                        <p className="text-[9px] font-bold text-ink-muted uppercase">টিচার রেটিং</p>
+                        <p className="font-black text-amber-500 text-sm flex items-center gap-1 pt-0.5">
+                          <Star size={13} className="fill-amber-400 text-amber-500" />
+                          <span>{selectedApp.demoFeedback.rating || 5} / 5</span>
+                        </p>
+                      </div>
+                      <div className="p-2.5 bg-white rounded-xl border border-purple-100 shadow-2xs">
+                        <p className="text-[9px] font-bold text-ink-muted uppercase">ডেমো ক্লাসের তারিখ</p>
+                        <p className="font-black text-ink text-xs pt-0.5">
+                          {selectedApp.demoFeedback.demoDate
+                            ? new Date(selectedApp.demoFeedback.demoDate).toLocaleDateString('en-GB')
+                            : 'N/A'}
+                        </p>
+                      </div>
+                      <div className="p-2.5 bg-white rounded-xl border border-purple-100 shadow-2xs col-span-2 sm:col-span-1">
+                        <p className="text-[9px] font-bold text-ink-muted uppercase">জমা দেওয়ার সময়</p>
+                        <p className="font-black text-ink text-xs pt-0.5">
+                          {selectedApp.demoFeedback.submittedAt
+                            ? new Date(selectedApp.demoFeedback.submittedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+                            : 'সম্প্রতি'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {selectedApp.demoFeedback.comments && (
+                      <div className="bg-white p-3 rounded-xl border border-purple-100 space-y-1 shadow-2xs">
+                        <p className="text-[9px] font-bold text-purple-900 uppercase">টিউটরের মন্তব্য ও অভিজ্ঞতা:</p>
+                        <p className="text-xs text-ink italic leading-relaxed">
+                          "{selectedApp.demoFeedback.comments}"
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Tuition Job Details Card */}
                 <div className="p-4 sm:p-5 bg-gray-50 rounded-3xl space-y-3 text-xs">

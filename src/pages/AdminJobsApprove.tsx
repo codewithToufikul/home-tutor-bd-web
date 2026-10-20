@@ -6,7 +6,7 @@ import {
   CheckCircle2, XCircle, AlertCircle, Eye, ToggleLeft,
   ToggleRight, Phone, Mail, Calendar, Sparkles,
   ExternalLink, Filter, ShieldCheck, ShieldAlert, Star, MessageSquare, MessageCircle,
-  Check, X, Loader2, ArrowRight, UserCheck, Pencil, Lock
+  Check, X, Loader2, ArrowRight, UserCheck, Pencil, Lock, RotateCcw
 } from 'lucide-react';
 import AdminLayout from '@/src/components/AdminLayout.tsx';
 import { cn, matchFlexibleId } from '@/src/lib/utils';
@@ -15,7 +15,11 @@ import AdminEditJobModal from '@/src/components/admin/AdminEditJobModal';
 import {
   useGetAllTuitionJobsQuery,
   useUpdateJobStatusMutation,
-  useDeleteJobMutation
+  useDeleteJobMutation,
+  useDemoConfirmAdminApplicationMutation,
+  useFinalConfirmAdminApplicationMutation,
+  useRejectAdminApplicationMutation,
+  useResetToPendingAdminApplicationMutation,
 } from '@/src/services/adminApi.ts';
 import { TuitionRepository } from '@/src/repositories/tuitionRepository.ts';
 import { DEFAULT_PROFILE_IMAGE } from '@/src/constants';
@@ -73,6 +77,13 @@ export default function AdminJobsApprove() {
   const { data: jobsData, isLoading, refetch } = useGetAllTuitionJobsQuery(undefined);
   const [updateJobStatus, { isLoading: isUpdatingStatus }] = useUpdateJobStatusMutation();
   const [deleteJobMutation, { isLoading: isDeleting }] = useDeleteJobMutation();
+  const [demoConfirmApp] = useDemoConfirmAdminApplicationMutation();
+  const [finalConfirmApp] = useFinalConfirmAdminApplicationMutation();
+  const [rejectApp] = useRejectAdminApplicationMutation();
+  const [resetToPendingApp] = useResetToPendingAdminApplicationMutation();
+
+  const [actionLoadingAppId, setActionLoadingAppId] = useState<string | null>(null);
+  const [actionType, setActionType] = useState<string | null>(null);
 
   // Normalize backend jobs to rich view models
   const allJobs: any[] = useMemo(() => {
@@ -337,21 +348,81 @@ export default function AdminJobsApprove() {
     setSelectedJob(job);
     setLoadingApplicants(true);
     setJobApplicants([]);
-    setShortlistedTutors([]);
+    setShortlistedTutors(job.shortlistedTutors || []);
 
+    // 1. Fetch real applicants immediately (instant display in ~100ms)
+    TuitionRepository.getApplications(job.id)
+      .then((apps) => {
+        const appList = Array.isArray(apps) ? apps : ((apps as any)?.data || []);
+        setJobApplicants(appList);
+      })
+      .catch((err) => {
+        console.error('Failed to load applicants:', err);
+      })
+      .finally(() => {
+        setLoadingApplicants(false);
+      });
+
+    // 2. Fetch shortlisted tutors in background without blocking applicant list
+    TuitionRepository.getShortlisted(job.id)
+      .then((shortlistedRes) => {
+        if (shortlistedRes?.shortlistedTutors) {
+          setShortlistedTutors(shortlistedRes.shortlistedTutors);
+        }
+      })
+      .catch((err) => {
+        console.warn('Could not load shortlisted tutors:', err);
+      });
+  };
+
+  // Handle Application Action (Pending, Demo Confirmed, Final Hire, Reject)
+  const handleUpdateAppStatus = async (
+    appId: string,
+    targetStatus: 'Pending' | 'Demo_Confirmed' | 'Accepted' | 'Rejected'
+  ) => {
+    if (!appId || actionLoadingAppId) return;
+    setActionLoadingAppId(appId);
+    setActionType(targetStatus);
     try {
-      const [apps, shortlistedRes] = await Promise.all([
-        TuitionRepository.getApplications(job.id).catch(() => []),
-        TuitionRepository.getShortlisted(job.id).catch(() => null),
-      ]);
+      if (targetStatus === 'Demo_Confirmed') {
+        await demoConfirmApp(appId).unwrap();
+        showToast('টিউটরের ডেমো ক্লাস নিশ্চিত করা হয়েছে (Demo Confirmed)!', 'success');
+      } else if (targetStatus === 'Accepted') {
+        await finalConfirmApp(appId).unwrap();
+        showToast('টিউটরকে চূড়ান্তভাবে হায়ার করা হয়েছে (Final Hire)! Deal Done.', 'success');
+      } else if (targetStatus === 'Rejected') {
+        await rejectApp(appId).unwrap();
+        showToast('আবেদনটি রিজেক্ট (Rejected) করা হয়েছে।', 'success');
+      } else if (targetStatus === 'Pending') {
+        await resetToPendingApp(appId).unwrap();
+        showToast('আবেদনের স্ট্যাটাস পুনরায় Pending করা হয়েছে।', 'success');
+      }
 
-      const appList = Array.isArray(apps) ? apps : ((apps as any)?.data || []);
-      setJobApplicants(appList);
-      setShortlistedTutors(shortlistedRes?.shortlistedTutors || job.shortlistedTutors || []);
-    } catch (err) {
-      console.error('Failed to load applicants:', err);
+      // Optimistically update status in modal list
+      setJobApplicants((prev) =>
+        prev.map((a) => (a._id === appId || a.id === appId ? { ...a, status: targetStatus } : a))
+      );
+
+      // Also update selectedJob status if finalized
+      if (targetStatus === 'Accepted' && selectedJob) {
+        setSelectedJob((prev: any) => (prev ? { ...prev, status: 'Active' } : null));
+      }
+
+      // Refetch both job listings and applications
+      refetch();
+      if (selectedJob?.id) {
+        TuitionRepository.getApplications(selectedJob.id).then((apps) => {
+          const appList = Array.isArray(apps) ? apps : ((apps as any)?.data || []);
+          setJobApplicants(appList);
+        });
+      }
+    } catch (err: any) {
+      console.error('Failed to update application status:', err);
+      const errorMsg = err?.data?.message || err?.message || 'আবেদনের স্ট্যাটাস পরিবর্তন করতে ব্যর্থ হয়েছে!';
+      showToast(`ত্রুটি: ${errorMsg}`, 'error');
     } finally {
-      setLoadingApplicants(false);
+      setActionLoadingAppId(null);
+      setActionType(null);
     }
   };
 
@@ -1046,7 +1117,14 @@ export default function AdminJobsApprove() {
                         const tutorEmail = isMaskedForMod ? '🔒 Protected by Admin' : (tutorUser.email || 'tutor@gmail.com');
                         const tutorAvatar = tutorUser.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(tutorName)}`;
 
-                        const isAccepted = app.status?.toLowerCase() === 'accepted';
+                        const appId = String(app._id || app.id || '');
+                        const appStatus = (app.status || 'Pending').toLowerCase();
+                        const isAccepted = appStatus === 'accepted';
+                        const isAppDemoConfirmed = appStatus === 'demo_confirmed';
+                        const isAppDemoCompleted = appStatus === 'demo_completed';
+                        const isAppRejected = appStatus === 'rejected';
+                        const isAppPending = appStatus === 'pending';
+                        const isUpdatingThisApp = actionLoadingAppId === appId;
 
                         return (
                           <div
@@ -1055,7 +1133,11 @@ export default function AdminJobsApprove() {
                               "p-4 sm:p-5 rounded-2xl border transition-all space-y-3",
                               isAccepted
                                 ? "bg-emerald-50/70 border-emerald-300 shadow-sm"
-                                : "bg-white border-ink/10 hover:border-primary/30"
+                                : isAppDemoConfirmed
+                                  ? "bg-purple-50/40 border-purple-200"
+                                  : isAppRejected
+                                    ? "bg-rose-50/30 border-rose-200 opacity-80"
+                                    : "bg-white border-ink/10 hover:border-primary/30"
                             )}
                           >
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -1070,7 +1152,7 @@ export default function AdminJobsApprove() {
                                     <h5 className="text-sm font-black text-ink truncate">{tutorName}</h5>
                                     {isAccepted && (
                                       <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-600 text-white uppercase">
-                                        ✓ Confirmed
+                                        ✓ Final Hired
                                       </span>
                                     )}
                                   </div>
@@ -1082,12 +1164,16 @@ export default function AdminJobsApprove() {
 
                               <div className="flex items-center gap-2">
                                 <span className={cn(
-                                  "px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider",
+                                  "px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border",
                                   isAccepted
-                                    ? "bg-emerald-100 text-emerald-800"
-                                    : app.status === 'Rejected'
-                                      ? "bg-rose-100 text-rose-700"
-                                      : "bg-blue-100 text-blue-800"
+                                    ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                                    : isAppDemoConfirmed
+                                      ? "bg-purple-100 text-purple-800 border-purple-200"
+                                      : isAppDemoCompleted
+                                        ? "bg-amber-100 text-amber-800 border-amber-200"
+                                        : isAppRejected
+                                          ? "bg-rose-100 text-rose-700 border-rose-200"
+                                          : "bg-blue-100 text-blue-800 border-blue-200"
                                 )}>
                                   Status: {app.status || 'Pending'}
                                 </span>
@@ -1130,6 +1216,104 @@ export default function AdminJobsApprove() {
                               <div className="p-3 bg-gray-50 rounded-xl text-xs text-ink font-medium border border-ink/5">
                                 <strong className="text-[10px] text-ink-muted uppercase block mb-1">আবেদন বার্তা (Cover Letter):</strong>
                                 "{app.coverLetter}"
+                              </div>
+                            )}
+
+                            {/* Application Action Buttons: Pending, Confirm Demo, Final Hire, Reject */}
+                            {!isMaskedForMod ? (
+                              <div className="pt-2.5 border-t border-ink/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                                <span className="text-[10px] font-black uppercase tracking-wider text-ink-muted shrink-0">
+                                  আবেদন অ্যাকশন:
+                                </span>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  {/* 1. Pending Button */}
+                                  <button
+                                    type="button"
+                                    disabled={isUpdatingThisApp || isAppPending}
+                                    onClick={() => handleUpdateAppStatus(appId, 'Pending')}
+                                    className={cn(
+                                      "px-2.5 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1.5 transition-all cursor-pointer",
+                                      isAppPending
+                                        ? "bg-slate-200 text-slate-800 font-black cursor-default border border-slate-300 shadow-2xs"
+                                        : "bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 hover:border-slate-300 active:scale-95 disabled:opacity-50"
+                                    )}
+                                    title="স্ট্যাটাস Pending করুন"
+                                  >
+                                    {isUpdatingThisApp && actionType === 'Pending' ? (
+                                      <Loader2 size={12} className="animate-spin text-slate-600" />
+                                    ) : (
+                                      <RotateCcw size={12} className={isAppPending ? "text-slate-700" : "text-slate-400"} />
+                                    )}
+                                    <span>Pending</span>
+                                  </button>
+
+                                  {/* 2. Confirm Demo Button */}
+                                  <button
+                                    type="button"
+                                    disabled={isUpdatingThisApp || isAppDemoConfirmed}
+                                    onClick={() => handleUpdateAppStatus(appId, 'Demo_Confirmed')}
+                                    className={cn(
+                                      "px-2.5 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1.5 transition-all cursor-pointer",
+                                      isAppDemoConfirmed
+                                        ? "bg-purple-600 text-white font-black cursor-default shadow-xs"
+                                        : "bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 hover:border-purple-300 active:scale-95 disabled:opacity-50"
+                                    )}
+                                    title="ডেমো ক্লাস কনফার্ম করুন"
+                                  >
+                                    {isUpdatingThisApp && actionType === 'Demo_Confirmed' ? (
+                                      <Loader2 size={12} className="animate-spin text-purple-600" />
+                                    ) : (
+                                      <Sparkles size={12} className={isAppDemoConfirmed ? "text-white" : "text-purple-600"} />
+                                    )}
+                                    <span>Confirm Demo</span>
+                                  </button>
+
+                                  {/* 3. Final Hire Button */}
+                                  <button
+                                    type="button"
+                                    disabled={isUpdatingThisApp || isAccepted}
+                                    onClick={() => handleUpdateAppStatus(appId, 'Accepted')}
+                                    className={cn(
+                                      "px-3 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1.5 transition-all cursor-pointer",
+                                      isAccepted
+                                        ? "bg-emerald-600 text-white font-black cursor-default shadow-xs"
+                                        : "bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 hover:border-emerald-400 active:scale-95 disabled:opacity-50"
+                                    )}
+                                    title="টিউটরকে চূড়ান্তভাবে হায়ার করুন (Deal Done)"
+                                  >
+                                    {isUpdatingThisApp && actionType === 'Accepted' ? (
+                                      <Loader2 size={12} className="animate-spin text-emerald-700" />
+                                    ) : (
+                                      <UserCheck size={12} className={isAccepted ? "text-white" : "text-emerald-600"} />
+                                    )}
+                                    <span>Final Hire</span>
+                                  </button>
+
+                                  {/* 4. Reject Button */}
+                                  <button
+                                    type="button"
+                                    disabled={isUpdatingThisApp || isAppRejected}
+                                    onClick={() => handleUpdateAppStatus(appId, 'Rejected')}
+                                    className={cn(
+                                      "px-2.5 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1.5 transition-all cursor-pointer",
+                                      isAppRejected
+                                        ? "bg-rose-600 text-white font-black cursor-default shadow-xs"
+                                        : "bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 hover:border-rose-300 active:scale-95 disabled:opacity-50"
+                                    )}
+                                    title="আবেদন বাতিল (Reject) করুন"
+                                  >
+                                    {isUpdatingThisApp && actionType === 'Rejected' ? (
+                                      <Loader2 size={12} className="animate-spin text-rose-600" />
+                                    ) : (
+                                      <XCircle size={12} className={isAppRejected ? "text-white" : "text-rose-500"} />
+                                    )}
+                                    <span>Reject</span>
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="pt-2 text-[10px] text-ink-muted italic font-medium">
+                                🔒 মডারেটর হিসেবে আপনি এডমিনের পোস্টের আবেদন অ্যাকশন পরিবর্তন করতে পারবেন না।
                               </div>
                             )}
                           </div>

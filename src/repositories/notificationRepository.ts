@@ -9,6 +9,7 @@ export interface NotificationRecord {
   message?: string;
   isRead?: boolean;
   type?: string;
+  link?: string;
   [key: string]: unknown;
 }
 
