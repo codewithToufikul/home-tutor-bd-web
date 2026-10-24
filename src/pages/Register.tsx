@@ -9,6 +9,7 @@ import {
   MapPin, 
   UserCircle, 
   ChevronRight, 
+  ChevronDown,
   ArrowLeft,
   AlertCircle,
   Building2,
@@ -41,6 +42,7 @@ export default function Register() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCustomArea, setIsCustomArea] = useState(false);
 
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -429,14 +431,21 @@ export default function Register() {
                           </div>
                           <select
                             required
-                            className={cn(inputClasses, "cursor-pointer appearance-none pr-8")}
+                            className={cn(inputClasses, "cursor-pointer appearance-none pr-10")}
                             value={formData.district}
-                            onChange={(e) => setFormData({ ...formData, district: e.target.value, preferredArea: '' })}
+                            onChange={(e) => {
+                              const newDist = e.target.value;
+                              setFormData((prev) => ({ ...prev, district: newDist, location: '' }));
+                              setIsCustomArea(false);
+                            }}
                           >
                             {Object.keys(DISTRICT_WISE_AREAS).map((dist) => (
                               <option key={dist} value={dist}>{dist}</option>
                             ))}
                           </select>
+                          <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-400">
+                            <ChevronDown size={16} />
+                          </div>
                         </div>
                       </div>
 
@@ -446,22 +455,63 @@ export default function Register() {
                           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                             <MapPin size={18} />
                           </div>
-                          <input
-                            type="text"
+                          <select
                             required
-                            inputMode="text"
-                            list="area-suggestions"
-                            className={inputClasses}
-                            placeholder="e.g. Dhanmondi / Uttara"
-                            value={formData.location}
-                            onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                          />
-                          <datalist id="area-suggestions">
+                            className={cn(inputClasses, "cursor-pointer appearance-none pr-10")}
+                            value={isCustomArea ? 'Other' : formData.location}
+                            onChange={(e) => {
+                              if (e.target.value === 'Other') {
+                                setIsCustomArea(true);
+                                setFormData((prev) => ({ ...prev, location: '' }));
+                              } else {
+                                setIsCustomArea(false);
+                                setFormData((prev) => ({ ...prev, location: e.target.value }));
+                              }
+                            }}
+                          >
+                            <option value="">Select Your Area</option>
                             {availableAreas.map((a) => (
-                              <option key={a} value={a} />
+                              <option key={a} value={a}>{a}</option>
                             ))}
-                          </datalist>
+                            <option value="Other">✍️ Other / তালিকায় নেই (নিজে লিখুন)...</option>
+                          </select>
+                          <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-400">
+                            <ChevronDown size={16} />
+                          </div>
                         </div>
+
+                        {/* Custom area text input if selected Other */}
+                        {isCustomArea && (
+                          <div className="mt-2.5 space-y-1">
+                            <div className="relative">
+                              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                                <MapPin size={18} />
+                              </div>
+                              <input
+                                type="text"
+                                required
+                                className={inputClasses}
+                                placeholder="আপনার নির্দিষ্ট এলাকার নাম লিখুন..."
+                                value={formData.location}
+                                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                                autoFocus
+                              />
+                            </div>
+                            <div className="flex justify-between items-center px-1">
+                              <span className="text-[11px] text-slate-500">তালিকায় না পেলে এখানে লিখুন</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsCustomArea(false);
+                                  setFormData((prev) => ({ ...prev, location: '' }));
+                                }}
+                                className="text-[11px] font-bold text-primary hover:underline cursor-pointer"
+                              >
+                                ← ড্রপডাউন থেকে বাছুন
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </>
                   )}

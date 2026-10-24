@@ -10,6 +10,7 @@ export interface ApplicationRecord {
   demoCompletedAt?: string;
   finalConfirmedAt?: string;
   rejectionReason?: string;
+  reference?: string;
   [key: string]: unknown;
 }
 

@@ -22,6 +22,7 @@ export default function JobApplyModal({ jobId, jobTitle, salary, location, onClo
   const { user } = useAuth();
   const [expectedSalary, setExpectedSalary] = useState<string>(salary ? String(salary).replace(/[^0-9]/g, '') : '');
   const [coverLetter, setCoverLetter] = useState<string>('');
+  const [reference, setReference] = useState<string>('');
   const [availableTime, setAvailableTime] = useState<string[]>([]);
   const [agreed, setAgreed] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -161,6 +162,7 @@ export default function JobApplyModal({ jobId, jobTitle, salary, location, onClo
         availableTime,
         signatureImage: signatureBase64,
         agreedToTerms: true,
+        ...(reference.trim() ? { reference: reference.trim() } : {}),
       });
 
       const newId = res?.data?._id || res?.data?.id || res?._id || res?.id || null;
@@ -377,6 +379,23 @@ export default function JobApplyModal({ jobId, jobTitle, salary, location, onClo
                   placeholder="আপনার পূর্ব অভিজ্ঞতা, পড়াশোনার ব্যাকগ্রাউন্ড বা পড়ানোর পদ্ধতি সংক্ষেপে লিখুন..."
                   className="w-full px-4 py-2.5 bg-slate-50 border border-ink/10 rounded-2xl text-xs font-medium focus:outline-none focus:border-primary focus:bg-white transition-all shadow-xs resize-none"
                 />
+              </div>
+
+              {/* 3b. Reference (Optional) */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-black text-ink uppercase tracking-wider flex items-center gap-1.5">
+                  <User size={12} className="text-ink-muted" />
+                  <span>রেফারেন্স (Reference)</span>
+                  <span className="text-[10px] font-medium text-ink-muted normal-case tracking-normal">(ঐচ্ছিক — Optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={reference}
+                  onChange={(e) => setReference(e.target.value)}
+                  placeholder="যেমন: মো. রাহাত হোসেন (বন্ধু), অথবা ফোন নম্বর, বা অন্য কোনো রেফারেন্স..."
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-ink/10 rounded-2xl text-xs font-medium focus:outline-none focus:border-primary focus:bg-white transition-all shadow-xs"
+                />
+                <p className="text-[10px] text-ink-muted font-medium pl-1">কেউ আপনাকে এই প্ল্যাটফর্মে রেফার করলে বা কোনো পরিচিতজনের নাম উল্লেখ করতে পারেন।</p>
               </div>
 
               {/* 4. Digital Signature Canvas */}

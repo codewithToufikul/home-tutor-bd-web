@@ -25,6 +25,7 @@ export const TuitionRepository = {
   async apply(jobId: string, payload?: { 
     expectedSalary?: number; 
     coverLetter?: string; 
+    reference?: string;
     availableTime?: string[];
     signatureImage?: string;
     agreedToTerms?: boolean;

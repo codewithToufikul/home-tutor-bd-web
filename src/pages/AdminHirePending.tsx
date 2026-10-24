@@ -162,6 +162,7 @@ export default function AdminHirePending() {
         rawStatus: a.status || 'Pending',
         expectedSalary: a.expectedSalary || job.salary || 0,
         coverLetter: a.coverLetter || '',
+        reference: a.reference || '',
         availableTime: Array.isArray(a.availableTime) ? a.availableTime : [],
         createdAt: a.createdAt,
         appliedAtFormatted: a.createdAt
@@ -1484,6 +1485,19 @@ export default function AdminHirePending() {
                       <p className="text-xs text-ink font-medium leading-relaxed bg-white p-3 rounded-xl border border-ink/5">
                         "{selectedApp.coverLetter}"
                       </p>
+                    </div>
+                  )}
+
+                  {/* Reference Field */}
+                  {selectedApp.reference && (
+                    <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3">
+                      <div className="shrink-0 w-7 h-7 rounded-xl bg-amber-100 flex items-center justify-center">
+                        <span className="text-sm">🔗</span>
+                      </div>
+                      <div className="space-y-0.5">
+                        <p className="text-[10px] font-black uppercase text-amber-800 tracking-wider">টিউটরের রেফারেন্স (Reference)</p>
+                        <p className="text-xs font-bold text-amber-900">{selectedApp.reference}</p>
+                      </div>
                     </div>
                   )}
                 </div>

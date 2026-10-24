@@ -742,19 +742,11 @@ export default function StudentSettings() {
                   </label>
                   <input
                     type="text"
-                    list="student-area-suggestions"
                     value={area}
                     onChange={(e) => setArea(e.target.value)}
                     placeholder="e.g. Dhanmondi 27, Mirpur-10, Sector-4, Zindabazar, Agrabad"
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                   />
-                  {availableAreas.length > 0 && (
-                    <datalist id="student-area-suggestions">
-                      {availableAreas.map((loc, idx) => (
-                        <option key={idx} value={loc} />
-                      ))}
-                    </datalist>
-                  )}
                 </div>
 
                 {/* Preferred Tuition Mode */}
