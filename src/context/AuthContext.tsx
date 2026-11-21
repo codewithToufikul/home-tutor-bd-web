@@ -37,7 +37,7 @@ interface AuthContextType {
     email: string,
     password: string,
     role: Exclude<AuthRole, 'admin' | 'super_admin' | 'moderator'>,
-    extra?: { phone?: string; location?: string; gender?: string; [key: string]: any },
+    extra?: { phone?: string; location?: string; gender?: string;[key: string]: any },
   ) => Promise<void>;
   logout: () => Promise<void>;
   verifyEmail: (code: string) => Promise<void>;
@@ -77,6 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             location: u.location,
             address: u.address,
             isEmailVerified: Boolean(u.isEmailVerified),
+            isPhoneVerified: Boolean(u.isPhoneVerified),
             isApproved: Boolean(u.isApproved),
           },
           accessToken: reduxAuth.accessToken || localStorage.getItem('accessToken') || '',
@@ -88,20 +89,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Normalize backend user shape to legacy AppUser shape
   const appUser: AppUser | null = reduxAuth.user
     ? {
-        _id: String(reduxAuth.user._id || (reduxAuth.user as any).id || ''),
-        id: String(reduxAuth.user._id || (reduxAuth.user as any).id || ''),
-        uid: String(reduxAuth.user._id || (reduxAuth.user as any).id || ''),
-        email: reduxAuth.user.email,
-        username: (reduxAuth.user as any).username,
-        name: reduxAuth.user.name,
-        phone: reduxAuth.user.phone,
-        role: reduxAuth.user.role as AuthRole,
-        isVerified: reduxAuth.user.isEmailVerified,
-        isApproved: reduxAuth.user.isApproved,
-        avatar: reduxAuth.user.avatar,
-        address: reduxAuth.user.address,
-        location: reduxAuth.user.location,
-      }
+      _id: String(reduxAuth.user._id || (reduxAuth.user as any).id || ''),
+      id: String(reduxAuth.user._id || (reduxAuth.user as any).id || ''),
+      uid: String(reduxAuth.user._id || (reduxAuth.user as any).id || ''),
+      email: reduxAuth.user.email,
+      username: (reduxAuth.user as any).username,
+      name: reduxAuth.user.name,
+      phone: reduxAuth.user.phone,
+      role: reduxAuth.user.role as AuthRole,
+      isVerified: reduxAuth.user.isPhoneVerified || reduxAuth.user.isEmailVerified,
+      isApproved: reduxAuth.user.isApproved,
+      avatar: reduxAuth.user.avatar,
+      address: reduxAuth.user.address,
+      location: reduxAuth.user.location,
+    }
     : null;
 
   // Initialize OneSignal once
@@ -134,6 +135,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             location: (user as any).location,
             address: (user as any).address,
             isEmailVerified: user.isEmailVerified,
+            isPhoneVerified: (user as any).isPhoneVerified,
             isApproved: user.isApproved,
           },
         }),
@@ -153,7 +155,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     email: string,
     password: string,
     role: Exclude<AuthRole, 'admin' | 'super_admin' | 'moderator'>,
-    extra?: { phone?: string; location?: string; gender?: string; [key: string]: any },
+    extra?: { phone?: string; location?: string; gender?: string;[key: string]: any },
   ) => {
     try {
       await registerMutation({

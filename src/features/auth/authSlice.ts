@@ -11,6 +11,7 @@ export interface User {
   location?: string;
   address?: string;
   isEmailVerified: boolean;
+  isPhoneVerified?: boolean;
   isApproved: boolean;
 }
 

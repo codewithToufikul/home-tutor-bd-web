@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { CheckCircle2, AlertCircle, ArrowLeft, RefreshCw, KeyRound, ChevronRight } from 'lucide-react';
+import { CheckCircle2, AlertCircle, ArrowLeft, RefreshCw, Smartphone, ChevronRight } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useVerifyEmailMutation, useForgotPasswordMutation } from '../services/authApi';
+import { useVerifyPhoneOtpMutation, useResendOtpMutation } from '../services/authApi';
 import { useAppDispatch } from '../app/hooks';
 import { setCredentials } from '../features/auth/authSlice';
 import { cn } from '../lib/utils';
@@ -12,10 +12,13 @@ export default function VerifyOTP() {
   const dispatch = useAppDispatch();
   const location = useLocation();
 
-  // Get email passed from Register page state or query parameter
-  const emailParam = (location.state as { email?: string })?.email || new URLSearchParams(location.search).get('email') || '';
-  
-  const [email] = useState(emailParam);
+  // Get phone passed from Register page state or query parameter
+  const phoneParam =
+    (location.state as { phone?: string })?.phone ||
+    new URLSearchParams(location.search).get('phone') ||
+    '';
+
+  const [phone] = useState(phoneParam);
   const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -23,8 +26,8 @@ export default function VerifyOTP() {
 
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  const [verifyEmail, { isLoading: isVerifying }] = useVerifyEmailMutation();
-  const [resendOtp, { isLoading: isResending }] = useForgotPasswordMutation();
+  const [verifyOtp, { isLoading: isVerifying }] = useVerifyPhoneOtpMutation();
+  const [resendOtpMutation, { isLoading: isResending }] = useResendOtpMutation();
 
   // Auto focus first input on mount
   useEffect(() => {
@@ -45,7 +48,8 @@ export default function VerifyOTP() {
   // Handle OTP Digit Input Change
   const handleChange = (index: number, rawVal: string) => {
     const cleanDigits = rawVal.replace(/\D/g, '');
-    
+
+
     if (!cleanDigits) {
       const newOtp = [...otpDigits];
       newOtp[index] = '';
@@ -116,7 +120,7 @@ export default function VerifyOTP() {
     }
   };
 
-  // Submit OTP Verification
+  // Submit Phone OTP Verification
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -124,13 +128,18 @@ export default function VerifyOTP() {
 
     const fullOtp = otpDigits.join('');
     if (fullOtp.length !== 6) {
-      setError('Please enter the complete 6-digit OTP code');
+      setError('অনুগ্রহ করে সম্পূর্ণ ৬ ডিজিটের OTP কোডটি দিন');
+      return;
+    }
+
+    if (!phone) {
+      setError('মোবাইল নম্বর পাওয়া যায়নি। পুনরায় রেজিস্ট্রেশন করুন।');
       return;
     }
 
     try {
-      const res = await verifyEmail({ email, otp: fullOtp }).unwrap() as { data?: { accessToken?: string; user?: any } };
-      setSuccessMsg('Email verified successfully!');
+      const res = await verifyOtp({ phone, otp: fullOtp }).unwrap() as { data?: { accessToken?: string; user?: any } };
+      setSuccessMsg('মোবাইল নম্বর সফলভাবে ভেরিফাই হয়েছে! 🎉');
 
       if (res?.data?.accessToken && res?.data?.user) {
         const u = res.data.user;
@@ -140,17 +149,17 @@ export default function VerifyOTP() {
             user: {
               _id: u._id,
               name: u.name,
-              email: u.email,
+              email: u.email || '',
+              phone: u.phone,
               role: u.role,
               avatar: u.avatar,
-              isEmailVerified: u.isEmailVerified,
+              isEmailVerified: u.isEmailVerified || false,
               isApproved: u.isApproved,
             },
           })
         );
 
         setTimeout(() => {
-          // Only coaching centers need admin approval. Tutors, Students & Guardians are auto-approved.
           if (!u.isApproved && u.role === 'coaching') {
             navigate('/pending-approval', { replace: true });
           } else if (u.role === 'guardian' || u.role === 'student') {
@@ -162,59 +171,69 @@ export default function VerifyOTP() {
           } else {
             navigate('/', { replace: true });
           }
-        }, 1000);
-      } else {
-        setTimeout(() => {
-          navigate('/login');
-        }, 1200);
-      }
-    } catch (err: unknown) {
-      const msg = err && typeof err === 'object' && 'data' in err
-        ? (err.data as { message?: string })?.message || 'OTP verification failed'
-        : 'Invalid or expired OTP code';
-      setError(msg);
-    }
+      }, 1200);
+    } else {
+      setTimeout(() => {
+        navigate('/login');
+    }, 1500);
+  }
+} catch (err: unknown) {
+  const msg =
+    err && typeof err === 'object' && 'data' in err
+      ? (err.data as { message?: string })?.message || 'OTP যাচাই ব্যর্থ হয়েছে'
+      : 'ভুল অথবা মেয়াদোত্তীর্ণ OTP কোড';
+  setError(msg);
+}
   };
 
-  // Resend OTP Code
-  const handleResend = async () => {
-    if (resendTimer > 0 || isResending) return;
-    setError(null);
-    setSuccessMsg(null);
+// Resend OTP via phone SMS
+const handleResend = async () => {
+  if (resendTimer > 0 || isResending) return;
+  setError(null);
+  setSuccessMsg(null);
 
-    try {
-      await resendOtp({ email }).unwrap();
-      setSuccessMsg('A new OTP has been sent to your email.');
-      setResendTimer(60);
-    } catch (err: unknown) {
-      const msg = err && typeof err === 'object' && 'data' in err
-        ? (err.data as { message?: string })?.message || 'Failed to resend OTP'
-        : 'Failed to resend OTP';
-      setError(msg);
-    }
-  };
+  try {
+    await resendOtpMutation({ phone }).unwrap();
+    setSuccessMsg('নতুন OTP কোড আপনার মোবাইলে পাঠানো হয়েছে! 📱');
+    setResendTimer(60);
+    setOtpDigits(['', '', '', '', '', '']);
+    inputRefs.current[0]?.focus();
+  } catch (err: unknown) {
+    const msg =
+      err && typeof err === 'object' && 'data' in err
+        ? (err.data as { message?: string })?.message || 'OTP পাঠাতে সমস্যা হয়েছে'
+        : 'OTP পাঠাতে সমস্যা হয়েছে';
+    setError(msg);
+  }
+};
 
-  return (
-    <div className="min-h-screen bg-slate-50/60 flex flex-col justify-center py-6 sm:py-12 px-3.5 sm:px-6 lg:px-8 relative overflow-hidden">
-      {/* Background Glow Blobs */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 sm:w-96 h-80 sm:h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-72 sm:w-80 h-72 sm:h-80 bg-teal-400/10 rounded-full blur-3xl pointer-events-none" />
+// Mask phone for display: 017******78
+const maskedPhone = phone
+  ? phone.slice(0, 3) + '******' + phone.slice(-2)
+  : 'your phone';
 
-      <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10 text-center px-2">
-        {/* Animated App Key Icon */}
-        <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-2xl sm:rounded-3xl bg-primary/10 text-primary mb-3 sm:mb-4 shadow-sm border border-primary/20">
-          <KeyRound size={28} className="sm:w-8 sm:h-8 animate-pulse" />
-        </div>
-        <h2 className="text-2xl sm:text-3xl font-display font-black text-ink tracking-tight">
-          Verify Your Email
-        </h2>
-        <p className="mt-1.5 text-xs sm:text-sm text-ink-muted max-w-xs mx-auto">
-          We have sent a 6-digit verification code to
-        </p>
-        <div className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-white border border-slate-200/80 rounded-full text-xs font-bold text-slate-800 mt-2 shadow-xs">
-          <span className="truncate max-w-[200px] sm:max-w-xs">{email || 'your email'}</span>
+return (
+  <div className="min-h-screen bg-slate-50/60 flex flex-col justify-center py-6 sm:py-12 px-3.5 sm:px-6 lg:px-8 relative overflow-hidden">
+    {/* Background Glow Blobs */}
+    <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 sm:w-96 h-80 sm:h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="absolute bottom-1/4 right-1/4 w-72 sm:w-80 h-72 sm:h-80 bg-teal-400/10 rounded-full blur-3xl pointer-events-none" />
+
+    <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10 text-center px-2">
+      {/* Phone Icon */}
+      <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-2xl sm:rounded-3xl bg-primary/10 text-primary mb-3 sm:mb-4 shadow-sm border border-primary/20">
+        <Smartphone size={28} className="sm:w-8 sm:h-8" />
+      </div>
+      <h2 className="text-2xl sm:text-3xl font-display font-black text-ink tracking-tight">
+        মোবাইল নম্বর ভেরিফাই করুন
+      </h2>
+      <p className="mt-1.5 text-xs sm:text-sm text-ink-muted max-w-xs mx-auto">
+        আপনার মোবাইলে পাঠানো ৬ ডিজিটের OTP কোডটি নিচে দিন
+      </p>
+        <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white border border-slate-200/80 rounded-full text-xs font-bold text-slate-800 mt-2.5 shadow-xs">
+          <Smartphone size={13} className="text-primary shrink-0" />
+          <span className="truncate max-w-[200px] sm:max-w-xs">{maskedPhone}</span>
           <Link to="/register" className="text-primary hover:underline text-[11px] font-black shrink-0 ml-1">
-            Change
+            পরিবর্তন
           </Link>
         </div>
       </div>
@@ -244,7 +263,7 @@ export default function VerifyOTP() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
-            {/* 6 Digit Input Boxes - Responsive Touch Friendly Grid */}
+            {/* 6 Digit Input Boxes */}
             <div className="flex justify-between items-center gap-1.5 sm:gap-2.5">
               {otpDigits.map((digit, idx) => (
                 <input
@@ -261,10 +280,10 @@ export default function VerifyOTP() {
                   onKeyDown={(e) => handleKeyDown(idx, e)}
                   onPaste={handlePaste}
                   className={cn(
-                    "w-11 h-13 sm:w-14 sm:h-16 text-center text-xl sm:text-2xl font-black rounded-xl sm:rounded-2xl border transition-all outline-none cursor-text",
-                    digit 
-                      ? "border-primary ring-2 ring-primary/25 bg-primary/5 text-primary shadow-sm" 
-                      : "border-slate-200 bg-slate-50/80 text-ink focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white"
+                    'w-11 h-13 sm:w-14 sm:h-16 text-center text-xl sm:text-2xl font-black rounded-xl sm:rounded-2xl border transition-all outline-none cursor-text',
+                    digit
+                      ? 'border-primary ring-2 ring-primary/25 bg-primary/5 text-primary shadow-sm'
+                      : 'border-slate-200 bg-slate-50/80 text-ink focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white',
                   )}
                 />
               ))}
@@ -279,7 +298,7 @@ export default function VerifyOTP() {
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
-                  <span>Verify & Proceed</span>
+                  <span>ভেরিফাই করুন ও প্রবেশ করুন</span>
                   <ChevronRight size={18} />
                 </>
               )}
@@ -288,10 +307,11 @@ export default function VerifyOTP() {
 
           <div className="mt-6 sm:mt-8 pt-5 sm:pt-6 border-t border-slate-100 text-center">
             <p className="text-xs sm:text-sm text-ink-muted">
-              Didn't receive the code?{' '}
+              এসএমএস পাননি?{' '}
               {resendTimer > 0 ? (
                 <span className="font-bold text-slate-700 ml-1">
-                  Resend in <span className="text-primary font-black">{resendTimer}s</span>
+                  পুনরায় পাঠান{' '}
+                  <span className="text-primary font-black">{resendTimer}s</span> পরে
                 </span>
               ) : (
                 <button
@@ -301,7 +321,7 @@ export default function VerifyOTP() {
                   className="font-bold text-primary hover:underline inline-flex items-center gap-1 cursor-pointer ml-1"
                 >
                   <RefreshCw size={13} className={isResending ? 'animate-spin' : ''} />
-                  Resend Code
+                  পুনরায় পাঠান
                 </button>
               )}
             </p>
@@ -314,10 +334,10 @@ export default function VerifyOTP() {
             className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-ink-muted hover:text-ink transition-colors"
           >
             <ArrowLeft size={15} />
-            Back to Registration
+            রেজিস্ট্রেশনে ফিরুন
           </Link>
         </div>
       </div>
     </div>
-  );
+    );
 }
